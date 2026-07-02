@@ -159,8 +159,8 @@ describe('clicking an unbuilt tasks submenu item', () => {
   it('is a no-op — stays on the tasks submenu', () => {
     state.screen = 'tasks-menu'
 
-    // Index 2 = "Next 7 Days" — no screen exists yet
-    onEvenHubEvent(listClickEvent(2))
+    // Index 3 = "Next 7 Days" — no screen exists yet
+    onEvenHubEvent(listClickEvent(3))
 
     expect(state.screen).toBe('tasks-menu')
   })
@@ -176,8 +176,8 @@ describe('entering the overdue screen from the tasks submenu', () => {
     state.screen = 'tasks-menu'
     state.overdueSelectedIndex = 5
 
-    // Index 9 = "Overdue"
-    onEvenHubEvent(listClickEvent(9))
+    // Index 1 = "Overdue"
+    onEvenHubEvent(listClickEvent(1))
     await flushPromises()
 
     expect(state.overdueSelectedIndex).toBe(0)
@@ -217,8 +217,8 @@ describe('entering the inbox screen from the tasks submenu', () => {
     state.screen = 'tasks-menu'
     state.inboxSelectedIndex = 4
 
-    // Index 1 = "Inbox"
-    onEvenHubEvent(listClickEvent(1))
+    // Index 2 = "Inbox"
+    onEvenHubEvent(listClickEvent(2))
     await flushPromises()
 
     expect(state.inboxSelectedIndex).toBe(0)

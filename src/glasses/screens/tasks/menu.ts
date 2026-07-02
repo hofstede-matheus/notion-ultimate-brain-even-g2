@@ -8,6 +8,7 @@ const tasksMenuDef: MenuDef = {
   parent: 'menu',
   items: [
     { label: 'Today', target: 'today' },
+    { label: 'Overdue', target: 'overdue' },
     { label: 'Inbox', target: 'inbox' },
     { label: 'Next 7 Days' },
     { label: 'Tomorrow' },
@@ -16,7 +17,6 @@ const tasksMenuDef: MenuDef = {
     { label: 'Active Projects' },
     { label: 'All' },
     { label: 'Done' },
-    { label: 'Overdue', target: 'overdue' },
     { label: 'Add Task (Voice)', target: 'add-task' },
   ],
 }

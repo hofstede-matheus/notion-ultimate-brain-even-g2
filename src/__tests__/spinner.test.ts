@@ -55,7 +55,7 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 async function openInboxAndAwaitSpinner() {
   state.screen = 'tasks-menu'
-  onEvenHubEvent(listClickEvent(1))
+  onEvenHubEvent(listClickEvent(2))
   // Flush loadCachedTasks → showInbox (sets screen) → startSpinner
   await Promise.resolve()
   await Promise.resolve()
@@ -118,7 +118,7 @@ describe('spinner after fetch completes', () => {
     // may already have run by the time openInboxAndAwaitSpinner returns.
     // We only assert the final state.
     state.screen = 'tasks-menu'
-    onEvenHubEvent(listClickEvent(1))
+    onEvenHubEvent(listClickEvent(2))
     await Promise.resolve()
     await Promise.resolve()
     await Promise.resolve()
