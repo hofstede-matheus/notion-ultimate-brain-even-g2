@@ -34,6 +34,24 @@ let installed = false
 let buffer: string[] = []
 let logEl: HTMLElement | null = null
 
+/**
+ * Best-effort forward a log line to the dev server so it appears in the same
+ * terminal as `npm run dev:all`. Failures are swallowed — losing a log line
+ * should never break the app.
+ */
+function forwardToTerminal(level: Level, line: string): void {
+  try {
+    fetch('/api/logs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ level, line }),
+      keepalive: true,
+    }).catch(() => {})
+  } catch {
+    // ignore
+  }
+}
+
 const BODY_PREVIEW_BYTES = 200
 
 async function previewBody(body: BodyInit | null | undefined): Promise<string | null> {
@@ -82,6 +100,8 @@ function appendLine(level: Level, line: string, extraClass?: string): void {
   div.textContent = line
   el.appendChild(div)
   el.scrollTop = el.scrollHeight
+
+  forwardToTerminal(level, line)
 }
 
 /**
@@ -134,7 +154,11 @@ function installFetchLogger(): void {
         ? input.toString()
         : input.url
 
-    const isApi = url.includes('/api/')
+    // Exclude /api/logs itself: forwardToTerminal() posts every appended line
+    // there, and appendLine() forwards every line it renders (including
+    // these API-traffic lines) — without this exclusion, logging a /api/logs
+    // request creates an infinite self-amplifying loop.
+    const isApi = url.includes('/api/') && !url.includes('/api/logs')
     const started = performance.now()
     const reqBody = init?.body ? await previewBody(init.body as BodyInit) : null
 

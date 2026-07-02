@@ -1,7 +1,7 @@
 import type { AppState } from '../state'
 import type { GlassCtx } from './context'
 import type { Screen, ScreenDisplay, AppGlassAction, GlassNavState } from './types'
-import { menuScreen } from './screens/menu'
+import { menuScreen, tasksMenuScreen, notesMenuScreen, projectsMenuScreen, tagsMenuScreen } from './screens/menu'
 import { overdueScreen } from './screens/overdue'
 import { todayScreen } from './screens/today'
 import { inboxScreen } from './screens/inbox'
@@ -9,6 +9,10 @@ import { addTaskScreen } from './screens/add-task'
 
 const SCREENS: Record<string, Screen<AppState, GlassCtx>> = {
   menu: menuScreen,
+  'tasks-menu': tasksMenuScreen,
+  'notes-menu': notesMenuScreen,
+  'projects-menu': projectsMenuScreen,
+  'tags-menu': tagsMenuScreen,
   overdue: overdueScreen,
   today: todayScreen,
   inbox: inboxScreen,

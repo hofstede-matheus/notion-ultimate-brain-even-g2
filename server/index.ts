@@ -63,6 +63,23 @@ app.use(cors())
 // GET /api/tasks/today
 // Tasks with Due ≤ today AND Status != Done
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// POST /api/logs
+// Browser-side console messages forwarded from the webview so they show up
+// in the same terminal as the server logs when running `npm run dev:all`.
+// Body: { level: string, line: string }
+// ---------------------------------------------------------------------------
+app.post('/api/logs', express.json(), (req, res) => {
+  const { level, line } = req.body ?? {}
+  if (typeof line !== 'string') {
+    res.status(400).json({ error: 'Missing "line" in request body' })
+    return
+  }
+  const tag = (typeof level === 'string' && level.trim()) || 'log'
+  console.log(`[browser:${tag}] ${line}`)
+  res.json({ ok: true })
+})
+
 app.get('/api/tasks/today', async (_req, res) => {
   try {
     const today = todayISO()

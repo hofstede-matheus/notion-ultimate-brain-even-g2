@@ -42,7 +42,7 @@ export const inboxScreen: Screen<AppState, GlassCtx> = {
     if (action.type === 'GO_BACK') {
       ctx.stopSpinner()
       state.inboxSelectedIndex = 0
-      ctx.navigate('menu')
+      ctx.navigate('tasks-menu')
       return nav
     }
 

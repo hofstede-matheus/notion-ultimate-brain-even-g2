@@ -16,23 +16,15 @@ const H = 288
 const HEADER_H = 52
 const LIST_H = H - HEADER_H
 
-/** Container name for the id=1 text container (header in list mode, full page in fallback). */
-const HEADER_CONTAINER_NAME: Record<ScreenName, string> = {
-  menu: 'menu-header',
-  overdue: 'overdue-header',
-  today: 'today-header',
-  inbox: 'inbox-header',
-  'add-task': 'voice',
-}
-
-/** Container name for the id=2 native list container (Menu/Overdue/Today/Inbox). */
-const LIST_CONTAINER_NAME: Record<ScreenName, string> = {
-  menu: 'menu-list',
-  overdue: 'overdue-list',
-  today: 'today-list',
-  inbox: 'inbox-list',
-  'add-task': '',
-}
+// Container names + IDs MUST stay stable across every render for the whole app
+// lifetime. The G2 firmware matches rebuild/upgrade containers by name+ID
+// against the containers createStartUpPageContainer first established — giving a
+// container a new name per screen makes rebuildPageContainer silently fail
+// (returns false, list never updates). Names are also capped at 16 chars.
+// See even-g2-context/docs/{display,page-lifecycle}.md and EvenChess's
+// CONTAINER_NAME_* constants. id=1 = header/text, id=2 = native list.
+const HEADER_CONTAINER_NAME = 'ub-header'
+const LIST_CONTAINER_NAME = 'ub-list'
 
 function currentDisplay() {
   return router.toDisplayData(state, currentNav())
@@ -51,12 +43,20 @@ async function rebuildPage(config: {
   if (!b) return
 
   if (!state.startupRendered) {
-    await b.createStartUpPageContainer(new CreateStartUpPageContainer(config))
+    console.log('[debug] createStartUpPageContainer →', JSON.stringify(config))
+    const r = await b.createStartUpPageContainer(new CreateStartUpPageContainer(config))
+    console.log('[debug] createStartUpPageContainer ←', JSON.stringify(r))
     state.startupRendered = true
     return
   }
 
-  await b.rebuildPageContainer(new RebuildPageContainer(config))
+  console.log('[debug] rebuildPageContainer →', JSON.stringify(config))
+  try {
+    const r = await b.rebuildPageContainer(new RebuildPageContainer(config))
+    console.log('[debug] rebuildPageContainer ←', JSON.stringify(r))
+  } catch (e) {
+    console.error('[debug] rebuildPageContainer threw', e)
+  }
 }
 
 /**
@@ -80,17 +80,41 @@ export async function showInbox(): Promise<void> {
   await renderFull('inbox')
 }
 
+/**
+ * Inert placeholder for container id=2 on text-only screens. The G2 firmware
+ * fails to re-add a container that was absent from the immediately preceding
+ * rebuild (even with a stable name/ID) — so id=2 must appear in every single
+ * rebuild for the app's lifetime, never just id=1. 1x1 + isEventCapture:0
+ * keeps it visually and functionally inert.
+ */
+function placeholderListContainer(): ListContainerProperty {
+  return new ListContainerProperty({
+    containerID: 2,
+    containerName: LIST_CONTAINER_NAME,
+    xPosition: 0,
+    yPosition: 0,
+    width: 1,
+    height: 1,
+    isEventCapture: 0,
+    itemContainer: new ListItemContainerProperty({
+      itemName: [''],
+      itemCount: 1,
+      isItemSelectBorderEn: 0,
+    }),
+  })
+}
+
 /** Full container rebuild. Assumes `state.screen === screen` already. */
 export async function renderFull(screen: ScreenName): Promise<void> {
   const display = currentDisplay()
 
   if (display.mode === 'text') {
     await rebuildPage({
-      containerTotalNum: 1,
+      containerTotalNum: 2,
       textObject: [
         new TextContainerProperty({
           containerID: 1,
-          containerName: HEADER_CONTAINER_NAME[screen],
+          containerName: HEADER_CONTAINER_NAME,
           content: display.content,
           xPosition: 0,
           yPosition: 0,
@@ -100,6 +124,7 @@ export async function renderFull(screen: ScreenName): Promise<void> {
           paddingLength: 8,
         }),
       ],
+      listObject: [placeholderListContainer()],
     })
     return
   }
@@ -110,7 +135,7 @@ export async function renderFull(screen: ScreenName): Promise<void> {
     textObject: [
       new TextContainerProperty({
         containerID: 1,
-        containerName: HEADER_CONTAINER_NAME[screen],
+        containerName: HEADER_CONTAINER_NAME,
         content: display.header,
         xPosition: 0,
         yPosition: 0,
@@ -123,7 +148,7 @@ export async function renderFull(screen: ScreenName): Promise<void> {
     listObject: [
       new ListContainerProperty({
         containerID: 2,
-        containerName: LIST_CONTAINER_NAME[screen],
+        containerName: LIST_CONTAINER_NAME,
         xPosition: 0,
         yPosition: HEADER_H,
         width: W,
@@ -155,7 +180,7 @@ export async function renderUpdate(screen: ScreenName): Promise<void> {
   await b.textContainerUpgrade(
     new TextContainerUpgrade({
       containerID: 1,
-      containerName: HEADER_CONTAINER_NAME[screen],
+      containerName: HEADER_CONTAINER_NAME,
       content,
     }),
   )

@@ -39,6 +39,7 @@ function stopSpinner(): void {
 // ---------------------------------------------------------------------------
 
 function navigate(screen: Screen): void {
+  console.log(`[debug] navigate: ${state.screen} -> ${screen}`)
   if (screen === 'add-task') {
     state.recording = 'idle'
     state.createdTaskName = ''
@@ -215,7 +216,7 @@ function cancelRecordingAndGoBack(): void {
   if (stt.isListening()) {
     stt.stopListening()
   }
-  navigate('menu')
+  navigate('tasks-menu')
 }
 
 // ---------------------------------------------------------------------------

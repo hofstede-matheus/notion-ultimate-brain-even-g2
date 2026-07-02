@@ -54,8 +54,8 @@ afterEach(() => {
 // pending network request, so the spinner is running but no data has arrived.
 // ---------------------------------------------------------------------------
 async function openInboxAndAwaitSpinner() {
-  state.screen = 'menu'
-  onEvenHubEvent(listClickEvent(2))
+  state.screen = 'tasks-menu'
+  onEvenHubEvent(listClickEvent(1))
   // Flush loadCachedTasks → showInbox (sets screen) → startSpinner
   await Promise.resolve()
   await Promise.resolve()
@@ -117,8 +117,8 @@ describe('spinner after fetch completes', () => {
     // A rejected mock settles on the very next microtask tick, so stopSpinner
     // may already have run by the time openInboxAndAwaitSpinner returns.
     // We only assert the final state.
-    state.screen = 'menu'
-    onEvenHubEvent(listClickEvent(2))
+    state.screen = 'tasks-menu'
+    onEvenHubEvent(listClickEvent(1))
     await Promise.resolve()
     await Promise.resolve()
     await Promise.resolve()

@@ -1,6 +1,15 @@
 import type { EvenAppBridge } from '@evenrealities/even_hub_sdk'
 
-export type Screen = 'menu' | 'overdue' | 'today' | 'inbox' | 'add-task'
+export type Screen =
+  | 'menu'
+  | 'tasks-menu'
+  | 'notes-menu'
+  | 'projects-menu'
+  | 'tags-menu'
+  | 'overdue'
+  | 'today'
+  | 'inbox'
+  | 'add-task'
 
 export type RecordingState = 'idle' | 'recording' | 'processing' | 'done' | 'error'
 

@@ -46,7 +46,7 @@ export const todayScreen: Screen<AppState, GlassCtx> = {
     if (action.type === 'GO_BACK') {
       ctx.stopSpinner()
       state.todaySelectedIndex = 0
-      ctx.navigate('menu')
+      ctx.navigate('tasks-menu')
       return nav
     }
 

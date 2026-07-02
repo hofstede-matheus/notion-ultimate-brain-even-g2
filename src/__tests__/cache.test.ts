@@ -58,8 +58,8 @@ afterEach(() => {
 // Helper: open the inbox screen and wait for the full async pipeline
 // ---------------------------------------------------------------------------
 async function openInbox() {
-  state.screen = 'menu'
-  onEvenHubEvent(listClickEvent(2))
+  state.screen = 'tasks-menu'
+  onEvenHubEvent(listClickEvent(1))
   await flushPromises(10)
 }
 
@@ -73,8 +73,8 @@ describe('cold open (no prior cache)', () => {
     // Stall the network so we can inspect the intermediate state
     vi.mocked(fetchInboxTasks).mockReturnValue(new Promise(() => {}))
 
-    state.screen = 'menu'
-    onEvenHubEvent(listClickEvent(2))
+    state.screen = 'tasks-menu'
+    onEvenHubEvent(listClickEvent(1))
 
     // One flush gets past loadCachedTasks; showInbox fires synchronously after that
     await flushPromises(2)
@@ -94,8 +94,8 @@ describe('warm open (cache hit)', () => {
     vi.mocked(loadCachedTasks).mockResolvedValue(CACHED_INBOX)
     vi.mocked(fetchInboxTasks).mockReturnValue(new Promise(() => {})) // stall network
 
-    state.screen = 'menu'
-    onEvenHubEvent(listClickEvent(2))
+    state.screen = 'tasks-menu'
+    onEvenHubEvent(listClickEvent(1))
     await flushPromises(2)
 
     expect(mockBridge.rebuildPageContainer).toHaveBeenCalled()

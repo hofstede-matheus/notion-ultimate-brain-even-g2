@@ -7,8 +7,12 @@
  * Overdue / Today / Inbox render two containers once they have >=1 task: a
  * header text container (containerID: 1) and a native list container
  * (containerID: 2) with firmware-owned selection/scroll. Loading and empty
- * states fall back to a single text container (lists need >=1 item). Tests
- * assert on header text + list item names.
+ * states fall back to a full-page text container for containerID 1, but
+ * containerID 2 is still sent as an inert 1x1 placeholder — the G2 firmware
+ * fails to re-add a list container that was absent from the immediately
+ * preceding rebuild, so it must never be dropped once created (see
+ * render.ts's placeholderListContainer). Tests assert on header text + list
+ * item names.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { state, setBridge } from '../state'
@@ -91,7 +95,7 @@ describe('overdue screen content', () => {
     expect(header).toContain('OVERDUE (1)')
   })
 
-  it('renders the empty state as a single text container (no list) when nothing is overdue', async () => {
+  it('renders the empty state as full-page text (with an inert list placeholder) when nothing is overdue', async () => {
     const todayStr = localDateStr(new Date())
     state.todayTasks = [{ id: '1', name: 'Team standup', dueDate: todayStr }]
     state.loading = false
@@ -99,8 +103,7 @@ describe('overdue screen content', () => {
 
     await showOverdue()
 
-    const cfg = lastRebuildConfig()
-    expect(cfg.listObject ?? []).toEqual([])
+    expect(listItemNames()).toEqual([''])
     expect(headerText()).toContain('Nothing overdue!')
   })
 })
@@ -171,15 +174,14 @@ describe('today screen list', () => {
     expect(items).toEqual(['Team standup'])
   })
 
-  it('renders the empty state as a single text container (no list) when there are no tasks due today', async () => {
+  it('renders the empty state as full-page text (with an inert list placeholder) when there are no tasks due today', async () => {
     state.todayTasks = []
     state.loading = false
     state.todaySelectedIndex = 0
 
     await showToday()
 
-    const cfg = lastRebuildConfig()
-    expect(cfg.listObject ?? []).toEqual([])
+    expect(listItemNames()).toEqual([''])
     expect(headerText()).toContain('No tasks due today!')
   })
 })
@@ -224,15 +226,14 @@ describe('inbox screen list', () => {
     expect(listItemNames()).toEqual(['Task A', 'Task B', 'Task C'])
   })
 
-  it('renders the empty state as a single text container (no list) when inbox is empty', async () => {
+  it('renders the empty state as full-page text (with an inert list placeholder) when inbox is empty', async () => {
     state.inboxTasks = []
     state.loading = false
     state.inboxSelectedIndex = 0
 
     await showInbox()
 
-    const cfg = lastRebuildConfig()
-    expect(cfg.listObject ?? []).toEqual([])
+    expect(listItemNames()).toEqual([''])
     expect(headerText()).toContain('Your inbox is empty!')
   })
 })
