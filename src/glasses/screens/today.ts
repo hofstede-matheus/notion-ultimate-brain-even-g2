@@ -2,7 +2,7 @@ import { buildHeaderLine } from 'even-toolkit/text-utils'
 import type { AppState } from '../../state'
 import type { GlassCtx } from '../context'
 import type { Screen, ScreenDisplay } from '../types'
-import { MAX_LIST_ITEMS, getTodayFlatTasks } from './shared'
+import { MAX_LIST_ITEMS, getTodayFlatTasks, truncateToByteLimit } from './shared'
 
 function todayDisplay(state: AppState): ScreenDisplay {
   // First load — no cache available yet
@@ -32,7 +32,7 @@ function todayDisplay(state: AppState): ScreenDisplay {
   }
 
   const header = buildHeaderLine('TODAY\'S TASKS', state.spinnerFrame)
-  const items = tasks.slice(0, MAX_LIST_ITEMS).map((t) => t.name)
+  const items = tasks.slice(0, MAX_LIST_ITEMS).map((t) => truncateToByteLimit(t.name))
 
   return { mode: 'list', header, items }
 }

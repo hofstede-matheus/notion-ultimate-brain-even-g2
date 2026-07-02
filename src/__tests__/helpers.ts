@@ -1,4 +1,5 @@
 import { vi } from 'vitest'
+import { Text_ItemEvent, List_ItemEvent } from '@evenrealities/even_hub_sdk'
 import { state } from '../state'
 
 // ---------------------------------------------------------------------------
@@ -55,7 +56,7 @@ export async function flushPromises(depth = 5) {
 
 export function clickEvent() {
   // eventType 0 (CLICK_EVENT) is omitted by protobuf → undefined on textEvent
-  return { textEvent: {} }
+  return { textEvent: new Text_ItemEvent({}) }
 }
 
 /**
@@ -64,7 +65,7 @@ export function clickEvent() {
  * as clickEvent() — eventType is left unset.
  */
 export function listClickEvent(index: number) {
-  return { listEvent: { currentSelectItemIndex: index } }
+  return { listEvent: new List_ItemEvent({ currentSelectItemIndex: index }) }
 }
 
 /**
@@ -75,17 +76,17 @@ export function listClickEvent(index: number) {
  * helper to test the SDK's zero-omission quirk specifically.
  */
 export function listClickEventFirstItemOmittedIndex() {
-  return { listEvent: {} }
+  return { listEvent: new List_ItemEvent({}) }
 }
 
 export function scrollUpEvent() {
-  return { textEvent: { eventType: 1 } }   // SCROLL_TOP_EVENT
+  return { textEvent: new Text_ItemEvent({ eventType: 1 }) }   // SCROLL_TOP_EVENT
 }
 
 export function scrollDownEvent() {
-  return { textEvent: { eventType: 2 } }   // SCROLL_BOTTOM_EVENT
+  return { textEvent: new Text_ItemEvent({ eventType: 2 }) }   // SCROLL_BOTTOM_EVENT
 }
 
 export function doubleTapEvent() {
-  return { textEvent: { eventType: 3 } }   // DOUBLE_CLICK_EVENT
+  return { textEvent: new Text_ItemEvent({ eventType: 3 }) }   // DOUBLE_CLICK_EVENT
 }

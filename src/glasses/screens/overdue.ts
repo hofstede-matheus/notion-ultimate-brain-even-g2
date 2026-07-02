@@ -2,7 +2,7 @@ import { buildHeaderLine } from 'even-toolkit/text-utils'
 import type { AppState } from '../../state'
 import type { GlassCtx } from '../context'
 import type { Screen, ScreenDisplay } from '../types'
-import { MAX_LIST_ITEMS, getOverdueFlatTasks } from './shared'
+import { MAX_LIST_ITEMS, getOverdueFlatTasks, truncateToByteLimit } from './shared'
 
 function overdueDisplay(state: AppState): ScreenDisplay {
   // First load — no cache available yet
@@ -32,7 +32,7 @@ function overdueDisplay(state: AppState): ScreenDisplay {
   }
 
   const header = buildHeaderLine(`OVERDUE (${tasks.length})`, state.spinnerFrame)
-  const items = tasks.slice(0, MAX_LIST_ITEMS).map((t) => t.name)
+  const items = tasks.slice(0, MAX_LIST_ITEMS).map((t) => truncateToByteLimit(t.name))
 
   return { mode: 'list', header, items }
 }

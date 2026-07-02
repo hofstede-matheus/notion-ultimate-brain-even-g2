@@ -2,7 +2,7 @@ import { buildHeaderLine } from 'even-toolkit/text-utils'
 import type { AppState } from '../../state'
 import type { GlassCtx } from '../context'
 import type { Screen, ScreenDisplay } from '../types'
-import { MAX_LIST_ITEMS, getInboxFlatTasks } from './shared'
+import { MAX_LIST_ITEMS, getInboxFlatTasks, truncateToByteLimit } from './shared'
 
 function inboxDisplay(state: AppState): ScreenDisplay {
   // First load — no cache available yet
@@ -28,7 +28,7 @@ function inboxDisplay(state: AppState): ScreenDisplay {
   }
 
   const header = buildHeaderLine(`INBOX (${tasks.length})`, state.spinnerFrame)
-  const items = tasks.slice(0, MAX_LIST_ITEMS).map((t) => t.name)
+  const items = tasks.slice(0, MAX_LIST_ITEMS).map((t) => truncateToByteLimit(t.name))
 
   return { mode: 'list', header, items }
 }
