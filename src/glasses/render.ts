@@ -39,20 +39,12 @@ async function rebuildPage(config: {
   if (!b) return
 
   if (!state.startupRendered) {
-    console.log('[debug] createStartUpPageContainer →', JSON.stringify(config))
-    const r = await b.createStartUpPageContainer(new CreateStartUpPageContainer(config))
-    console.log('[debug] createStartUpPageContainer ←', JSON.stringify(r))
+    await b.createStartUpPageContainer(new CreateStartUpPageContainer(config))
     state.startupRendered = true
     return
   }
 
-  console.log('[debug] rebuildPageContainer →', JSON.stringify(config))
-  try {
-    const r = await b.rebuildPageContainer(new RebuildPageContainer(config))
-    console.log('[debug] rebuildPageContainer ←', JSON.stringify(r))
-  } catch (e) {
-    console.error('[debug] rebuildPageContainer threw', e)
-  }
+  await b.rebuildPageContainer(new RebuildPageContainer(config))
 }
 
 /**

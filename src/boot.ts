@@ -28,8 +28,7 @@ export async function boot(): Promise<void> {
       // Warm the Vosk model in the background — off the critical path, same as EvenChess.
       // By the time the user navigates to Add Task the model will be ready.
       preloadVoskModel(VOSK_MODEL_URL)
-    } catch (err) {
-      console.error('[notion-ultimate-brain] bridge init failed', err)
+    } catch {
       setStatus('Connection failed. Tap to retry.')
       showRetry()
     }

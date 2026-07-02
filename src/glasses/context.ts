@@ -38,7 +38,6 @@ function stopSpinner(): void {
 // ---------------------------------------------------------------------------
 
 function navigate(screen: Screen): void {
-  console.log(`[debug] navigate: ${state.screen} -> ${screen}`)
   if (screen === 'add-task') {
     state.recording = 'idle'
     state.createdTaskName = ''
@@ -91,7 +90,6 @@ async function enterOverdueOrToday(screen: 'overdue' | 'today'): Promise<void> {
     state.loading = false
     void saveCachedTasks(CACHE_KEY_TODAY, fresh)
   } catch (e) {
-    console.error('[notion-ultimate-brain] fetch today failed', e)
     if (state.loading) state.todayTasks = [] // no cache — show empty
     state.loading = false
   } finally {
@@ -136,7 +134,6 @@ async function enterInbox(): Promise<void> {
     state.loading = false
     void saveCachedTasks(CACHE_KEY_INBOX, fresh)
   } catch (e) {
-    console.error('[notion-ultimate-brain] fetch inbox failed', e)
     if (state.loading) state.inboxTasks = [] // no cache — show empty
     state.loading = false
   } finally {
@@ -188,7 +185,6 @@ async function startRecording(): Promise<void> {
           state.createdTaskName = result.name
           state.recording = 'done'
         } catch (e) {
-          console.error('[notion-ultimate-brain] createTask failed', e)
           state.recording = 'error'
           state.errorMessage = e instanceof Error ? e.message : 'Unknown error'
         }

@@ -100,7 +100,6 @@ export function onEvenHubEvent(event: EvenHubEvent): void {
   const action = toGlassAction(event, eventType)
   if (!action) return
 
-  console.log(`[debug] dispatch: screen=${state.screen} action=${JSON.stringify(action)}`)
   router.onGlassAction(action, currentNav(), state, ctx)
 }
 

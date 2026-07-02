@@ -126,9 +126,7 @@ function finalize(): void {
  */
 export function preloadVoskModel(modelUrl: string): void {
   if (modelPromise) return
-  console.log('[stt] preloading model:', modelUrl)
-  modelPromise = createModel(modelUrl).catch((err: unknown) => {
-    console.error('[stt] model preload failed:', err)
+  modelPromise = createModel(modelUrl).catch(() => {
     modelPromise = null   // allow a retry later
     return null
   })
@@ -159,7 +157,6 @@ export async function ensureRecognizer(modelUrl: string): Promise<boolean> {
     // Wire the result event once — calls through to the current session's callback
     rec.on('result', (msg: any) => {
       const text = ((msg?.result?.text ?? '') as string).trim()
-      console.log('[stt] final result:', JSON.stringify(text))
 
       clearResultTimer()                // real result arrived — cancel safety timeout
       const cb = sessionOnFinal
@@ -167,15 +164,8 @@ export async function ensureRecognizer(modelUrl: string): Promise<boolean> {
       cb?.(text)
     })
 
-    rec.on('partialresult', (msg: any) => {
-      const partial = ((msg?.result?.partial ?? '') as string).trim()
-      if (partial) console.log('[stt] partial:', partial)
-    })
-
-    console.log('[stt] recognizer ready')
     return true
-  } catch (err) {
-    console.error('[stt] recognizer init failed:', err)
+  } catch {
     return false
   }
 }
@@ -210,14 +200,12 @@ export function startListening(
       heardSpeech &&
       now - lastVoiceAt > SILENCE_MS
     ) {
-      console.log('[stt] VAD: silence detected → finalizing')
       finalize()
     }
   }, ENDPOINT_POLL_MS)
 
   // Hard cap
   maxTimer = setTimeout(() => {
-    console.log('[stt] max duration reached → finalizing')
     finalize()
   }, MAX_LISTEN_MS)
 }
