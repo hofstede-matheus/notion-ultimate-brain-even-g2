@@ -10,21 +10,17 @@ import { state, getBridge } from '../state'
 import type { Screen as ScreenName } from '../state'
 import { router } from './router'
 import { currentNav } from './current-nav'
-
-const W = 576
-const H = 288
-const HEADER_H = 52
-const LIST_H = H - HEADER_H
-
-// Container names + IDs MUST stay stable across every render for the whole app
-// lifetime. The G2 firmware matches rebuild/upgrade containers by name+ID
-// against the containers createStartUpPageContainer first established — giving a
-// container a new name per screen makes rebuildPageContainer silently fail
-// (returns false, list never updates). Names are also capped at 16 chars.
-// See even-g2-context/docs/{display,page-lifecycle}.md and EvenChess's
-// CONTAINER_NAME_* constants. id=1 = header/text, id=2 = native list.
-const HEADER_CONTAINER_NAME = 'ub-header'
-const LIST_CONTAINER_NAME = 'ub-list'
+import {
+  SCREEN_W,
+  SCREEN_H,
+  HEADER_H,
+  LIST_H,
+  CONTAINER_PADDING,
+  CONTAINER_ID_HEADER,
+  CONTAINER_ID_LIST,
+  HEADER_CONTAINER_NAME,
+  LIST_CONTAINER_NAME,
+} from './constants'
 
 function currentDisplay() {
   return router.toDisplayData(state, currentNav())
@@ -89,7 +85,7 @@ export async function showInbox(): Promise<void> {
  */
 function placeholderListContainer(): ListContainerProperty {
   return new ListContainerProperty({
-    containerID: 2,
+    containerID: CONTAINER_ID_LIST,
     containerName: LIST_CONTAINER_NAME,
     xPosition: 0,
     yPosition: 0,
@@ -113,15 +109,15 @@ export async function renderFull(screen: ScreenName): Promise<void> {
       containerTotalNum: 2,
       textObject: [
         new TextContainerProperty({
-          containerID: 1,
+          containerID: CONTAINER_ID_HEADER,
           containerName: HEADER_CONTAINER_NAME,
           content: display.content,
           xPosition: 0,
           yPosition: 0,
-          width: W,
-          height: H,
+          width: SCREEN_W,
+          height: SCREEN_H,
           isEventCapture: 1,
-          paddingLength: 8,
+          paddingLength: CONTAINER_PADDING,
         }),
       ],
       listObject: [placeholderListContainer()],
@@ -134,24 +130,24 @@ export async function renderFull(screen: ScreenName): Promise<void> {
     containerTotalNum: 2,
     textObject: [
       new TextContainerProperty({
-        containerID: 1,
+        containerID: CONTAINER_ID_HEADER,
         containerName: HEADER_CONTAINER_NAME,
         content: display.header,
         xPosition: 0,
         yPosition: 0,
-        width: W,
+        width: SCREEN_W,
         height: HEADER_H,
         isEventCapture: 0,
-        paddingLength: 8,
+        paddingLength: CONTAINER_PADDING,
       }),
     ],
     listObject: [
       new ListContainerProperty({
-        containerID: 2,
+        containerID: CONTAINER_ID_LIST,
         containerName: LIST_CONTAINER_NAME,
         xPosition: 0,
         yPosition: HEADER_H,
-        width: W,
+        width: SCREEN_W,
         height: LIST_H,
         isEventCapture: 1,
         itemContainer: new ListItemContainerProperty({
@@ -179,7 +175,7 @@ export async function renderUpdate(screen: ScreenName): Promise<void> {
 
   await b.textContainerUpgrade(
     new TextContainerUpgrade({
-      containerID: 1,
+      containerID: CONTAINER_ID_HEADER,
       containerName: HEADER_CONTAINER_NAME,
       content,
     }),

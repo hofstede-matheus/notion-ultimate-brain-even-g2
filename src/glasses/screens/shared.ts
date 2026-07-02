@@ -1,15 +1,7 @@
 import type { AppState, Task } from '../../state'
+import { MAX_ITEM_BYTES } from '../constants'
 
-/** G2 native list widget item cap. */
-export const MAX_LIST_ITEMS = 20
-
-/**
- * G2 native list widget per-item text cap, in UTF-8 bytes (not JS chars) —
- * the firmware rejects the whole rebuild if any item exceeds this, and
- * titles with accented/multi-byte characters (common in Portuguese task
- * names here) can overflow well before 63 JS `.length` characters.
- */
-export const MAX_ITEM_BYTES = 63
+export { MAX_LIST_ITEMS } from '../constants'
 
 const byteEncoder = new TextEncoder()
 

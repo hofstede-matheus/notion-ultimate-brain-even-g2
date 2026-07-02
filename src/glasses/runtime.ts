@@ -9,6 +9,7 @@ import { router } from './router'
 import { createGlassCtx } from './context'
 import { currentNav } from './current-nav'
 import { renderFull } from './render'
+import { SCROLL_COOLDOWN_MS } from './constants'
 
 const ctx = createGlassCtx()
 
@@ -66,11 +67,10 @@ function toGlassAction(event: EvenHubEvent, eventType: OsEventTypeList): AppGlas
 // ---------------------------------------------------------------------------
 
 let lastScrollAt = 0
-const SCROLL_COOLDOWN = 300
 
 function isScrollThrottled(): boolean {
   const now = Date.now()
-  if (now - lastScrollAt < SCROLL_COOLDOWN) return true
+  if (now - lastScrollAt < SCROLL_COOLDOWN_MS) return true
   lastScrollAt = now
   return false
 }

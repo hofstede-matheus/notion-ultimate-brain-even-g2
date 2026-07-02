@@ -1,8 +1,5 @@
-type Level = 'log' | 'info' | 'warn' | 'error' | 'debug'
-
-const LEVELS: Level[] = ['log', 'info', 'warn', 'error', 'debug']
-
-const MAX_LINES = 500
+import { LOG_LEVELS, MAX_LOG_LINES, BODY_PREVIEW_BYTES } from './constants'
+import type { Level } from './constants'
 
 function pad2(n: number): string {
   return n.toString().padStart(2, '0')
@@ -52,8 +49,6 @@ function forwardToTerminal(level: Level, line: string): void {
   }
 }
 
-const BODY_PREVIEW_BYTES = 200
-
 async function previewBody(body: BodyInit | null | undefined): Promise<string | null> {
   if (body == null) return null
   try {
@@ -81,14 +76,14 @@ function getLogEl(): HTMLElement | null {
 
 function appendLine(level: Level, line: string, extraClass?: string): void {
   buffer.push(line)
-  if (buffer.length > MAX_LINES) {
-    buffer.splice(0, buffer.length - MAX_LINES)
+  if (buffer.length > MAX_LOG_LINES) {
+    buffer.splice(0, buffer.length - MAX_LOG_LINES)
   }
 
   const el = getLogEl()
   if (!el) return
 
-  if (buffer.length === MAX_LINES) {
+  if (buffer.length === MAX_LOG_LINES) {
     // prune DOM in lockstep with buffer
     while (el.firstChild) el.removeChild(el.firstChild)
   }
@@ -114,7 +109,7 @@ export function installLogger(): void {
   if (installed) return
   installed = true
 
-  for (const level of LEVELS) {
+  for (const level of LOG_LEVELS) {
     const original = console[level].bind(console)
     console[level] = (...args: unknown[]) => {
       original(...args)

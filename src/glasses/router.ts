@@ -6,6 +6,7 @@ import { overdueScreen } from './screens/overdue'
 import { todayScreen } from './screens/today'
 import { inboxScreen } from './screens/inbox'
 import { addTaskScreen } from './screens/add-task'
+import { FALLBACK_SCREEN } from './constants'
 
 const SCREENS: Record<string, Screen<AppState, GlassCtx>> = {
   menu: menuScreen,
@@ -18,10 +19,9 @@ const SCREENS: Record<string, Screen<AppState, GlassCtx>> = {
   inbox: inboxScreen,
   'add-task': addTaskScreen,
 }
-const FALLBACK = 'menu'
 
 function getScreen(name: string): Screen<AppState, GlassCtx> {
-  return SCREENS[name] ?? SCREENS[FALLBACK]!
+  return SCREENS[name] ?? SCREENS[FALLBACK_SCREEN]!
 }
 
 export const router = {

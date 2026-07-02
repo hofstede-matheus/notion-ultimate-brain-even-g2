@@ -5,14 +5,12 @@ import { fetchTodayTasks, fetchInboxTasks, createTask } from '../api'
 import { loadCachedTasks, saveCachedTasks, CACHE_KEY_TODAY, CACHE_KEY_INBOX } from '../cache'
 import * as stt from '../stt'
 import { renderFull, renderUpdate, showOverdue, showToday, showInbox } from './render'
-
-const VOSK_MODEL_URL = '/vosk/model.tar.gz'
+import { VOSK_MODEL_URL, SPINNER_FRAMES, SPINNER_INTERVAL_MS } from './constants'
 
 // ---------------------------------------------------------------------------
 // Spinner — animates while a background fetch is in flight
 // ---------------------------------------------------------------------------
 
-const SPINNER_FRAMES = ['|', '/', '-', '\\']
 let spinnerInterval: ReturnType<typeof setInterval> | null = null
 
 function startSpinner(onTick: () => void): void {
@@ -23,7 +21,7 @@ function startSpinner(onTick: () => void): void {
     i = (i + 1) % SPINNER_FRAMES.length
     state.spinnerFrame = SPINNER_FRAMES[i]!
     onTick()
-  }, 250)
+  }, SPINNER_INTERVAL_MS)
 }
 
 function stopSpinner(): void {
