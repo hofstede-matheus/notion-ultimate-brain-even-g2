@@ -1,6 +1,6 @@
-import type { AppState } from '../../state'
-import type { GlassCtx } from '../types'
-import type { Screen } from '../types'
+import type { AppState } from '../../../state'
+import type { GlassCtx } from '../../types'
+import type { Screen } from '../../types'
 
 function addTaskContent(state: AppState): string {
   switch (state.recording) {

@@ -1,4 +1,6 @@
-import type { AppState, Task } from '../../state'
+import { buildHeaderLine } from 'even-toolkit/text-utils'
+import type { AppState, Task, Screen as ScreenName } from '../../state'
+import type { Screen, GlassCtx, MenuDef } from '../types'
 import { MAX_ITEM_BYTES } from '../constants'
 
 export { MAX_LIST_ITEMS } from '../constants'
@@ -54,4 +56,74 @@ export function getTodayFlatTasks(state: AppState): Task[] {
  */
 export function getInboxFlatTasks(state: AppState): Task[] {
   return state.inboxTasks
+}
+
+/**
+ * Generic factory for any list-style menu screen — header + native list
+ * widget, click dispatches to `item.target` (no-op when undefined). Pass
+ * `clickRouter` to override the default `ctx.navigate(target)` for screens
+ * whose targets need bespoke entry points (e.g. resetting a selected-index
+ * before navigating).
+ */
+export function makeMenuScreen(
+  def: MenuDef,
+  clickRouter?: (target: ScreenName, ctx: GlassCtx) => void,
+): Screen<AppState, GlassCtx> {
+  const route = clickRouter ?? ((target, ctx) => ctx.navigate(target))
+  return {
+    display(_state) {
+      return {
+        mode: 'list',
+        header: buildHeaderLine(def.title, ''),
+        items: def.items.map((i) => i.label),
+      }
+    },
+
+    action(action, nav, _state, ctx) {
+      if (action.type === 'GO_BACK') {
+        if (def.parent) ctx.navigate(def.parent)
+        else ctx.shutdown()
+        return nav
+      }
+
+      if (action.type === 'SELECT_HIGHLIGHTED') {
+        const idx = action.itemIndex
+        if (typeof idx === 'number') {
+          const item = def.items[idx]
+          if (item?.target) route(item.target, ctx)
+        }
+        return nav
+      }
+
+      // HIGHLIGHT_MOVE: the native list widget owns scroll/highlight — no-op
+      return nav
+    },
+  }
+}
+
+/**
+ * Placeholder screen for menu items not yet implemented. Renders a simple
+ * "Coming soon" message; GO_BACK returns to `parent` (the owning group's
+ * submenu). Not wired into the router until its item gets a real `target`.
+ */
+export function makeStubScreen(label: string, parent: ScreenName): Screen<AppState, GlassCtx> {
+  return {
+    display() {
+      return {
+        mode: 'text',
+        content: [
+          label.toUpperCase(),
+          '',
+          'Coming soon.',
+          '',
+          'Double-tap to go back.',
+        ].join('\n'),
+      }
+    },
+
+    action(action, nav, _state, ctx) {
+      if (action.type === 'GO_BACK') ctx.navigate(parent)
+      return nav
+    },
+  }
 }
