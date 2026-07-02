@@ -1,6 +1,7 @@
 import { waitForEvenAppBridge } from '@evenrealities/even_hub_sdk'
 import { setBridge } from './state'
 import { startGlasses } from './glasses/runtime'
+import { VOSK_MODEL_URL } from './glasses/constants'
 import { preloadVoskModel } from './stt'
 import { setStatus, disableConnect, hideConnect, showRetry, onConnectClick } from './web/shell'
 
@@ -26,7 +27,7 @@ export async function boot(): Promise<void> {
 
       // Warm the Vosk model in the background — off the critical path, same as EvenChess.
       // By the time the user navigates to Add Task the model will be ready.
-      preloadVoskModel('/vosk/model.tar.gz')
+      preloadVoskModel(VOSK_MODEL_URL)
     } catch (err) {
       console.error('[notion-ultimate-brain] bridge init failed', err)
       setStatus('Connection failed. Tap to retry.')
