@@ -1,5 +1,5 @@
 import type { AppState } from '../../state'
-import type { GlassCtx } from '../context'
+import type { GlassCtx } from '../types'
 import type { Screen } from '../types'
 
 function addTaskContent(state: AppState): string {

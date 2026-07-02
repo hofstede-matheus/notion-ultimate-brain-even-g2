@@ -1,4 +1,5 @@
 import type { GlassNavState } from 'even-toolkit/types'
+import type { Screen as ScreenName } from '../state'
 
 export type { GlassNavState }
 
@@ -26,4 +27,34 @@ export type AppGlassAction =
 export interface Screen<S, C> {
   display: (snapshot: S, nav: GlassNavState) => ScreenDisplay
   action: (action: AppGlassAction, nav: GlassNavState, snapshot: S, ctx: C) => GlassNavState
+}
+
+/**
+ * Side-effect surface handed to screen action() handlers. Each entry point
+ * mirrors the high-level user gesture (navigate, shutdown, enter a data
+ * screen, start/cancel voice recording) so screens stay free of raw SDK
+ * and module-state plumbing.
+ */
+export interface GlassCtx {
+  navigate(screen: ScreenName): void
+  shutdown(): void
+  stopSpinner(): void
+  enterOverdue(): void
+  enterToday(): void
+  enterInbox(): void
+  startRecording(): void
+  cancelRecordingAndGoBack(): void
+}
+
+/** A single entry in a menu screen — `target` undefined means the row is a no-op stub. */
+export interface MenuItem {
+  label: string
+  target?: ScreenName
+}
+
+/** Definition of a menu screen: title, optional parent (root if absent), and its items. */
+export interface MenuDef {
+  title: string
+  parent?: ScreenName
+  items: MenuItem[]
 }

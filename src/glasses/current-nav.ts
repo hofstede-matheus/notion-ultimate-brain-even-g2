@@ -1,5 +1,5 @@
-import type { GlassNavState } from 'even-toolkit/types'
 import { state } from '../state'
+import type { GlassNavState } from './types'
 
 /**
  * GlassScreen<S,C> requires a GlassNavState per call, but `state` remains the

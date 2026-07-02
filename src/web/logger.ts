@@ -1,5 +1,5 @@
 import { LOG_LEVELS, MAX_LOG_LINES, BODY_PREVIEW_BYTES } from './constants'
-import type { Level } from './constants'
+import type { Level } from './types'
 
 function pad2(n: number): string {
   return n.toString().padStart(2, '0')

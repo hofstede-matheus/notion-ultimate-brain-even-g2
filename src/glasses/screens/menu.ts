@@ -1,19 +1,7 @@
 import { buildHeaderLine } from "even-toolkit/text-utils";
 import type { AppState } from "../../state";
 import type { Screen as ScreenName } from "../../state";
-import type { GlassCtx } from "../context";
-import type { Screen } from "../types";
-
-export interface MenuItem {
-  label: string;
-  target?: ScreenName; // no target = no-op
-}
-
-export interface MenuDef {
-  title: string;
-  parent?: ScreenName; // no parent = root (double-tap shuts down)
-  items: MenuItem[];
-}
+import type { Screen, GlassCtx, MenuItem, MenuDef } from "../types";
 
 export const ROOT_MENU_ITEMS = ["Tasks", "Notes", "Projects", "Tags"];
 

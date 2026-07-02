@@ -1,6 +1,6 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils'
 import type { AppState } from '../../state'
-import type { GlassCtx } from '../context'
+import type { GlassCtx } from '../types'
 import type { Screen, ScreenDisplay } from '../types'
 import { MAX_LIST_ITEMS, getOverdueFlatTasks, truncateToByteLimit } from './shared'
 

@@ -1,5 +1,5 @@
 import type { AppState } from '../state'
-import type { GlassCtx } from './context'
+import type { GlassCtx } from './types'
 import type { Screen, ScreenDisplay, AppGlassAction, GlassNavState } from './types'
 import { menuScreen, tasksMenuScreen, notesMenuScreen, projectsMenuScreen, tagsMenuScreen } from './screens/menu'
 import { overdueScreen } from './screens/overdue'

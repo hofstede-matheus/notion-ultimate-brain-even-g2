@@ -6,6 +6,7 @@ import { loadCachedTasks, saveCachedTasks, CACHE_KEY_TODAY, CACHE_KEY_INBOX } fr
 import * as stt from '../stt'
 import { renderFull, renderUpdate, showOverdue, showToday, showInbox } from './render'
 import { VOSK_MODEL_URL, SPINNER_FRAMES, SPINNER_INTERVAL_MS } from './constants'
+import type { GlassCtx } from './types'
 
 // ---------------------------------------------------------------------------
 // Spinner — animates while a background fetch is in flight
@@ -220,17 +221,6 @@ function cancelRecordingAndGoBack(): void {
 // ---------------------------------------------------------------------------
 // Public context — side-effect surface handed to screen action() handlers
 // ---------------------------------------------------------------------------
-
-export interface GlassCtx {
-  navigate(screen: Screen): void
-  shutdown(): void
-  stopSpinner(): void
-  enterOverdue(): void
-  enterToday(): void
-  enterInbox(): void
-  startRecording(): void
-  cancelRecordingAndGoBack(): void
-}
 
 export function createGlassCtx(): GlassCtx {
   return {
