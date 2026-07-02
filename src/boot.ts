@@ -1,37 +1,28 @@
 import { waitForEvenAppBridge } from '@evenrealities/even_hub_sdk'
 import { setBridge } from './state'
-import { showMenu } from './renderer'
-import { onEvenHubEvent } from './events'
+import { startGlasses } from './glasses/runtime'
 import { preloadVoskModel } from './stt'
+import { setStatus, disableConnect, hideConnect, showRetry, onConnectClick } from './web/shell'
 
 // ---------------------------------------------------------------------------
-// App initialisation
+// App bootstrap — connect the Even Hub bridge, start the glasses runtime,
+// warm the voice model in the background
 // ---------------------------------------------------------------------------
 
-export async function initApp(): Promise<void> {
-  const statusEl = document.getElementById('status')
-  const connectBtn = document.getElementById('connectBtn') as HTMLButtonElement | null
-
-  function setStatus(msg: string) {
-    if (statusEl) statusEl.textContent = msg
-  }
-
-  async function connect() {
+export async function boot(): Promise<void> {
+  async function connect(): Promise<void> {
     setStatus('Waiting for Even Hub bridge...')
-    if (connectBtn) connectBtn.disabled = true
+    disableConnect()
 
     try {
       const bridge = await waitForEvenAppBridge()
       setBridge(bridge)
 
-      // Wire event listener
-      bridge.onEvenHubEvent(onEvenHubEvent)
+      // Wire event listener + render the initial menu screen
+      await startGlasses()
 
       setStatus('Connected! Use your glasses.')
-      if (connectBtn) connectBtn.style.display = 'none'
-
-      // Render initial menu screen
-      await showMenu()
+      hideConnect()
 
       // Warm the Vosk model in the background — off the critical path, same as EvenChess.
       // By the time the user navigates to Add Task the model will be ready.
@@ -39,10 +30,7 @@ export async function initApp(): Promise<void> {
     } catch (err) {
       console.error('[notion-ultimate-brain] bridge init failed', err)
       setStatus('Connection failed. Tap to retry.')
-      if (connectBtn) {
-        connectBtn.disabled = false
-        connectBtn.textContent = 'Retry'
-      }
+      showRetry()
     }
   }
 
@@ -50,7 +38,5 @@ export async function initApp(): Promise<void> {
   void connect()
 
   // Manual retry button
-  if (connectBtn) {
-    connectBtn.addEventListener('click', () => void connect())
-  }
+  onConnectClick(() => void connect())
 }

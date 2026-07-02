@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { state, setBridge } from '../state'
-import { onEvenHubEvent } from '../events'
+import { onEvenHubEvent } from '../glasses/runtime'
 import { makeMockBridge, resetState, flushPromises, clickEvent, doubleTapEvent } from './helpers'
 
 vi.mock('../api', () => ({

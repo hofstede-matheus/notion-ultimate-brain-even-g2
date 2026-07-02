@@ -1,6 +1,6 @@
 import type { EvenAppBridge } from '@evenrealities/even_hub_sdk'
 
-export type Screen = 'menu' | 'today' | 'inbox' | 'add-task'
+export type Screen = 'menu' | 'overdue' | 'today' | 'inbox' | 'add-task'
 
 export type RecordingState = 'idle' | 'recording' | 'processing' | 'done' | 'error'
 
@@ -14,14 +14,20 @@ export interface AppState {
   screen: Screen
   startupRendered: boolean
 
-  // Menu
+  // Last listEvent selection reported by the firmware list widget (Menu).
+  // The widget owns its own highlight and always starts at item 0 on
+  // render (there is no way to set an initial index) — this field is
+  // bookkeeping only, unused by rendering.
   menuSelectedIndex: number
 
   // Task data
   todayTasks: Task[]
   inboxTasks: Task[]
 
-  // Per-screen cursors (which task is highlighted)
+  // Last listEvent selection reported by the firmware list widget. The widget
+  // owns its own highlight — these fields are stored for the future
+  // task-detail screen and reset on screen entry.
+  overdueSelectedIndex: number
   todaySelectedIndex: number
   inboxSelectedIndex: number
 
@@ -41,6 +47,7 @@ export const state: AppState = {
   menuSelectedIndex: 0,
   todayTasks: [],
   inboxTasks: [],
+  overdueSelectedIndex: 0,
   todaySelectedIndex: 0,
   inboxSelectedIndex: 0,
   recording: 'idle',

@@ -19,6 +19,7 @@
     "@notionhq/client": "^2.2.15",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
+    "even-toolkit": "^1.7.7",
     "express": "^4.21.2",
     "vosk-browser": "^0.0.8"
   },

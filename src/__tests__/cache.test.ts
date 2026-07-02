@@ -3,9 +3,9 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { state, setBridge } from '../state'
-import { onEvenHubEvent } from '../events'
+import { onEvenHubEvent } from '../glasses/runtime'
 import { loadCachedTasks, saveCachedTasks } from '../cache'
-import { makeMockBridge, resetState, flushPromises, clickEvent } from './helpers'
+import { makeMockBridge, resetState, flushPromises, listClickEvent } from './helpers'
 
 // ---------------------------------------------------------------------------
 // Module mocks — api and stt are controlled; cache is mocked so we can
@@ -58,9 +58,8 @@ afterEach(() => {
 // Helper: open the inbox screen and wait for the full async pipeline
 // ---------------------------------------------------------------------------
 async function openInbox() {
-  state.menuSelectedIndex = 1
   state.screen = 'menu'
-  onEvenHubEvent(clickEvent())
+  onEvenHubEvent(listClickEvent(2))
   await flushPromises(10)
 }
 
@@ -74,9 +73,8 @@ describe('cold open (no prior cache)', () => {
     // Stall the network so we can inspect the intermediate state
     vi.mocked(fetchInboxTasks).mockReturnValue(new Promise(() => {}))
 
-    state.menuSelectedIndex = 1
     state.screen = 'menu'
-    onEvenHubEvent(clickEvent())
+    onEvenHubEvent(listClickEvent(2))
 
     // One flush gets past loadCachedTasks; showInbox fires synchronously after that
     await flushPromises(2)
@@ -96,14 +94,15 @@ describe('warm open (cache hit)', () => {
     vi.mocked(loadCachedTasks).mockResolvedValue(CACHED_INBOX)
     vi.mocked(fetchInboxTasks).mockReturnValue(new Promise(() => {})) // stall network
 
-    state.menuSelectedIndex = 1
     state.screen = 'menu'
-    onEvenHubEvent(clickEvent())
+    onEvenHubEvent(listClickEvent(2))
     await flushPromises(2)
 
     expect(mockBridge.rebuildPageContainer).toHaveBeenCalled()
     const arg = mockBridge.rebuildPageContainer.mock.calls[0]![0] as any
-    expect(arg.textObject[0].content).toContain('Cached task')
+    // Warm open → header+list mode. The cached task name lives in the list
+    // items, not in the header text container.
+    expect(arg.listObject[0].itemContainer.itemName).toContain('Cached task')
   })
 })
 
@@ -122,10 +121,13 @@ describe('failed fetch on cold open', () => {
     expect(state.loading).toBe(false)
     expect(state.inboxTasks).toEqual([])
 
-    // The last render should show the empty-inbox copy (not a crash / "Fetching…")
-    const lastUpgrade = mockBridge.textContainerUpgrade.mock.calls.at(-1)
-    const content: string = lastUpgrade ? lastUpgrade[0].content : ''
-    expect(content).not.toContain('Fetching tasks...')
+    // The last render is the empty-state full rebuild (single text container,
+    // no list — there's no partial-list-update API, so the settled state
+    // always arrives via a full rebuild). It should not show the loading
+    // placeholder.
+    const lastRebuild = mockBridge.rebuildPageContainer.mock.calls.at(-1)![0] as any
+    expect(lastRebuild.textObject[0].content).toContain('Your inbox is empty!')
+    expect(lastRebuild.textObject[0].content).not.toContain('Fetching tasks...')
   })
 })
 

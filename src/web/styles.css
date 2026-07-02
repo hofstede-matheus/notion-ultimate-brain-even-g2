@@ -1,0 +1,47 @@
+body {
+  font-family: system-ui, sans-serif;
+  max-width: 480px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  background: #111;
+  color: #eee;
+}
+
+h1 { color: #4ade80; }
+#status { color: #888; }
+button {
+  background: #4ade80;
+  color: #111;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+button:disabled { opacity: 0.5; }
+
+#log {
+  margin-top: 1.5rem;
+  padding: 0.75rem;
+  background: #000;
+  color: #d4d4d4;
+  border: 1px solid #333;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.5rem;
+  line-height: 1.4;
+  height: 14rem;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.log-line { white-space: pre-wrap; }
+.log-log, .log-info { color: #d4d4d4; }
+.log-debug { color: #888; }
+.log-warn { color: #fbbf24; }
+.log-error { color: #f87171; }
+
+/* API call lines — accent in cyan so they stand out from generic log lines */
+.log-line.log-api { color: #67e8f9; }
+.log-line.log-api.log-warn { color: #fbbf24; }
+.log-line.log-api.log-error { color: #f87171; }

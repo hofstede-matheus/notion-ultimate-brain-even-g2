@@ -3,8 +3,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { state, setBridge } from '../state'
-import { onEvenHubEvent } from '../events'
-import { makeMockBridge, resetState, doubleTapEvent, clickEvent } from './helpers'
+import { onEvenHubEvent } from '../glasses/runtime'
+import { makeMockBridge, resetState, doubleTapEvent, listClickEvent } from './helpers'
 
 vi.mock('../api', () => ({
   fetchTodayTasks: vi.fn(),
@@ -54,9 +54,8 @@ afterEach(() => {
 // pending network request, so the spinner is running but no data has arrived.
 // ---------------------------------------------------------------------------
 async function openInboxAndAwaitSpinner() {
-  state.menuSelectedIndex = 1
   state.screen = 'menu'
-  onEvenHubEvent(clickEvent())
+  onEvenHubEvent(listClickEvent(2))
   // Flush loadCachedTasks → showInbox (sets screen) → startSpinner
   await Promise.resolve()
   await Promise.resolve()
@@ -80,9 +79,13 @@ describe('spinner while fetching', () => {
     await Promise.resolve()
 
     // updateInboxContent should have been called — its content includes the frame
+    // (during cold-open loading, the page is in fallback text mode, so the
+    // header text contains the fetching copy + the spinner frame character).
     expect(mockBridge.textContainerUpgrade).toHaveBeenCalled()
     const upgrade = mockBridge.textContainerUpgrade.mock.calls.at(-1)![0] as any
-    expect(upgrade.content).toMatch(/INBOX.*[|/\-\\]/)
+    expect(upgrade.containerID).toBe(1)
+    expect(upgrade.content).toContain('Fetching tasks...')
+    expect(upgrade.content).toMatch(/[|/\-\\]/)
   })
 })
 
@@ -114,9 +117,8 @@ describe('spinner after fetch completes', () => {
     // A rejected mock settles on the very next microtask tick, so stopSpinner
     // may already have run by the time openInboxAndAwaitSpinner returns.
     // We only assert the final state.
-    state.menuSelectedIndex = 1
     state.screen = 'menu'
-    onEvenHubEvent(clickEvent())
+    onEvenHubEvent(listClickEvent(2))
     await Promise.resolve()
     await Promise.resolve()
     await Promise.resolve()

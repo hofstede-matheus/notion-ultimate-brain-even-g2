@@ -27,6 +27,7 @@ export function resetState() {
   state.menuSelectedIndex = 0
   state.todayTasks = []
   state.inboxTasks = []
+  state.overdueSelectedIndex = 0
   state.todaySelectedIndex = 0
   state.inboxSelectedIndex = 0
   state.recording = 'idle'
@@ -55,6 +56,26 @@ export async function flushPromises(depth = 5) {
 export function clickEvent() {
   // eventType 0 (CLICK_EVENT) is omitted by protobuf → undefined on textEvent
   return { textEvent: {} }
+}
+
+/**
+ * Native-list click carrying the firmware's reported selection index
+ * (Menu/Today/Inbox, once in list mode). Same CLICK_EVENT=0-omission quirk
+ * as clickEvent() — eventType is left unset.
+ */
+export function listClickEvent(index: number) {
+  return { listEvent: { currentSelectItemIndex: index } }
+}
+
+/**
+ * Native-list click on the FIRST item, as the firmware bridge actually
+ * reports it: proto3 JSON encoding drops fields at their zero default, so
+ * currentSelectItemIndex is omitted from the payload entirely rather than
+ * sent as 0. listClickEvent(0) above does not reproduce this — use this
+ * helper to test the SDK's zero-omission quirk specifically.
+ */
+export function listClickEventFirstItemOmittedIndex() {
+  return { listEvent: {} }
 }
 
 export function scrollUpEvent() {
