@@ -30,6 +30,8 @@ export type Screen =
   | 'tags-favorites'
   | 'tags-a-z'
   | 'tags-types'
+  | 'mark-done-confirm'
+  | 'mark-done-toast'
 
 export type RecordingState = 'idle' | 'recording' | 'processing' | 'done' | 'error'
 
@@ -87,6 +89,11 @@ export interface AppState {
   lists: Partial<Record<Screen, ListItem[]>>
   selectedIndex: Partial<Record<Screen, number>>
 
+  // Mark-task-done confirm dialog / toast — returnTo is the list screen to
+  // navigate back to (Today/Overdue/Inbox or a generic Tasks screen).
+  pendingMarkDone: { taskId: string; taskName: string; returnTo: Screen } | null
+  markDoneToast: { taskName: string; returnTo: Screen; untilMs: number } | null
+
   // Voice recording
   recording: RecordingState
   createdTaskName: string
@@ -108,6 +115,8 @@ export const state: AppState = {
   inboxSelectedIndex: 0,
   lists: {},
   selectedIndex: {},
+  pendingMarkDone: null,
+  markDoneToast: null,
   recording: 'idle',
   createdTaskName: '',
   loading: false,

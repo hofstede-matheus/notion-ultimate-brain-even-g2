@@ -51,9 +51,10 @@ export const todayScreen: Screen<AppState, GlassCtx> = {
     }
 
     if (action.type === 'SELECT_HIGHLIGHTED') {
-      // No task-detail screen exists yet — record the selection for later use.
       if (typeof action.itemIndex === 'number') {
         state.todaySelectedIndex = action.itemIndex
+        const task = getTodayFlatTasks(state)[action.itemIndex]
+        if (task) ctx.openMarkDoneConfirm(task.id, task.name, 'today')
       }
       return nav
     }

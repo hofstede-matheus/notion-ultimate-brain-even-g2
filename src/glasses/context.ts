@@ -5,6 +5,7 @@ import {
   fetchTodayTasks,
   fetchInboxTasks,
   createTask,
+  markTaskDone,
   fetchNext7DaysTasks,
   fetchTomorrowTasks,
   fetchInboxNotes,
@@ -247,6 +248,74 @@ async function enterView(screen: Screen): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Mark Task Done — confirm dialog + toast, shared by every Tasks list screen
+// (Today/Overdue/Inbox and the generic Tasks views routed through
+// makeListScreen()). All of them key their owning list by `returnTo`.
+// ---------------------------------------------------------------------------
+
+let markDoneToastTimeout: ReturnType<typeof setTimeout> | null = null
+
+function openMarkDoneConfirm(taskId: string, taskName: string, returnTo: Screen): void {
+  state.pendingMarkDone = { taskId, taskName, returnTo }
+  state.errorMessage = ''
+  navigate('mark-done-confirm')
+}
+
+function dismissMarkDoneConfirm(): void {
+  const returnTo = state.pendingMarkDone?.returnTo ?? 'tasks-menu'
+  state.pendingMarkDone = null
+  navigate(returnTo)
+}
+
+async function confirmMarkDone(): Promise<void> {
+  const pending = state.pendingMarkDone
+  if (!pending) return
+  const { taskId, taskName, returnTo } = pending
+
+  try {
+    await markTaskDone(taskId)
+
+    // Remove the task from whichever list actually owns it — Today and
+    // Overdue are both filtered views over the same state.todayTasks array.
+    if (returnTo === 'today' || returnTo === 'overdue') {
+      state.todayTasks = state.todayTasks.filter((t) => t.id !== taskId)
+      void saveCachedTasks(CACHE_KEY_TODAY, state.todayTasks)
+    } else if (returnTo === 'inbox') {
+      state.inboxTasks = state.inboxTasks.filter((t) => t.id !== taskId)
+      void saveCachedTasks(CACHE_KEY_INBOX, state.inboxTasks)
+    } else {
+      const list = (state.lists[returnTo] ?? []).filter((item) => item.id !== taskId)
+      state.lists[returnTo] = list
+      void saveCachedList(cacheKeyForScreen(returnTo), list)
+    }
+
+    state.pendingMarkDone = null
+    state.markDoneToast = { taskName, returnTo, untilMs: Date.now() + 1500 }
+    navigate('mark-done-toast')
+
+    if (markDoneToastTimeout !== null) clearTimeout(markDoneToastTimeout)
+    markDoneToastTimeout = setTimeout(() => {
+      markDoneToastTimeout = null
+      state.markDoneToast = null
+      navigate(returnTo)
+    }, 1500)
+  } catch (e) {
+    state.errorMessage = e instanceof Error ? e.message : 'Unknown error'
+    void renderUpdate('mark-done-confirm')
+  }
+}
+
+function dismissToastAndReturn(): void {
+  if (markDoneToastTimeout !== null) {
+    clearTimeout(markDoneToastTimeout)
+    markDoneToastTimeout = null
+  }
+  const returnTo = state.markDoneToast?.returnTo ?? 'tasks-menu'
+  state.markDoneToast = null
+  navigate(returnTo)
+}
+
+// ---------------------------------------------------------------------------
 // Add Task (Voice) — start/stop recording, transcribe, create the task
 // ---------------------------------------------------------------------------
 
@@ -330,5 +399,9 @@ export function createGlassCtx(): GlassCtx {
     enterView: (screen) => void enterView(screen),
     startRecording: () => void startRecording(),
     cancelRecordingAndGoBack,
+    openMarkDoneConfirm,
+    confirmMarkDone,
+    dismissMarkDoneConfirm,
+    dismissToastAndReturn,
   }
 }

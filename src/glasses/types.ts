@@ -46,6 +46,10 @@ export interface GlassCtx {
   enterView(screen: ScreenName): void
   startRecording(): void
   cancelRecordingAndGoBack(): void
+  openMarkDoneConfirm(taskId: string, taskName: string, returnTo: ScreenName): void
+  confirmMarkDone(): Promise<void>
+  dismissMarkDoneConfirm(): void
+  dismissToastAndReturn(): void
 }
 
 /** A single entry in a menu screen — `target` undefined means the row is a no-op stub. */

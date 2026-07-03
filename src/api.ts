@@ -46,6 +46,11 @@ export async function createTask(name: string): Promise<{ id: string; name: stri
   return res.json()
 }
 
+export async function markTaskDone(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/tasks/${id}/done`, { method: 'PATCH' })
+  if (!res.ok) throw new Error(`Failed to mark task done: ${res.status}`)
+}
+
 // ---------------------------------------------------------------------------
 // Notes
 // ---------------------------------------------------------------------------

@@ -10,6 +10,8 @@ import { overdueScreen } from './screens/tasks/overdue'
 import { todayScreen } from './screens/tasks/today'
 import { inboxScreen } from './screens/tasks/inbox'
 import { addTaskScreen } from './screens/tasks/add-task'
+import { markDoneConfirmScreen } from './screens/tasks/mark-done-confirm'
+import { markDoneToastScreen } from './screens/tasks/mark-done-toast'
 import { next7DaysScreen } from './screens/tasks/next-7-days'
 import { tomorrowScreen } from './screens/tasks/tomorrow'
 import { notesInboxScreen } from './screens/notes/inbox'
@@ -62,6 +64,8 @@ const SCREENS: Record<string, Screen<AppState, GlassCtx>> = {
   'tags-favorites': tagsFavoritesScreen,
   'tags-a-z': tagsAzScreen,
   'tags-types': tagsTypesScreen,
+  'mark-done-confirm': markDoneConfirmScreen,
+  'mark-done-toast': markDoneToastScreen,
 }
 
 function getScreen(name: string): Screen<AppState, GlassCtx> {

@@ -531,6 +531,28 @@ app.post('/api/tasks', express.json(), async (req, res) => {
 })
 
 // ---------------------------------------------------------------------------
+// PATCH /api/tasks/:id/done
+// Mark a task Done in the Notion Tasks database
+// ---------------------------------------------------------------------------
+app.patch('/api/tasks/:id/done', async (req, res) => {
+  try {
+    const { id } = req.params
+    if (!id) {
+      res.status(400).json({ error: 'Missing task id' })
+      return
+    }
+    const page = await notion.pages.update({
+      page_id: id,
+      properties: { Status: { status: { name: 'Done' } } },
+    })
+    res.json({ id: page.id })
+  } catch (err: any) {
+    console.error('[server] PATCH /api/tasks/:id/done error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ---------------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------------
 

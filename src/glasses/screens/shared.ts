@@ -193,9 +193,14 @@ export function makeListScreen(config: ListScreenConfig): Screen<AppState, Glass
       }
 
       if (action.type === 'SELECT_HIGHLIGHTED') {
-        // No detail screen exists yet — record the selection for later use.
         if (typeof action.itemIndex === 'number') {
           state.selectedIndex[config.screen] = action.itemIndex
+          const item = state.lists[config.screen]?.[action.itemIndex]
+          // Only Task records carry a dueDate — guards against triggering
+          // mark-done on the Notes/Projects/Tags screens sharing this factory.
+          if (item && 'dueDate' in item) {
+            ctx.openMarkDoneConfirm(item.id, item.name, config.screen)
+          }
         }
         return nav
       }

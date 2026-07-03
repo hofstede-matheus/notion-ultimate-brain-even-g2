@@ -47,9 +47,10 @@ export const inboxScreen: Screen<AppState, GlassCtx> = {
     }
 
     if (action.type === 'SELECT_HIGHLIGHTED') {
-      // No task-detail screen exists yet — record the selection for later use.
       if (typeof action.itemIndex === 'number') {
         state.inboxSelectedIndex = action.itemIndex
+        const task = getInboxFlatTasks(state)[action.itemIndex]
+        if (task) ctx.openMarkDoneConfirm(task.id, task.name, 'inbox')
       }
       return nav
     }
