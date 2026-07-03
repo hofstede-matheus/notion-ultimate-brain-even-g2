@@ -1,8 +1,10 @@
 import type { AppState } from '../../../state'
 import type { Screen, GlassCtx } from '../../types'
-import { makeStubScreen } from '../shared'
+import { makeListScreen } from '../shared'
 
-export const allNotesScreen: Screen<AppState, GlassCtx> = makeStubScreen(
-  'All',
-  'notes-menu',
-)
+export const allNotesScreen: Screen<AppState, GlassCtx> = makeListScreen({
+  screen: 'notes-all',
+  parent: 'notes-menu',
+  title: 'ALL NOTES',
+  emptyMessage: 'No notes.',
+})

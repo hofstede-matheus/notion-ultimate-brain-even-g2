@@ -10,6 +10,26 @@ export type Screen =
   | 'today'
   | 'inbox'
   | 'add-task'
+  | 'tasks-next-7-days'
+  | 'tasks-tomorrow'
+  | 'notes-inbox'
+  | 'notes-favorites'
+  | 'notes-by-tag'
+  | 'notes-list'
+  | 'notes-meetings'
+  | 'notes-by-project'
+  | 'notes-clips'
+  | 'notes-voice'
+  | 'notes-journal'
+  | 'notes-all'
+  | 'projects-active'
+  | 'projects-planned'
+  | 'projects-board'
+  | 'projects-archived'
+  | 'tags-recent'
+  | 'tags-favorites'
+  | 'tags-a-z'
+  | 'tags-types'
 
 export type RecordingState = 'idle' | 'recording' | 'processing' | 'done' | 'error'
 
@@ -18,6 +38,27 @@ export interface Task {
   name: string
   dueDate?: string
 }
+
+export interface Note {
+  id: string
+  name: string
+  icon?: string
+  lastEdited?: string
+}
+
+export interface Project {
+  id: string
+  name: string
+  status?: string
+}
+
+export interface Tag {
+  id: string
+  name: string
+}
+
+/** Anything a generic list screen can render — every domain record has a `name`. */
+export type ListItem = Task | Note | Project | Tag
 
 export interface AppState {
   screen: Screen
@@ -40,6 +81,12 @@ export interface AppState {
   todaySelectedIndex: number
   inboxSelectedIndex: number
 
+  // Generic storage for every other list-view screen (Tasks/Notes/Projects/
+  // Tags views beyond Today/Inbox/Overdue, which keep their dedicated fields
+  // above for backward compatibility). Keyed by Screen name.
+  lists: Partial<Record<Screen, ListItem[]>>
+  selectedIndex: Partial<Record<Screen, number>>
+
   // Voice recording
   recording: RecordingState
   createdTaskName: string
@@ -59,6 +106,8 @@ export const state: AppState = {
   overdueSelectedIndex: 0,
   todaySelectedIndex: 0,
   inboxSelectedIndex: 0,
+  lists: {},
+  selectedIndex: {},
   recording: 'idle',
   createdTaskName: '',
   loading: false,

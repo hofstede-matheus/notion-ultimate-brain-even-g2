@@ -10,6 +10,26 @@ vi.mock('../api', () => ({
   fetchTodayTasks: vi.fn(),
   fetchInboxTasks: vi.fn(),
   createTask: vi.fn(),
+  fetchNext7DaysTasks: vi.fn().mockResolvedValue([]),
+  fetchTomorrowTasks: vi.fn().mockResolvedValue([]),
+  fetchInboxNotes: vi.fn().mockResolvedValue([]),
+  fetchFavoriteNotes: vi.fn().mockResolvedValue([]),
+  fetchByTagNotes: vi.fn().mockResolvedValue([]),
+  fetchNotes: vi.fn().mockResolvedValue([]),
+  fetchMeetingNotes: vi.fn().mockResolvedValue([]),
+  fetchByProjectNotes: vi.fn().mockResolvedValue([]),
+  fetchClipsNotes: vi.fn().mockResolvedValue([]),
+  fetchVoiceNotes: vi.fn().mockResolvedValue([]),
+  fetchJournalNotes: vi.fn().mockResolvedValue([]),
+  fetchAllNotes: vi.fn().mockResolvedValue([]),
+  fetchActiveProjects: vi.fn().mockResolvedValue([]),
+  fetchPlannedProjects: vi.fn().mockResolvedValue([]),
+  fetchBoardProjects: vi.fn().mockResolvedValue([]),
+  fetchArchivedProjects: vi.fn().mockResolvedValue([]),
+  fetchRecentTags: vi.fn().mockResolvedValue([]),
+  fetchFavoriteTags: vi.fn().mockResolvedValue([]),
+  fetchAToZTags: vi.fn().mockResolvedValue([]),
+  fetchTypeTags: vi.fn().mockResolvedValue([]),
 }))
 
 vi.mock('../cache', () => ({
@@ -17,6 +37,9 @@ vi.mock('../cache', () => ({
   saveCachedTasks: vi.fn().mockResolvedValue(undefined),
   CACHE_KEY_TODAY: 'notionultimatebrain:today',
   CACHE_KEY_INBOX: 'notionultimatebrain:inbox',
+  loadCachedList: vi.fn().mockResolvedValue(null),
+  saveCachedList: vi.fn().mockResolvedValue(undefined),
+  cacheKeyForScreen: (screen: string) => `notionultimatebrain:${screen}`,
 }))
 
 vi.mock('../stt', () => ({
@@ -55,7 +78,7 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 async function openInboxAndAwaitSpinner() {
   state.screen = 'tasks-menu'
-  onEvenHubEvent(listClickEvent(2))
+  onEvenHubEvent(listClickEvent(3))
   // Flush loadCachedTasks → showInbox (sets screen) → startSpinner
   await Promise.resolve()
   await Promise.resolve()
@@ -118,7 +141,7 @@ describe('spinner after fetch completes', () => {
     // may already have run by the time openInboxAndAwaitSpinner returns.
     // We only assert the final state.
     state.screen = 'tasks-menu'
-    onEvenHubEvent(listClickEvent(2))
+    onEvenHubEvent(listClickEvent(3))
     await Promise.resolve()
     await Promise.resolve()
     await Promise.resolve()

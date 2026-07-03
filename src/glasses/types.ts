@@ -42,6 +42,8 @@ export interface GlassCtx {
   enterOverdue(): void
   enterToday(): void
   enterInbox(): void
+  /** Cache-then-fetch entry point for every other list-view screen (see context.ts's VIEW_FETCHERS). */
+  enterView(screen: ScreenName): void
   startRecording(): void
   cancelRecordingAndGoBack(): void
 }

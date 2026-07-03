@@ -10,6 +10,26 @@ vi.mock('../api', () => ({
   fetchTodayTasks: vi.fn().mockResolvedValue([]),
   fetchInboxTasks: vi.fn().mockResolvedValue([]),
   createTask: vi.fn().mockResolvedValue({ id: '1', name: 'Buy milk' }),
+  fetchNext7DaysTasks: vi.fn().mockResolvedValue([]),
+  fetchTomorrowTasks: vi.fn().mockResolvedValue([]),
+  fetchInboxNotes: vi.fn().mockResolvedValue([]),
+  fetchFavoriteNotes: vi.fn().mockResolvedValue([]),
+  fetchByTagNotes: vi.fn().mockResolvedValue([]),
+  fetchNotes: vi.fn().mockResolvedValue([]),
+  fetchMeetingNotes: vi.fn().mockResolvedValue([]),
+  fetchByProjectNotes: vi.fn().mockResolvedValue([]),
+  fetchClipsNotes: vi.fn().mockResolvedValue([]),
+  fetchVoiceNotes: vi.fn().mockResolvedValue([]),
+  fetchJournalNotes: vi.fn().mockResolvedValue([]),
+  fetchAllNotes: vi.fn().mockResolvedValue([]),
+  fetchActiveProjects: vi.fn().mockResolvedValue([]),
+  fetchPlannedProjects: vi.fn().mockResolvedValue([]),
+  fetchBoardProjects: vi.fn().mockResolvedValue([]),
+  fetchArchivedProjects: vi.fn().mockResolvedValue([]),
+  fetchRecentTags: vi.fn().mockResolvedValue([]),
+  fetchFavoriteTags: vi.fn().mockResolvedValue([]),
+  fetchAToZTags: vi.fn().mockResolvedValue([]),
+  fetchTypeTags: vi.fn().mockResolvedValue([]),
 }))
 
 vi.mock('../cache', () => ({
@@ -17,6 +37,9 @@ vi.mock('../cache', () => ({
   saveCachedTasks: vi.fn().mockResolvedValue(undefined),
   CACHE_KEY_TODAY: 'notionultimatebrain:today',
   CACHE_KEY_INBOX: 'notionultimatebrain:inbox',
+  loadCachedList: vi.fn().mockResolvedValue(null),
+  saveCachedList: vi.fn().mockResolvedValue(undefined),
+  cacheKeyForScreen: (screen: string) => `notionultimatebrain:${screen}`,
 }))
 
 vi.mock('../stt', () => ({

@@ -26,3 +26,6 @@ yarn-error.log*
 
 # Test / coverage
 coverage/
+
+# Kilo plans (local planning artifacts)
+.kilo/plans/

@@ -2,9 +2,9 @@ import type { AppState } from '../../../state'
 import type { Screen, GlassCtx } from '../../types'
 import { makeListScreen } from '../shared'
 
-export const meetingsScreen: Screen<AppState, GlassCtx> = makeListScreen({
-  screen: 'notes-meetings',
+export const journalScreen: Screen<AppState, GlassCtx> = makeListScreen({
+  screen: 'notes-journal',
   parent: 'notes-menu',
-  title: 'MEETINGS',
-  emptyMessage: 'No meeting notes.',
+  title: 'JOURNAL',
+  emptyMessage: 'No journal entries.',
 })

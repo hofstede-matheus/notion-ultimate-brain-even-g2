@@ -31,6 +31,8 @@ export function resetState() {
   state.overdueSelectedIndex = 0
   state.todaySelectedIndex = 0
   state.inboxSelectedIndex = 0
+  state.lists = {}
+  state.selectedIndex = {}
   state.recording = 'idle'
   state.createdTaskName = ''
   state.loading = false

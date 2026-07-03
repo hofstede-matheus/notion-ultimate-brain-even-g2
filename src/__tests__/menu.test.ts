@@ -15,11 +15,32 @@ import {
   scrollDownEvent,
   doubleTapEvent,
 } from './helpers'
+import { fetchInboxNotes } from '../api'
 
 vi.mock('../api', () => ({
   fetchTodayTasks: vi.fn().mockResolvedValue([]),
   fetchInboxTasks: vi.fn().mockResolvedValue([]),
   createTask: vi.fn().mockResolvedValue({ id: '1', name: 'Test' }),
+  fetchNext7DaysTasks: vi.fn().mockResolvedValue([]),
+  fetchTomorrowTasks: vi.fn().mockResolvedValue([]),
+  fetchInboxNotes: vi.fn().mockResolvedValue([]),
+  fetchFavoriteNotes: vi.fn().mockResolvedValue([]),
+  fetchByTagNotes: vi.fn().mockResolvedValue([]),
+  fetchNotes: vi.fn().mockResolvedValue([]),
+  fetchMeetingNotes: vi.fn().mockResolvedValue([]),
+  fetchByProjectNotes: vi.fn().mockResolvedValue([]),
+  fetchClipsNotes: vi.fn().mockResolvedValue([]),
+  fetchVoiceNotes: vi.fn().mockResolvedValue([]),
+  fetchJournalNotes: vi.fn().mockResolvedValue([]),
+  fetchAllNotes: vi.fn().mockResolvedValue([]),
+  fetchActiveProjects: vi.fn().mockResolvedValue([]),
+  fetchPlannedProjects: vi.fn().mockResolvedValue([]),
+  fetchBoardProjects: vi.fn().mockResolvedValue([]),
+  fetchArchivedProjects: vi.fn().mockResolvedValue([]),
+  fetchRecentTags: vi.fn().mockResolvedValue([]),
+  fetchFavoriteTags: vi.fn().mockResolvedValue([]),
+  fetchAToZTags: vi.fn().mockResolvedValue([]),
+  fetchTypeTags: vi.fn().mockResolvedValue([]),
 }))
 
 vi.mock('../cache', () => ({
@@ -27,6 +48,9 @@ vi.mock('../cache', () => ({
   saveCachedTasks: vi.fn().mockResolvedValue(undefined),
   CACHE_KEY_TODAY: 'notionultimatebrain:today',
   CACHE_KEY_INBOX: 'notionultimatebrain:inbox',
+  loadCachedList: vi.fn().mockResolvedValue(null),
+  saveCachedList: vi.fn().mockResolvedValue(undefined),
+  cacheKeyForScreen: (screen: string) => `notionultimatebrain:${screen}`,
 }))
 
 vi.mock('../stt', () => ({
@@ -155,16 +179,6 @@ describe('double-clicking on the tasks submenu', () => {
   })
 })
 
-describe('clicking an unbuilt tasks submenu item', () => {
-  it('is a no-op — stays on the tasks submenu', () => {
-    state.screen = 'tasks-menu'
-
-    // Index 3 = "Next 7 Days" — no screen exists yet
-    onEvenHubEvent(listClickEvent(3))
-
-    expect(state.screen).toBe('tasks-menu')
-  })
-})
 
 // ---------------------------------------------------------------------------
 // Index reset when entering the today / inbox / overdue screens from the
@@ -176,8 +190,8 @@ describe('entering the overdue screen from the tasks submenu', () => {
     state.screen = 'tasks-menu'
     state.overdueSelectedIndex = 5
 
-    // Index 1 = "Overdue"
-    onEvenHubEvent(listClickEvent(1))
+    // Index 2 = "Overdue"
+    onEvenHubEvent(listClickEvent(2))
     await flushPromises()
 
     expect(state.overdueSelectedIndex).toBe(0)
@@ -187,15 +201,16 @@ describe('entering the overdue screen from the tasks submenu', () => {
   // Regression test: the firmware bridge omits currentSelectItemIndex from
   // the click payload entirely when it's 0 (proto3 JSON drops zero-valued
   // fields — the same quirk already handled for CLICK_EVENT's own eventType
-  // of 0). Tapping "Today" (the first tasks-submenu item) must still open
-  // the today screen even though itemIndex never actually arrives as 0.
-  it('opens Today when the firmware omits currentSelectItemIndex for the first item', async () => {
+  // of 0). Tapping "Add Task (Voice)" (the first tasks-submenu item) must
+  // still open the add-task screen even though itemIndex never actually
+  // arrives as 0.
+  it('opens Add Task when the firmware omits currentSelectItemIndex for the first item', async () => {
     state.screen = 'tasks-menu'
 
     onEvenHubEvent(listClickEventFirstItemOmittedIndex())
     await flushPromises()
 
-    expect(state.screen).toBe('today')
+    expect(state.screen).toBe('add-task')
   })
 })
 
@@ -204,8 +219,8 @@ describe('entering the today screen from the tasks submenu', () => {
     state.screen = 'tasks-menu'
     state.todaySelectedIndex = 7
 
-    // Index 0 = "Today"
-    onEvenHubEvent(listClickEvent(0))
+    // Index 1 = "Today"
+    onEvenHubEvent(listClickEvent(1))
     await flushPromises()
 
     expect(state.todaySelectedIndex).toBe(0)
@@ -217,8 +232,8 @@ describe('entering the inbox screen from the tasks submenu', () => {
     state.screen = 'tasks-menu'
     state.inboxSelectedIndex = 4
 
-    // Index 2 = "Inbox"
-    onEvenHubEvent(listClickEvent(2))
+    // Index 3 = "Inbox"
+    onEvenHubEvent(listClickEvent(3))
     await flushPromises()
 
     expect(state.inboxSelectedIndex).toBe(0)
@@ -226,12 +241,33 @@ describe('entering the inbox screen from the tasks submenu', () => {
 })
 
 describe('entering the add-task screen from the tasks submenu', () => {
-  it('opens add-task when the last item is tapped', () => {
+  it('opens add-task when the first item is tapped', () => {
     state.screen = 'tasks-menu'
 
-    // Index 10 = "Add Task (Voice)"
-    onEvenHubEvent(listClickEvent(10))
+    // Index 0 = "Add Task (Voice)"
+    onEvenHubEvent(listClickEvent(0))
 
     expect(state.screen).toBe('add-task')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Generic list-view wiring (ctx.enterView) — covers every Tasks/Notes/
+// Projects/Tags screen beyond Today/Inbox/Overdue, which share one fetch/
+// cache pipeline keyed off VIEW_FETCHERS in context.ts.
+// ---------------------------------------------------------------------------
+
+describe('entering a generic notes view (Inbox) from the notes submenu', () => {
+  it('navigates to the notes-inbox screen and loads via the registered fetcher', async () => {
+    vi.mocked(fetchInboxNotes).mockResolvedValueOnce([{ id: 'n1', name: 'Note one' }])
+    state.screen = 'notes-menu'
+
+    // Index 0 = "Inbox"
+    onEvenHubEvent(listClickEvent(0))
+    await flushPromises()
+
+    expect(state.screen).toBe('notes-inbox')
+    expect(fetchInboxNotes).toHaveBeenCalled()
+    expect(state.lists['notes-inbox']).toEqual([{ id: 'n1', name: 'Note one' }])
   })
 })

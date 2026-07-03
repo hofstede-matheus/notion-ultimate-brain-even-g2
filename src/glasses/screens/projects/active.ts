@@ -1,8 +1,10 @@
 import type { AppState } from '../../../state'
 import type { Screen, GlassCtx } from '../../types'
-import { makeStubScreen } from '../shared'
+import { makeListScreen } from '../shared'
 
-export const activeScreen: Screen<AppState, GlassCtx> = makeStubScreen(
-  'Active',
-  'projects-menu',
-)
+export const activeScreen: Screen<AppState, GlassCtx> = makeListScreen({
+  screen: 'projects-active',
+  parent: 'projects-menu',
+  title: 'ACTIVE PROJECTS',
+  emptyMessage: 'No active projects.',
+})

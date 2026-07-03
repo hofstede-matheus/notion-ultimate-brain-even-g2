@@ -1,11 +1,22 @@
 import type { AppState } from '../../../state'
+import type { Screen as ScreenName } from '../../../state'
 import type { Screen, GlassCtx, MenuDef } from '../../types'
 import { makeMenuScreen } from '../shared'
 
 const tagsMenuDef: MenuDef = {
   title: 'TAGS',
   parent: 'menu',
-  items: [{ label: 'Recent' }, { label: 'Favorites' }, { label: 'A-Z' }],
+  items: [
+    { label: 'Recent', target: 'tags-recent' },
+    { label: 'Fav.', target: 'tags-favorites' },
+    { label: 'A-Z', target: 'tags-a-z' },
+    { label: 'Types', target: 'tags-types' },
+  ],
 }
 
-export const tagsMenuScreen: Screen<AppState, GlassCtx> = makeMenuScreen(tagsMenuDef)
+/** Route a tags-submenu target screen through the correct ctx entry point. */
+function open(target: ScreenName, ctx: GlassCtx): void {
+  ctx.enterView(target)
+}
+
+export const tagsMenuScreen: Screen<AppState, GlassCtx> = makeMenuScreen(tagsMenuDef, open)

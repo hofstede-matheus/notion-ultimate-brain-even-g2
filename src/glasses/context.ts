@@ -1,12 +1,66 @@
 import { AudioInputSource } from '@evenrealities/even_hub_sdk'
 import { state, getBridge } from '../state'
-import type { Screen } from '../state'
-import { fetchTodayTasks, fetchInboxTasks, createTask } from '../api'
-import { loadCachedTasks, saveCachedTasks, CACHE_KEY_TODAY, CACHE_KEY_INBOX } from '../cache'
+import type { Screen, ListItem } from '../state'
+import {
+  fetchTodayTasks,
+  fetchInboxTasks,
+  createTask,
+  fetchNext7DaysTasks,
+  fetchTomorrowTasks,
+  fetchInboxNotes,
+  fetchFavoriteNotes,
+  fetchByTagNotes,
+  fetchNotes,
+  fetchMeetingNotes,
+  fetchByProjectNotes,
+  fetchClipsNotes,
+  fetchVoiceNotes,
+  fetchJournalNotes,
+  fetchAllNotes,
+  fetchActiveProjects,
+  fetchPlannedProjects,
+  fetchBoardProjects,
+  fetchArchivedProjects,
+  fetchRecentTags,
+  fetchFavoriteTags,
+  fetchAToZTags,
+  fetchTypeTags,
+} from '../api'
+import { loadCachedTasks, saveCachedTasks, CACHE_KEY_TODAY, CACHE_KEY_INBOX, loadCachedList, saveCachedList, cacheKeyForScreen } from '../cache'
 import * as stt from '../stt'
 import { renderFull, renderUpdate, showOverdue, showToday, showInbox } from './render'
 import { VOSK_MODEL_URL, SPINNER_FRAMES, SPINNER_INTERVAL_MS } from './constants'
 import type { GlassCtx } from './types'
+
+// ---------------------------------------------------------------------------
+// Generic list views — every Tasks/Notes/Projects/Tags screen beyond
+// Today/Inbox/Overdue (which have their own dedicated pipeline below,
+// sharing state.todayTasks/inboxTasks). One fetcher per screen name; the
+// generic enterView() cache-then-fetch pipeline is shared by all of them.
+// ---------------------------------------------------------------------------
+
+const VIEW_FETCHERS: Partial<Record<Screen, () => Promise<ListItem[]>>> = {
+  'tasks-next-7-days': fetchNext7DaysTasks,
+  'tasks-tomorrow': fetchTomorrowTasks,
+  'notes-inbox': fetchInboxNotes,
+  'notes-favorites': fetchFavoriteNotes,
+  'notes-by-tag': fetchByTagNotes,
+  'notes-list': fetchNotes,
+  'notes-meetings': fetchMeetingNotes,
+  'notes-by-project': fetchByProjectNotes,
+  'notes-clips': fetchClipsNotes,
+  'notes-voice': fetchVoiceNotes,
+  'notes-journal': fetchJournalNotes,
+  'notes-all': fetchAllNotes,
+  'projects-active': fetchActiveProjects,
+  'projects-planned': fetchPlannedProjects,
+  'projects-board': fetchBoardProjects,
+  'projects-archived': fetchArchivedProjects,
+  'tags-recent': fetchRecentTags,
+  'tags-favorites': fetchFavoriteTags,
+  'tags-a-z': fetchAToZTags,
+  'tags-types': fetchTypeTags,
+}
 
 // ---------------------------------------------------------------------------
 // Spinner — animates while a background fetch is in flight
@@ -145,6 +199,53 @@ async function enterInbox(): Promise<void> {
   }
 }
 
+/**
+ * Generic cache-then-fetch entry point for every list-view screen besides
+ * Today/Inbox/Overdue — looks up the screen's fetcher in VIEW_FETCHERS,
+ * caches under a key derived from the screen name, and mirrors the
+ * enterOverdueOrToday/enterInbox pipeline above. A no-op (stays on the
+ * current screen) if the screen has no registered fetcher.
+ */
+async function enterView(screen: Screen): Promise<void> {
+  const fetchFn = VIEW_FETCHERS[screen]
+  if (!fetchFn) return
+
+  // 0. Reset cursor on screen entry
+  state.selectedIndex[screen] = 0
+
+  // 1. Show cached data immediately (or a "Fetching…" placeholder if cold)
+  const cacheKey = cacheKeyForScreen(screen)
+  const cached = await loadCachedList<ListItem>(cacheKey)
+  if (cached !== null) {
+    state.lists[screen] = cached
+    state.loading = false
+  } else {
+    state.loading = true
+  }
+  navigate(screen)
+
+  // 2. Spin while the fresh data loads in the background
+  startSpinner(() => {
+    void renderUpdate(screen)
+  })
+
+  try {
+    const fresh = await fetchFn()
+    state.lists[screen] = fresh
+    state.loading = false
+    void saveCachedList(cacheKey, fresh)
+  } catch (e) {
+    if (state.loading) state.lists[screen] = [] // no cache — show empty
+    state.loading = false
+  } finally {
+    stopSpinner()
+    // The fetched list may differ from what's on screen — there's no
+    // partial-list-update API, so refresh via a full rebuild rather than
+    // the header-only renderUpdate.
+    if (state.screen === screen) void renderFull(screen)
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Add Task (Voice) — start/stop recording, transcribe, create the task
 // ---------------------------------------------------------------------------
@@ -226,6 +327,7 @@ export function createGlassCtx(): GlassCtx {
     enterOverdue: () => void enterOverdue(),
     enterToday: () => void enterToday(),
     enterInbox: () => void enterInbox(),
+    enterView: (screen) => void enterView(screen),
     startRecording: () => void startRecording(),
     cancelRecordingAndGoBack,
   }

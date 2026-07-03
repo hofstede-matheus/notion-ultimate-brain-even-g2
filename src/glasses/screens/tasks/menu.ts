@@ -7,17 +7,12 @@ const tasksMenuDef: MenuDef = {
   title: 'TASKS',
   parent: 'menu',
   items: [
+    { label: 'Add Task (Voice)', target: 'add-task' },
     { label: 'Today', target: 'today' },
     { label: 'Overdue', target: 'overdue' },
     { label: 'Inbox', target: 'inbox' },
-    { label: 'Next 7 Days' },
-    { label: 'Tomorrow' },
-    { label: 'No Due' },
-    { label: 'Recurring' },
-    { label: 'Active Projects' },
-    { label: 'All' },
-    { label: 'Done' },
-    { label: 'Add Task (Voice)', target: 'add-task' },
+    { label: 'Next 7 Days', target: 'tasks-next-7-days' },
+    { label: 'Tomorrow', target: 'tasks-tomorrow' },
   ],
 }
 
@@ -33,8 +28,11 @@ function open(target: ScreenName, ctx: GlassCtx): void {
     case 'overdue':
       ctx.enterOverdue()
       break
-    default:
+    case 'add-task':
       ctx.navigate(target)
+      break
+    default:
+      ctx.enterView(target)
   }
 }
 

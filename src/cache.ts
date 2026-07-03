@@ -8,15 +8,20 @@ import type { Task } from './state'
 export const CACHE_KEY_TODAY = 'notionultimatebrain:today'
 export const CACHE_KEY_INBOX = 'notionultimatebrain:inbox'
 
+/** Cache key for a generic list-view screen — see context.ts's enterView(). */
+export function cacheKeyForScreen(screen: string): string {
+  return `notionultimatebrain:${screen}`
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /**
- * Load a cached task list from the bridge's local storage.
+ * Load a cached list from the bridge's local storage.
  * Returns null when there is no entry or the stored value can't be parsed.
  */
-export async function loadCachedTasks(key: string): Promise<Task[] | null> {
+export async function loadCachedList<T>(key: string): Promise<T[] | null> {
   const b = getBridge()
   if (!b) return null
   try {
@@ -24,22 +29,25 @@ export async function loadCachedTasks(key: string): Promise<Task[] | null> {
     if (!raw) return null
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return null
-    return parsed as Task[]
+    return parsed as T[]
   } catch {
     return null
   }
 }
 
 /**
- * Persist a task list to the bridge's local storage.
+ * Persist a list to the bridge's local storage.
  * Failures are swallowed — cache writes are best-effort.
  */
-export async function saveCachedTasks(key: string, tasks: Task[]): Promise<void> {
+export async function saveCachedList<T>(key: string, items: T[]): Promise<void> {
   const b = getBridge()
   if (!b) return
   try {
-    await b.setLocalStorage(key, JSON.stringify(tasks))
+    await b.setLocalStorage(key, JSON.stringify(items))
   } catch {
     // ignore
   }
 }
+
+export const loadCachedTasks = loadCachedList<Task>
+export const saveCachedTasks = saveCachedList<Task>
