@@ -29,3 +29,6 @@ coverage/
 
 # Kilo plans (local planning artifacts)
 .kilo/plans/
+
+# Offline voice model (~40 MB, fetched via npm run fetch:voice-model)
+public/vosk/model.tar.gz

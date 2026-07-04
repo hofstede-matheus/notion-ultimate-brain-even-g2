@@ -36,6 +36,18 @@ function addTaskContent(state: AppState): string {
         'Please wait.',
       ].join('\n')
 
+    case 'confirm':
+      return [
+        'ADD TASK',
+        '',
+        'Confirm task:',
+        `"${state.pendingTranscript}"`,
+        '',
+        'Tap to confirm.',
+        'Double-tap to discard',
+        '& re-record.',
+      ].join('\n')
+
     case 'done':
       return [
         'ADD TASK',
@@ -66,15 +78,23 @@ export const addTaskScreen: Screen<AppState, GlassCtx> = {
     return { mode: 'text', content: addTaskContent(state) }
   },
 
-  action(action, nav, _state, ctx) {
+  action(action, nav, state, ctx) {
     if (action.type === 'GO_BACK') {
-      // Stop any active recording before going back
-      ctx.cancelRecordingAndGoBack()
+      if (state.recording === 'confirm') {
+        ctx.discardAddTask()
+      } else {
+        // Stop any active recording before going back
+        ctx.cancelRecordingAndGoBack()
+      }
       return nav
     }
 
     if (action.type === 'SELECT_HIGHLIGHTED') {
-      ctx.startRecording()
+      if (state.recording === 'confirm') {
+        void ctx.confirmAddTask()
+      } else {
+        ctx.startRecording()
+      }
     }
 
     // HIGHLIGHT_MOVE: no scrollable content on this screen — intentionally no-op

@@ -84,6 +84,27 @@ describe('tapping the add-task screen', () => {
     // AudioInputSource.Glasses = 'glasses'
     expect(mockBridge.audioControl).toHaveBeenCalledWith(true, 'glasses')
   })
+
+  it('ignores a second tap that lands before the recognizer resolves', async () => {
+    let resolveReady: (ready: boolean) => void = () => {}
+    vi.mocked(stt.ensureRecognizer).mockReturnValue(
+      new Promise((resolve) => {
+        resolveReady = resolve
+      }),
+    )
+
+    // Both taps fire synchronously, before ensureRecognizer's promise settles —
+    // state.recording is still 'idle' for both.
+    onEvenHubEvent(clickEvent())
+    onEvenHubEvent(clickEvent())
+
+    resolveReady(true)
+    await flushPromises()
+
+    expect(stt.ensureRecognizer).toHaveBeenCalledTimes(1)
+    expect(mockBridge.audioControl).toHaveBeenCalledTimes(1)
+    expect(state.recording).toBe('recording')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -124,6 +145,136 @@ describe('blank transcription from the voice model', () => {
     await capturedOnFinal!('')
 
     expect(state.recording).toBe('error')
+    expect(createTask).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Test 25 — non-blank transcription goes to a confirm step, not auto-create
+// ---------------------------------------------------------------------------
+
+describe('non-blank transcription from the voice model', () => {
+  it('shows a confirm prompt instead of creating the task immediately', async () => {
+    vi.mocked(stt.ensureRecognizer).mockResolvedValue(true)
+
+    let capturedOnFinal: ((text: string) => Promise<void>) | undefined
+    vi.mocked(stt.startListening).mockImplementation((onFinal) => {
+      capturedOnFinal = onFinal as (text: string) => Promise<void>
+    })
+
+    onEvenHubEvent(clickEvent())
+    await flushPromises()
+
+    await capturedOnFinal!('Buy milk')
+
+    expect(state.recording).toBe('confirm')
+    expect(state.pendingTranscript).toBe('Buy milk')
+    expect(createTask).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Test 26 — confirming the transcript creates the task
+// ---------------------------------------------------------------------------
+
+describe('tapping to confirm a pending transcript', () => {
+  it('creates the task, shows done, and clears the pending transcript', async () => {
+    state.recording = 'confirm'
+    state.pendingTranscript = 'Buy milk'
+
+    onEvenHubEvent(clickEvent())
+    await flushPromises()
+
+    expect(createTask).toHaveBeenCalledWith('Buy milk')
+    expect(state.recording).toBe('done')
+    expect(state.createdTaskName).toBe('Buy milk')
+    expect(state.pendingTranscript).toBe('')
+  })
+
+  it('surfaces creation errors and clears the pending transcript', async () => {
+    vi.mocked(createTask).mockRejectedValueOnce(new Error('Network error'))
+    state.recording = 'confirm'
+    state.pendingTranscript = 'Buy milk'
+
+    onEvenHubEvent(clickEvent())
+    await flushPromises()
+
+    expect(state.recording).toBe('error')
+    expect(state.errorMessage).toBe('Network error')
+    expect(state.pendingTranscript).toBe('')
+  })
+
+  it('only creates one task on a rapid double confirm tap', async () => {
+    let resolveCreate: (result: { id: string; name: string }) => void = () => {}
+    vi.mocked(createTask).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveCreate = resolve
+      }),
+    )
+    state.recording = 'confirm'
+    state.pendingTranscript = 'Buy milk'
+
+    // Both taps fire synchronously, before createTask's promise settles —
+    // state.recording is still 'confirm' for both.
+    onEvenHubEvent(clickEvent())
+    onEvenHubEvent(clickEvent())
+
+    resolveCreate({ id: '1', name: 'Buy milk' })
+    await flushPromises()
+
+    expect(createTask).toHaveBeenCalledTimes(1)
+    expect(state.recording).toBe('done')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Test 27 — double-tapping a pending transcript discards it
+// ---------------------------------------------------------------------------
+
+describe('double-tapping a pending transcript', () => {
+  it('discards the transcript and returns to idle, not the tasks menu', () => {
+    state.recording = 'confirm'
+    state.pendingTranscript = 'Buy milk'
+
+    onEvenHubEvent(doubleTapEvent())
+
+    expect(state.recording).toBe('idle')
+    expect(state.pendingTranscript).toBe('')
+    expect(state.screen).toBe('add-task')
+    expect(createTask).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Test 28 — a stale transcription result after cancelling must not resurrect
+// the confirm screen once the user has already left Add Task
+// ---------------------------------------------------------------------------
+
+describe('a transcription that resolves after the user already cancelled', () => {
+  it('does not flip state back to confirm once the recording session is stale', async () => {
+    vi.mocked(stt.ensureRecognizer).mockResolvedValue(true)
+    vi.mocked(stt.isListening).mockReturnValue(true)
+
+    let capturedOnFinal: ((text: string) => Promise<void>) | undefined
+    vi.mocked(stt.startListening).mockImplementation((onFinal) => {
+      capturedOnFinal = onFinal as (text: string) => Promise<void>
+    })
+
+    onEvenHubEvent(clickEvent())
+    await flushPromises()
+    expect(capturedOnFinal).toBeDefined()
+
+    // User double-taps out to the Tasks menu while still 'recording' —
+    // this invalidates the in-flight session.
+    onEvenHubEvent(doubleTapEvent())
+    expect(state.screen).toBe('tasks-menu')
+
+    // The stale Vosk result arrives after the user has already left.
+    await capturedOnFinal!('Buy milk')
+
+    expect(state.recording).not.toBe('confirm')
+    expect(state.pendingTranscript).toBe('')
+    expect(state.screen).toBe('tasks-menu')
     expect(createTask).not.toHaveBeenCalled()
   })
 })

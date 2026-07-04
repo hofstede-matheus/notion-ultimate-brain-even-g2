@@ -1,7 +1,7 @@
 /**
  * Fetch + repackage the offline Vosk speech model for voice task entry.
  *
- * vosk-browser loads a gzipped tar of a `model/` folder. The official Portuguese
+ * vosk-browser loads a gzipped tar of a `model/` folder. The official English
  * small model ships as a zip with a versioned top folder, so we download it,
  * rename the top folder to `model/`, and write public/vosk/model.tar.gz.
  *
@@ -53,17 +53,17 @@ function download(url, dest, redirects = 0) {
 }
 
 (async () => {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'vosk-pt-'));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'vosk-en-'));
   const zipPath = path.join(tmp, 'model.zip');
   try {
-    console.log('[fetch-vosk-model] downloading Portuguese model from:');
+    console.log('[fetch-vosk-model] downloading English model from:');
     console.log(' ', MODEL_URL);
     await download(MODEL_URL, zipPath);
 
     console.log('[fetch-vosk-model] extracting…');
     execFileSync('unzip', ['-q', zipPath, '-d', tmp], { stdio: 'inherit' });
 
-    // Find the extracted top-level folder (versioned name like vosk-model-small-pt-0.3)
+    // Find the extracted top-level folder (versioned name like vosk-model-small-en-us-0.15)
     const top = fs
       .readdirSync(tmp, { withFileTypes: true })
       .filter((d) => d.isDirectory())

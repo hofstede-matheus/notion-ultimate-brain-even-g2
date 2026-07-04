@@ -35,6 +35,7 @@ export function resetState() {
   state.selectedIndex = {}
   state.recording = 'idle'
   state.createdTaskName = ''
+  state.pendingTranscript = ''
   state.loading = false
   state.spinnerFrame = ''
   state.errorMessage = ''

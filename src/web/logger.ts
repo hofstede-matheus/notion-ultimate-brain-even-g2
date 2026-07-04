@@ -13,6 +13,25 @@ function timestamp(): string {
     .padStart(3, '0')}`
 }
 
+/**
+ * Raw PCM audio frames arrive continuously during voice recording, and the
+ * host bridge logs every one (`… EvenHub event: {jsonData:{audioPcm:[…]}}`),
+ * flooding the console/terminal with number arrays. Drop those lines entirely
+ * — they carry no diagnostic value. Cheap property checks only; never
+ * stringifies large payloads.
+ */
+function isAudioFrameLog(args: unknown[]): boolean {
+  for (const a of args) {
+    if (typeof a === 'string') {
+      if (a.includes('audioPcm')) return true
+    } else if (a && typeof a === 'object') {
+      const o = a as Record<string, any>
+      if (o.audioPcm != null || o.jsonData?.audioPcm != null) return true
+    }
+  }
+  return false
+}
+
 function formatArgs(args: unknown[]): string {
   return args
     .map((a) => {
@@ -112,6 +131,7 @@ export function installLogger(): void {
   for (const level of LOG_LEVELS) {
     const original = console[level].bind(console)
     console[level] = (...args: unknown[]) => {
+      if (isAudioFrameLog(args)) return // suppress per-frame PCM spam
       original(...args)
       const line = `[${timestamp()}] [${level.toUpperCase()}] ${formatArgs(args)}`
       appendLine(level, line)

@@ -33,7 +33,7 @@ export type Screen =
   | 'mark-done-confirm'
   | 'mark-done-toast'
 
-export type RecordingState = 'idle' | 'recording' | 'processing' | 'done' | 'error'
+export type RecordingState = 'idle' | 'recording' | 'processing' | 'confirm' | 'done' | 'error'
 
 export interface Task {
   id: string
@@ -97,6 +97,7 @@ export interface AppState {
   // Voice recording
   recording: RecordingState
   createdTaskName: string
+  pendingTranscript: string
 
   // Loading / background refresh
   loading: boolean      // true = no cache yet, first fetch in flight
@@ -119,6 +120,7 @@ export const state: AppState = {
   markDoneToast: null,
   recording: 'idle',
   createdTaskName: '',
+  pendingTranscript: '',
   loading: false,
   spinnerFrame: '',
   errorMessage: '',

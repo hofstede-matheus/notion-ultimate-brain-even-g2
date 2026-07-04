@@ -93,7 +93,14 @@ function clearResultTimer(): void {
 // Internal: end the listening session and request final result from Vosk
 // ---------------------------------------------------------------------------
 
-function finalize(): void {
+/**
+ * Stop capturing: end the session, clear the VAD/max timers, and notify the
+ * caller to close the mic + show "processing". Idempotent via the `listening`
+ * guard, so it runs at most once per session regardless of what ends it
+ * (VAD, manual stop, max-timer, or an autonomous Vosk result — see the
+ * `on('result')` handler in ensureRecognizer).
+ */
+function endCapture(): void {
   if (!listening) return
   listening = false
   clearSessionTimers()
@@ -101,6 +108,11 @@ function finalize(): void {
   // Notify the caller synchronously — close mic, update UI to "processing"
   sessionOnStop?.()
   sessionOnStop = null
+}
+
+function finalize(): void {
+  if (!listening) return
+  endCapture()
 
   // Ask Vosk to flush; the 'result' event fires asynchronously via the Worker
   rec?.retrieveFinalResult()
@@ -128,6 +140,7 @@ export function preloadVoskModel(modelUrl: string): void {
   if (modelPromise) return
   modelPromise = createModel(modelUrl).catch(() => {
     modelPromise = null   // allow a retry later
+    console.warn(`Voice model failed to load from ${modelUrl} — run npm run fetch:voice-model`)
     return null
   })
 }
@@ -157,6 +170,15 @@ export async function ensureRecognizer(modelUrl: string): Promise<boolean> {
     // Wire the result event once — calls through to the current session's callback
     rec.on('result', (msg: any) => {
       const text = ((msg?.result?.text ?? '') as string).trim()
+
+      // If `listening` is still true, Vosk emitted this result on its own
+      // (endpoint detected) BEFORE our VAD/manual stop ran. End the capture
+      // first so onStop (mic off → "processing") fires BEFORE we deliver the
+      // transcript below — otherwise a later finalize() would flip the UI back
+      // to "processing" with no transcript left to move it off, leaving it
+      // stuck. endCapture() is idempotent, so the normal path (finalize
+      // already ran, listening=false) skips it here.
+      if (listening) endCapture()
 
       clearResultTimer()                // real result arrived — cancel safety timeout
       const cb = sessionOnFinal

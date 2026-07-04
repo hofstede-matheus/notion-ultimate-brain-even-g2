@@ -11,6 +11,9 @@
     "server": "npx tsx server/index.ts",
     "dev:all": "concurrently \"npm run server\" \"npm run dev\"",
     "fetch:voice-model": "node scripts/fetch-vosk-model.cjs",
+    "ensure:voice-model": "node -e \"const fs=require('fs');const p='public/vosk/model.tar.gz';if(!fs.existsSync(p)){console.error('[ensure:voice-model] missing '+p+' — run npm run fetch:voice-model');process.exit(1)}\"",
+    "prebuild": "npm run ensure:voice-model",
+    "prepack": "npm run ensure:voice-model",
     "test": "vitest run",
     "test:watch": "vitest"
   },

@@ -46,6 +46,8 @@ export interface GlassCtx {
   enterView(screen: ScreenName): void
   startRecording(): void
   cancelRecordingAndGoBack(): void
+  confirmAddTask(): Promise<void>
+  discardAddTask(): void
   openMarkDoneConfirm(taskId: string, taskName: string, returnTo: ScreenName): void
   confirmMarkDone(): Promise<void>
   dismissMarkDoneConfirm(): void
