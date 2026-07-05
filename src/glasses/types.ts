@@ -52,6 +52,13 @@ export interface GlassCtx {
   confirmMarkDone(): Promise<void>
   dismissMarkDoneConfirm(): void
   dismissToastAndReturn(): void
+  openTaskActions(taskId: string, taskName: string, returnTo: ScreenName): void
+  enterTaskMetadata(): void
+  openDeleteConfirm(): void
+  dismissDeleteConfirm(): void
+  confirmDelete(): Promise<void>
+  dismissDeleteToastAndReturn(): void
+  openProjectDetail(projectId: string, projectName: string, returnTo: ScreenName): void
 }
 
 /** A single entry in a menu screen — `target` undefined means the row is a no-op stub. */

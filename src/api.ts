@@ -51,6 +51,26 @@ export async function markTaskDone(id: string): Promise<void> {
   if (!res.ok) throw new Error(`Failed to mark task done: ${res.status}`)
 }
 
+export interface TaskMetadata {
+  project: string | null
+  due: string | null
+}
+
+export async function fetchTaskMetadata(id: string): Promise<TaskMetadata> {
+  const res = await fetch(`${API_BASE}/api/tasks/${id}/metadata`)
+  if (!res.ok) throw new Error(`Failed to fetch task metadata: ${res.status}`)
+  return res.json()
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/tasks/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`Failed to delete task: ${res.status}`)
+}
+
+export function fetchTasksForProject(projectId: string): Promise<Task[]> {
+  return fetchList(`/api/tasks/for-project/${projectId}`, 'tasks', 'tasks for project')
+}
+
 // ---------------------------------------------------------------------------
 // Notes
 // ---------------------------------------------------------------------------
@@ -93,6 +113,10 @@ export function fetchJournalNotes(): Promise<Note[]> {
 
 export function fetchAllNotes(): Promise<Note[]> {
   return fetchList('/api/notes/all', 'notes', 'all notes')
+}
+
+export function fetchNotesForProject(projectId: string): Promise<Note[]> {
+  return fetchList(`/api/notes/for-project/${projectId}`, 'notes', 'notes for project')
 }
 
 // ---------------------------------------------------------------------------

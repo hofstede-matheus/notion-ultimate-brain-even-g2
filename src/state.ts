@@ -32,6 +32,13 @@ export type Screen =
   | 'tags-types'
   | 'mark-done-confirm'
   | 'mark-done-toast'
+  | 'task-actions'
+  | 'task-metadata'
+  | 'delete-confirm'
+  | 'delete-toast'
+  | 'project-detail'
+  | 'project-tasks'
+  | 'project-notes'
 
 export type RecordingState = 'idle' | 'recording' | 'processing' | 'confirm' | 'done' | 'error'
 
@@ -39,6 +46,7 @@ export interface Task {
   id: string
   name: string
   dueDate?: string
+  status?: string
 }
 
 export interface Note {
@@ -94,6 +102,21 @@ export interface AppState {
   pendingMarkDone: { taskId: string; taskName: string; returnTo: Screen } | null
   markDoneToast: { taskName: string; returnTo: Screen; untilMs: number } | null
 
+  // The task the action menu / metadata / delete flow is operating on.
+  selectedTask: { taskId: string; taskName: string; returnTo: Screen } | null
+
+  // Metadata screen data (fetched on demand).
+  taskMetadata: { loading: boolean; project: string | null; due: string | null; error: string } | null
+
+  // Delete confirm dialog / toast — mirrors pendingMarkDone / markDoneToast.
+  pendingDelete: { taskId: string; taskName: string; returnTo: Screen } | null
+  deleteToast: { taskName: string; returnTo: Screen; untilMs: number } | null
+
+  // The project the Tasks/Notes drill-down menu (and its two list screens)
+  // is currently scoped to — returnTo is the Projects list screen to
+  // navigate back to (Active/Planned/Board/Archived).
+  selectedProject: { id: string; name: string; returnTo: Screen } | null
+
   // Voice recording
   recording: RecordingState
   createdTaskName: string
@@ -118,6 +141,11 @@ export const state: AppState = {
   selectedIndex: {},
   pendingMarkDone: null,
   markDoneToast: null,
+  selectedTask: null,
+  taskMetadata: null,
+  pendingDelete: null,
+  deleteToast: null,
+  selectedProject: null,
   recording: 'idle',
   createdTaskName: '',
   pendingTranscript: '',

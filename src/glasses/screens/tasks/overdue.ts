@@ -54,7 +54,7 @@ export const overdueScreen: Screen<AppState, GlassCtx> = {
       if (typeof action.itemIndex === 'number') {
         state.overdueSelectedIndex = action.itemIndex
         const task = getOverdueFlatTasks(state)[action.itemIndex]
-        if (task) ctx.openMarkDoneConfirm(task.id, task.name, 'overdue')
+        if (task) ctx.openTaskActions(task.id, task.name, 'overdue')
       }
       return nav
     }

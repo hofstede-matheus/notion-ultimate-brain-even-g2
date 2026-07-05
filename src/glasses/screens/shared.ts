@@ -59,6 +59,19 @@ export function getInboxFlatTasks(state: AppState): Task[] {
 }
 
 /**
+ * Formats a task's due date (YYYY-MM-DD) as friendly text, e.g. "Jul 4, 2026".
+ * Missing/empty dates render as "(none)".
+ */
+export function formatDueDate(iso: string | null): string {
+  if (!iso) return '(none)'
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+/**
  * Generic factory for any list-style menu screen — header + native list
  * widget, click dispatches to `item.target` (no-op when undefined). Pass
  * `clickRouter` to override the default `ctx.navigate(target)` for screens
@@ -133,15 +146,26 @@ export function getListItems(state: AppState, screen: ScreenName): ListItem[] {
   return state.lists[screen] ?? []
 }
 
+/**
+ * Screens whose list items are Project records. Used to route
+ * SELECT_HIGHLIGHTED to openProjectDetail() — can't duck-type this off an
+ * item field since Task now also carries an optional `status` (for the
+ * project-tasks `[ ]`/`[v]` prefix), so a due-date-less Task and a Project
+ * would otherwise be indistinguishable by shape alone.
+ */
+const PROJECT_LIST_SCREENS: ScreenName[] = ['projects-active', 'projects-planned', 'projects-board', 'projects-archived']
+
 export interface ListScreenConfig {
   /** This screen's own name — used to key state.lists / state.selectedIndex. */
   screen: ScreenName
   /** Screen to return to on GO_BACK (the owning domain's submenu). */
   parent: ScreenName
-  /** Header title, e.g. "NEXT 7 DAYS". */
-  title: string
+  /** Header title, e.g. "NEXT 7 DAYS". Can depend on state (e.g. the selected project's name). */
+  title: string | ((state: AppState) => string)
   /** Shown (alongside "Double-tap to go back.") when the list is empty. */
   emptyMessage?: string
+  /** Formats a single item's label. Defaults to `item.name`. */
+  formatLabel?: (item: ListItem) => string
 }
 
 /**
@@ -155,13 +179,16 @@ export interface ListScreenConfig {
  */
 export function makeListScreen(config: ListScreenConfig): Screen<AppState, GlassCtx> {
   const emptyMessage = config.emptyMessage ?? 'No items.'
+  const formatLabel = config.formatLabel ?? ((item: ListItem) => item.name)
 
   return {
     display(state) {
+      const title = typeof config.title === 'function' ? config.title(state) : config.title
+
       if (state.loading) {
         return {
           mode: 'text',
-          content: [buildHeaderLine(config.title, state.spinnerFrame), '', 'Fetching…'].join('\n'),
+          content: [buildHeaderLine(title, state.spinnerFrame), '', 'Fetching…'].join('\n'),
         }
       }
 
@@ -170,7 +197,7 @@ export function makeListScreen(config: ListScreenConfig): Screen<AppState, Glass
         return {
           mode: 'text',
           content: [
-            buildHeaderLine(config.title, state.spinnerFrame),
+            buildHeaderLine(title, state.spinnerFrame),
             '',
             emptyMessage,
             '',
@@ -179,8 +206,8 @@ export function makeListScreen(config: ListScreenConfig): Screen<AppState, Glass
         }
       }
 
-      const header = buildHeaderLine(`${config.title} (${items.length})`, state.spinnerFrame)
-      const listItems = items.slice(0, MAX_LIST_ITEMS).map((i) => truncateToByteLimit(i.name))
+      const header = buildHeaderLine(`${title} (${items.length})`, state.spinnerFrame)
+      const listItems = items.slice(0, MAX_LIST_ITEMS).map((i) => truncateToByteLimit(formatLabel(i)))
       return { mode: 'list', header, items: listItems }
     },
 
@@ -197,9 +224,11 @@ export function makeListScreen(config: ListScreenConfig): Screen<AppState, Glass
           state.selectedIndex[config.screen] = action.itemIndex
           const item = state.lists[config.screen]?.[action.itemIndex]
           // Only Task records carry a dueDate — guards against triggering
-          // mark-done on the Notes/Projects/Tags screens sharing this factory.
+          // the action menu on the Notes/Projects/Tags screens sharing this factory.
           if (item && 'dueDate' in item) {
-            ctx.openMarkDoneConfirm(item.id, item.name, config.screen)
+            ctx.openTaskActions(item.id, item.name, config.screen)
+          } else if (item && PROJECT_LIST_SCREENS.includes(config.screen)) {
+            ctx.openProjectDetail(item.id, item.name, config.screen)
           }
         }
         return nav

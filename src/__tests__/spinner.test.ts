@@ -30,6 +30,8 @@ vi.mock('../api', () => ({
   fetchFavoriteTags: vi.fn().mockResolvedValue([]),
   fetchAToZTags: vi.fn().mockResolvedValue([]),
   fetchTypeTags: vi.fn().mockResolvedValue([]),
+  fetchTasksForProject: vi.fn().mockResolvedValue([]),
+  fetchNotesForProject: vi.fn().mockResolvedValue([]),
 }))
 
 vi.mock('../cache', () => ({

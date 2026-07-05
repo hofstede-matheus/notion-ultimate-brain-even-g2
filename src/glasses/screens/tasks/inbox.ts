@@ -50,7 +50,7 @@ export const inboxScreen: Screen<AppState, GlassCtx> = {
       if (typeof action.itemIndex === 'number') {
         state.inboxSelectedIndex = action.itemIndex
         const task = getInboxFlatTasks(state)[action.itemIndex]
-        if (task) ctx.openMarkDoneConfirm(task.id, task.name, 'inbox')
+        if (task) ctx.openTaskActions(task.id, task.name, 'inbox')
       }
       return nav
     }

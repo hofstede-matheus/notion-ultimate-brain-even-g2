@@ -54,7 +54,7 @@ export const todayScreen: Screen<AppState, GlassCtx> = {
       if (typeof action.itemIndex === 'number') {
         state.todaySelectedIndex = action.itemIndex
         const task = getTodayFlatTasks(state)[action.itemIndex]
-        if (task) ctx.openMarkDoneConfirm(task.id, task.name, 'today')
+        if (task) ctx.openTaskActions(task.id, task.name, 'today')
       }
       return nav
     }

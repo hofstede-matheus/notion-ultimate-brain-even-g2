@@ -39,6 +39,13 @@ export function resetState() {
   state.loading = false
   state.spinnerFrame = ''
   state.errorMessage = ''
+  state.pendingMarkDone = null
+  state.markDoneToast = null
+  state.selectedTask = null
+  state.taskMetadata = null
+  state.pendingDelete = null
+  state.deleteToast = null
+  state.selectedProject = null
 }
 
 // ---------------------------------------------------------------------------

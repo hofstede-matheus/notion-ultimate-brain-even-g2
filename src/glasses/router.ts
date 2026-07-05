@@ -12,6 +12,10 @@ import { inboxScreen } from './screens/tasks/inbox'
 import { addTaskScreen } from './screens/tasks/add-task'
 import { markDoneConfirmScreen } from './screens/tasks/mark-done-confirm'
 import { markDoneToastScreen } from './screens/tasks/mark-done-toast'
+import { taskActionsScreen } from './screens/tasks/task-actions'
+import { taskMetadataScreen } from './screens/tasks/task-metadata'
+import { deleteConfirmScreen } from './screens/tasks/delete-confirm'
+import { deleteToastScreen } from './screens/tasks/delete-toast'
 import { next7DaysScreen } from './screens/tasks/next-7-days'
 import { tomorrowScreen } from './screens/tasks/tomorrow'
 import { notesInboxScreen } from './screens/notes/inbox'
@@ -28,6 +32,9 @@ import { activeScreen as projectsActiveScreen } from './screens/projects/active'
 import { plannedScreen } from './screens/projects/planned'
 import { boardScreen } from './screens/projects/board'
 import { archivedScreen } from './screens/projects/archived'
+import { projectDetailScreen } from './screens/projects/detail'
+import { projectTasksScreen } from './screens/projects/project-tasks'
+import { projectNotesScreen } from './screens/projects/project-notes'
 import { recentTagsScreen } from './screens/tags/recent'
 import { tagsFavoritesScreen } from './screens/tags/favorites'
 import { tagsAzScreen } from './screens/tags/a-z'
@@ -66,6 +73,13 @@ const SCREENS: Record<string, Screen<AppState, GlassCtx>> = {
   'tags-types': tagsTypesScreen,
   'mark-done-confirm': markDoneConfirmScreen,
   'mark-done-toast': markDoneToastScreen,
+  'task-actions': taskActionsScreen,
+  'task-metadata': taskMetadataScreen,
+  'delete-confirm': deleteConfirmScreen,
+  'delete-toast': deleteToastScreen,
+  'project-detail': projectDetailScreen,
+  'project-tasks': projectTasksScreen,
+  'project-notes': projectNotesScreen,
 }
 
 function getScreen(name: string): Screen<AppState, GlassCtx> {

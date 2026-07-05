@@ -6,6 +6,8 @@ import {
   fetchInboxTasks,
   createTask,
   markTaskDone,
+  fetchTaskMetadata,
+  deleteTask,
   fetchNext7DaysTasks,
   fetchTomorrowTasks,
   fetchInboxNotes,
@@ -26,6 +28,8 @@ import {
   fetchFavoriteTags,
   fetchAToZTags,
   fetchTypeTags,
+  fetchTasksForProject,
+  fetchNotesForProject,
 } from '../api'
 import { loadCachedTasks, saveCachedTasks, CACHE_KEY_TODAY, CACHE_KEY_INBOX, loadCachedList, saveCachedList, cacheKeyForScreen } from '../cache'
 import * as stt from '../stt'
@@ -61,6 +65,8 @@ const VIEW_FETCHERS: Partial<Record<Screen, () => Promise<ListItem[]>>> = {
   'tags-favorites': fetchFavoriteTags,
   'tags-a-z': fetchAToZTags,
   'tags-types': fetchTypeTags,
+  'project-tasks': () => fetchTasksForProject(state.selectedProject!.id),
+  'project-notes': () => fetchNotesForProject(state.selectedProject!.id),
 }
 
 // ---------------------------------------------------------------------------
@@ -202,6 +208,18 @@ async function enterInbox(): Promise<void> {
 }
 
 /**
+ * Cache key for a generic list-view screen, scoped by selected project for
+ * project-tasks/project-notes so switching projects doesn't flash the
+ * previous project's cached list.
+ */
+function cacheKeyForListView(screen: Screen): string {
+  if (screen === 'project-tasks' || screen === 'project-notes') {
+    return `${cacheKeyForScreen(screen)}:${state.selectedProject?.id ?? 'none'}`
+  }
+  return cacheKeyForScreen(screen)
+}
+
+/**
  * Generic cache-then-fetch entry point for every list-view screen besides
  * Today/Inbox/Overdue — looks up the screen's fetcher in VIEW_FETCHERS,
  * caches under a key derived from the screen name, and mirrors the
@@ -216,7 +234,7 @@ async function enterView(screen: Screen): Promise<void> {
   state.selectedIndex[screen] = 0
 
   // 1. Show cached data immediately (or a "Fetching…" placeholder if cold)
-  const cacheKey = cacheKeyForScreen(screen)
+  const cacheKey = cacheKeyForListView(screen)
   const cached = await loadCachedList<ListItem>(cacheKey)
   if (cached !== null) {
     state.lists[screen] = cached
@@ -268,6 +286,26 @@ function dismissMarkDoneConfirm(): void {
   navigate(returnTo)
 }
 
+/**
+ * Removes a task from whichever list actually owns it — Today and Overdue
+ * are both filtered views over the same state.todayTasks array. Shared by
+ * confirmMarkDone and confirmDelete, which both key the owning list by
+ * `returnTo`.
+ */
+function removeTaskFromOwningList(taskId: string, returnTo: Screen): void {
+  if (returnTo === 'today' || returnTo === 'overdue') {
+    state.todayTasks = state.todayTasks.filter((t) => t.id !== taskId)
+    void saveCachedTasks(CACHE_KEY_TODAY, state.todayTasks)
+  } else if (returnTo === 'inbox') {
+    state.inboxTasks = state.inboxTasks.filter((t) => t.id !== taskId)
+    void saveCachedTasks(CACHE_KEY_INBOX, state.inboxTasks)
+  } else {
+    const list = (state.lists[returnTo] ?? []).filter((item) => item.id !== taskId)
+    state.lists[returnTo] = list
+    void saveCachedList(cacheKeyForListView(returnTo), list)
+  }
+}
+
 async function confirmMarkDone(): Promise<void> {
   const pending = state.pendingMarkDone
   if (!pending) return
@@ -276,19 +314,7 @@ async function confirmMarkDone(): Promise<void> {
   try {
     await markTaskDone(taskId)
 
-    // Remove the task from whichever list actually owns it — Today and
-    // Overdue are both filtered views over the same state.todayTasks array.
-    if (returnTo === 'today' || returnTo === 'overdue') {
-      state.todayTasks = state.todayTasks.filter((t) => t.id !== taskId)
-      void saveCachedTasks(CACHE_KEY_TODAY, state.todayTasks)
-    } else if (returnTo === 'inbox') {
-      state.inboxTasks = state.inboxTasks.filter((t) => t.id !== taskId)
-      void saveCachedTasks(CACHE_KEY_INBOX, state.inboxTasks)
-    } else {
-      const list = (state.lists[returnTo] ?? []).filter((item) => item.id !== taskId)
-      state.lists[returnTo] = list
-      void saveCachedList(cacheKeyForScreen(returnTo), list)
-    }
+    removeTaskFromOwningList(taskId, returnTo)
 
     state.pendingMarkDone = null
     state.markDoneToast = { taskName, returnTo, untilMs: Date.now() + 1500 }
@@ -314,6 +340,107 @@ function dismissToastAndReturn(): void {
   const returnTo = state.markDoneToast?.returnTo ?? 'tasks-menu'
   state.markDoneToast = null
   navigate(returnTo)
+}
+
+// ---------------------------------------------------------------------------
+// Task action menu — reached by tapping a task in any Tasks list screen.
+// Offers Load metadata / Mark as done / Delete task.
+// ---------------------------------------------------------------------------
+
+function openTaskActions(taskId: string, taskName: string, returnTo: Screen): void {
+  state.selectedTask = { taskId, taskName, returnTo }
+  navigate('task-actions')
+}
+
+async function enterTaskMetadata(): Promise<void> {
+  const selected = state.selectedTask
+  if (!selected) return
+
+  state.taskMetadata = { loading: true, project: null, due: null, error: '' }
+  navigate('task-metadata')
+
+  startSpinner(() => void renderUpdate('task-metadata'))
+
+  try {
+    const { project, due } = await fetchTaskMetadata(selected.taskId)
+    state.taskMetadata = { loading: false, project, due, error: '' }
+  } catch (e) {
+    state.taskMetadata = {
+      loading: false,
+      project: null,
+      due: null,
+      error: e instanceof Error ? e.message : 'Unknown error',
+    }
+  } finally {
+    stopSpinner()
+    if (state.screen === 'task-metadata') void renderFull('task-metadata')
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Delete Task — confirm dialog + toast, direct parallel of Mark Task Done.
+// ---------------------------------------------------------------------------
+
+let deleteToastTimeout: ReturnType<typeof setTimeout> | null = null
+
+function openDeleteConfirm(): void {
+  const selected = state.selectedTask
+  if (!selected) return
+  state.pendingDelete = { ...selected }
+  state.errorMessage = ''
+  navigate('delete-confirm')
+}
+
+function dismissDeleteConfirm(): void {
+  const returnTo = state.pendingDelete?.returnTo ?? 'tasks-menu'
+  state.pendingDelete = null
+  navigate(returnTo)
+}
+
+async function confirmDelete(): Promise<void> {
+  const pending = state.pendingDelete
+  if (!pending) return
+  const { taskId, taskName, returnTo } = pending
+
+  try {
+    await deleteTask(taskId)
+
+    removeTaskFromOwningList(taskId, returnTo)
+
+    state.pendingDelete = null
+    state.deleteToast = { taskName, returnTo, untilMs: Date.now() + 1500 }
+    navigate('delete-toast')
+
+    if (deleteToastTimeout !== null) clearTimeout(deleteToastTimeout)
+    deleteToastTimeout = setTimeout(() => {
+      deleteToastTimeout = null
+      state.deleteToast = null
+      navigate(returnTo)
+    }, 1500)
+  } catch (e) {
+    state.errorMessage = e instanceof Error ? e.message : 'Unknown error'
+    void renderUpdate('delete-confirm')
+  }
+}
+
+function dismissDeleteToastAndReturn(): void {
+  if (deleteToastTimeout !== null) {
+    clearTimeout(deleteToastTimeout)
+    deleteToastTimeout = null
+  }
+  const returnTo = state.deleteToast?.returnTo ?? 'tasks-menu'
+  state.deleteToast = null
+  navigate(returnTo)
+}
+
+// ---------------------------------------------------------------------------
+// Project drill-down — reached by tapping a project in any Projects list
+// screen. Stashes the project and opens the Tasks/Notes menu.
+// ---------------------------------------------------------------------------
+
+function openProjectDetail(projectId: string, projectName: string, returnTo: Screen): void {
+  state.selectedProject = { id: projectId, name: projectName, returnTo }
+  navigate('project-detail')
 }
 
 // ---------------------------------------------------------------------------
@@ -447,5 +574,12 @@ export function createGlassCtx(): GlassCtx {
     confirmMarkDone,
     dismissMarkDoneConfirm,
     dismissToastAndReturn,
+    openTaskActions,
+    enterTaskMetadata: () => void enterTaskMetadata(),
+    openDeleteConfirm,
+    dismissDeleteConfirm,
+    confirmDelete,
+    dismissDeleteToastAndReturn,
+    openProjectDetail,
   }
 }

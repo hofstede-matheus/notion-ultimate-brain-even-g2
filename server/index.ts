@@ -44,6 +44,7 @@ interface TaskResult {
   id: string
   name: string
   dueDate?: string
+  status?: string
 }
 
 interface NoteResult {
@@ -72,7 +73,8 @@ function pageTitle(page: any): string {
 
 function pageToTask(page: any): TaskResult {
   const dueDate = page.properties['Due']?.date?.start ?? undefined
-  return { id: page.id, name: pageTitle(page), dueDate }
+  const status = page.properties['Status']?.status?.name ?? undefined
+  return { id: page.id, name: pageTitle(page), dueDate, status }
 }
 
 function pageToNote(page: any): NoteResult {
@@ -502,6 +504,55 @@ registerViews('projects', NOTION_PROJECTS_DB, PROJECT_VIEWS, 'projects', pageToP
 registerViews('tags', NOTION_TAGS_DB, TAG_VIEWS, 'tags', pageToTag)
 
 // ---------------------------------------------------------------------------
+// GET /api/tasks/for-project/:projectId
+// All tasks (any status) whose Project relation contains projectId,
+// not-Done first then Done last.
+// ---------------------------------------------------------------------------
+app.get('/api/tasks/for-project/:projectId', async (req, res) => {
+  try {
+    const { projectId } = req.params
+    const response = await notion.databases.query({
+      database_id: NOTION_TASKS_DB,
+      filter: { property: 'Project', relation: { contains: projectId } },
+      sorts: [{ property: 'Due', direction: 'ascending' }],
+      page_size: 50,
+    })
+    const tasks = response.results.map(pageToTask)
+    const notDone = tasks.filter((t) => t.status !== 'Done')
+    const done = tasks.filter((t) => t.status === 'Done')
+    res.json({ tasks: [...notDone, ...done] })
+  } catch (err: any) {
+    console.error('[server] GET /api/tasks/for-project/:projectId error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/notes/for-project/:projectId
+// Non-archived notes whose Project relation contains projectId.
+// ---------------------------------------------------------------------------
+app.get('/api/notes/for-project/:projectId', async (req, res) => {
+  try {
+    const { projectId } = req.params
+    const response = await notion.databases.query({
+      database_id: NOTION_NOTES_DB,
+      filter: {
+        and: [
+          { property: 'Archived', checkbox: { equals: false } },
+          { property: 'Project', relation: { contains: projectId } },
+        ],
+      },
+      sorts: [{ property: 'Updated', direction: 'descending' }],
+      page_size: 50,
+    })
+    res.json({ notes: response.results.map(pageToNote) })
+  } catch (err: any) {
+    console.error('[server] GET /api/notes/for-project/:projectId error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ---------------------------------------------------------------------------
 // POST /api/tasks
 // Create a new task in the Notion Tasks database
 // Body: { name: string }
@@ -548,6 +599,56 @@ app.patch('/api/tasks/:id/done', async (req, res) => {
     res.json({ id: page.id })
   } catch (err: any) {
     console.error('[server] PATCH /api/tasks/:id/done error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/tasks/:id/metadata
+// Fetch a task's Project (resolved name) and Due date, on demand
+// ---------------------------------------------------------------------------
+app.get('/api/tasks/:id/metadata', async (req, res) => {
+  try {
+    const { id } = req.params
+    if (!id) {
+      res.status(400).json({ error: 'Missing task id' })
+      return
+    }
+    const page: any = await notion.pages.retrieve({ page_id: id })
+    const due = page.properties['Due']?.date?.start ?? null
+
+    let project: string | null = null
+    const rel = page.properties['Project']?.relation ?? []
+    if (rel.length > 0) {
+      const projectPage = await notion.pages.retrieve({ page_id: rel[0].id })
+      project = pageTitle(projectPage)
+    }
+
+    res.json({ project, due })
+  } catch (err: any) {
+    console.error('[server] GET /api/tasks/:id/metadata error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ---------------------------------------------------------------------------
+// DELETE /api/tasks/:id
+// Move a task to the Notion Bin
+// ---------------------------------------------------------------------------
+app.delete('/api/tasks/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    if (!id) {
+      res.status(400).json({ error: 'Missing task id' })
+      return
+    }
+    const page = await notion.pages.update({
+      page_id: id,
+      in_trash: true,
+    })
+    res.json({ id: page.id })
+  } catch (err: any) {
+    console.error('[server] DELETE /api/tasks/:id error:', err.message)
     res.status(500).json({ error: err.message })
   }
 })
