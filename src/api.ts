@@ -4,10 +4,11 @@ import type { Task, Note, Project, Tag } from './state'
  * API client for the GlassTask backend server.
  *
  * In development, Vite proxies /api/* to the backend (localhost:3210).
- * In production, set API_BASE to your server URL.
+ * In production, VITE_API_BASE is baked in at build time to point at the
+ * deployed Lambda Function URL (see terraform/outputs.tf).
  */
 
-const API_BASE = ''
+const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 
 async function fetchList<T>(path: string, resultKey: string, label: string): Promise<T[]> {
   const res = await fetch(`${API_BASE}${path}`)

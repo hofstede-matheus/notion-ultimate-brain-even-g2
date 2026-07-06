@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+dist-lambda/
 *.ehpk
 
 # Env / secrets
@@ -32,3 +33,12 @@ coverage/
 
 # Offline voice model (~40 MB, fetched via npm run fetch:voice-model)
 public/vosk/model.tar.gz
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfvars
+!terraform/terraform.tfvars.example
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/dist-lambda.zip
+terraform/crash.log

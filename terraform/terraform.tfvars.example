@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars (gitignored) and fill in real values.
+
+notion_api_key      = "ntn_xxxxxxxxxxxxxxxxxxxx"
+notion_tasks_db     = "1f63c6e7dd2281338e64d28a5dbc8609"
+notion_notes_db     = "1f63c6e7dd228144bfc0dd54589ca5de"
+notion_projects_db  = "1f63c6e7dd228142be87eff1ace5f404"
+notion_tags_db      = "1f63c6e7dd22817c9a18fe213921a929"
