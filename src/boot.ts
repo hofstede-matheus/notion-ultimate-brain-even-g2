@@ -8,9 +8,9 @@ import { loadStoredConfig, saveStoredConfig, promptForConfig, onSettingsClick } 
 import { getTenantConfig, setTenantConfig } from './tenant-config'
 
 // ---------------------------------------------------------------------------
-// App bootstrap — connect the Even Hub bridge, start the glasses runtime,
-// warm the voice model in the background, and ensure a Notion tenant config
-// is set (prompting on first run)
+// App bootstrap — connect the Even Hub bridge, ensure a Notion tenant config
+// is set (prompting on first run), start the glasses runtime, warm the
+// voice model in the background
 // ---------------------------------------------------------------------------
 
 export async function boot(): Promise<void> {
@@ -22,11 +22,15 @@ export async function boot(): Promise<void> {
       const bridge = await waitForEvenAppBridge()
       setBridge(bridge)
 
-      // Wire event listener + render the initial menu screen immediately,
-      // exactly as before the tenant-config gate existed — on real hardware
-      // (BLE round-trip), delaying onEvenHubEvent registration behind an
-      // extra async bridge-storage read causes glasses input events to
-      // misfire. The tenant-config check below runs after, non-blocking.
+      let cfg = await loadStoredConfig()
+      if (!cfg) {
+        setStatus('Enter your Notion settings to continue.')
+        cfg = await promptForConfig()
+        await saveStoredConfig(cfg)
+      }
+      setTenantConfig(cfg)
+
+      // Wire event listener + render the initial menu screen
       await startGlasses()
 
       setStatus('Connected! Use your glasses.')
@@ -35,15 +39,6 @@ export async function boot(): Promise<void> {
       // Warm the Vosk model in the background — off the critical path, same as EvenChess.
       // By the time the user navigates to Add Task the model will be ready.
       preloadVoskModel(VOSK_MODEL_URL)
-
-      let cfg = await loadStoredConfig()
-      if (!cfg) {
-        setStatus('Enter your Notion settings to continue.')
-        cfg = await promptForConfig()
-        await saveStoredConfig(cfg)
-        setStatus('Connected! Use your glasses.')
-      }
-      setTenantConfig(cfg)
     } catch {
       setStatus('Connection failed. Tap to retry.')
       showRetry()
