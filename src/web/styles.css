@@ -20,6 +20,31 @@ button {
 }
 button:disabled { opacity: 0.5; }
 
+.actions { display: flex; gap: 0.5rem; }
+
+.settings-form {
+  display: none;
+  grid-template-columns: 1fr;
+  gap: 0.25rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+}
+.settings-form h2 { margin: 0 0 0.5rem; font-size: 1rem; color: #eee; }
+.settings-form label { font-size: 0.8rem; color: #aaa; margin-top: 0.5rem; }
+.settings-form input {
+  background: #000;
+  color: #eee;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 0.4rem 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+}
+.settings-form button[type='submit'] { margin-top: 0.75rem; align-self: start; }
+
 #log {
   margin-top: 1.5rem;
   padding: 0.75rem;

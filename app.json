@@ -2,7 +2,7 @@
   "package_id": "dev.mediato.notionultimatebrain",
   "edition": "202601",
   "name": "Ultimate Brain",
-  "version": "1.2.0",
+  "version": "2.0.1",
   "min_app_version": "0.1.0",
   "min_sdk_version": "0.1.0",
   "tagline": "GTD task manager for your glasses",

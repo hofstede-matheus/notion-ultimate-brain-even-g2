@@ -1,7 +1,14 @@
+import type { TenantDb } from './tenant'
+
 export interface ViewConfig {
   path: string
-  filter?: any
+  filter?: any | ((db: TenantDb) => any)
   sorts?: any[]
+}
+
+/** Resolve a ViewConfig's filter against the current tenant's db config. */
+export function resolveFilter(view: ViewConfig, db: TenantDb): any {
+  return typeof view.filter === 'function' ? view.filter(db) : view.filter
 }
 
 // ---------------------------------------------------------------------------
@@ -36,13 +43,15 @@ export const TASK_VIEWS: ViewConfig[] = [
   },
   {
     path: 'next-7-days',
-    filter: {
+    filter: (db: TenantDb) => ({
       and: [
         { property: 'Status', status: { does_not_equal: 'Done' } },
         { property: 'Due', date: { on_or_before: 'one_week_from_now' } },
-        { property: 'Project', relation: { does_not_contain: '2063c6e7-dd22-808b-9e0d-e6ee814d9442' } },
+        ...(db.excludeProjectId
+          ? [{ property: 'Project', relation: { does_not_contain: db.excludeProjectId } }]
+          : []),
       ],
-    },
+    }),
     sorts: [
       { property: 'Due', direction: 'ascending' },
       { property: 'Project', direction: 'ascending' },
@@ -51,13 +60,15 @@ export const TASK_VIEWS: ViewConfig[] = [
   },
   {
     path: 'tomorrow',
-    filter: {
+    filter: (db: TenantDb) => ({
       and: [
         { property: 'Status', status: { does_not_equal: 'Done' } },
         { property: 'Due', date: { equals: 'tomorrow' } },
-        { property: 'Project', relation: { does_not_contain: '2063c6e7-dd22-808b-9e0d-e6ee814d9442' } },
+        ...(db.excludeProjectId
+          ? [{ property: 'Project', relation: { does_not_contain: db.excludeProjectId } }]
+          : []),
       ],
-    },
+    }),
     sorts: [
       { property: 'Due', direction: 'ascending' },
       { property: 'Project', direction: 'ascending' },

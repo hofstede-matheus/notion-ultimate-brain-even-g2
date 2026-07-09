@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GlassTask</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="app">
+    <h1>GlassTask</h1>
+    <p id="status">Connecting...</p>
+    <div class="actions">
+      <button id="connectBtn">Connect</button>
+      <button id="settingsBtn" type="button">Settings</button>
+    </div>
+
+    <form id="settings-form" class="settings-form">
+      <h2>Notion Settings</h2>
+      <label for="settings-token">Integration Token</label>
+      <input id="settings-token" type="text" autocomplete="off" spellcheck="false" required />
+
+      <label for="settings-tasks-db">Tasks Database ID</label>
+      <input id="settings-tasks-db" type="text" autocomplete="off" spellcheck="false" required />
+
+      <label for="settings-notes-db">Notes Database ID</label>
+      <input id="settings-notes-db" type="text" autocomplete="off" spellcheck="false" required />
+
+      <label for="settings-projects-db">Projects Database ID</label>
+      <input id="settings-projects-db" type="text" autocomplete="off" spellcheck="false" required />
+
+      <label for="settings-tags-db">Tags Database ID</label>
+      <input id="settings-tags-db" type="text" autocomplete="off" spellcheck="false" required />
+
+      <label for="settings-exclude-project-id">Excluded Project ID (optional)</label>
+      <input id="settings-exclude-project-id" type="text" autocomplete="off" spellcheck="false" />
+
+      <button type="submit">Save</button>
+    </form>
+
+    <pre id="log" aria-label="App log"></pre>
+  </div>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

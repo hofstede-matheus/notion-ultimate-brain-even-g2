@@ -43,16 +43,6 @@ resource "aws_lambda_function" "notion_backend" {
   timeout       = 10
 
   role = aws_iam_role.lambda.arn
-
-  environment {
-    variables = {
-      NOTION_API_KEY     = var.notion_api_key
-      NOTION_TASKS_DB    = var.notion_tasks_db
-      NOTION_NOTES_DB    = var.notion_notes_db
-      NOTION_PROJECTS_DB = var.notion_projects_db
-      NOTION_TAGS_DB     = var.notion_tags_db
-    }
-  }
 }
 
 resource "aws_lambda_function_url" "notion_backend" {
@@ -62,7 +52,7 @@ resource "aws_lambda_function_url" "notion_backend" {
   cors {
     allow_origins = ["*"]
     allow_methods = ["GET", "POST", "PATCH", "DELETE"]
-    allow_headers = ["content-type"]
+    allow_headers = ["content-type", "x-notion-config"]
   }
 }
 
