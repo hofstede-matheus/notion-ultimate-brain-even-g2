@@ -4,10 +4,13 @@ import { startGlasses } from './glasses/runtime'
 import { VOSK_MODEL_URL } from './glasses/constants'
 import { preloadVoskModel } from './stt'
 import { setStatus, disableConnect, hideConnect, showRetry, onConnectClick } from './web/shell'
+import { loadStoredConfig, saveStoredConfig, promptForConfig, onSettingsClick } from './web/settings'
+import { getTenantConfig, setTenantConfig } from './tenant-config'
 
 // ---------------------------------------------------------------------------
-// App bootstrap — connect the Even Hub bridge, start the glasses runtime,
-// warm the voice model in the background
+// App bootstrap — connect the Even Hub bridge, ensure a Notion tenant config
+// is set (prompting on first run), start the glasses runtime, warm the
+// voice model in the background
 // ---------------------------------------------------------------------------
 
 export async function boot(): Promise<void> {
@@ -18,6 +21,14 @@ export async function boot(): Promise<void> {
     try {
       const bridge = await waitForEvenAppBridge()
       setBridge(bridge)
+
+      let cfg = await loadStoredConfig()
+      if (!cfg) {
+        setStatus('Enter your Notion settings to continue.')
+        cfg = await promptForConfig()
+        await saveStoredConfig(cfg)
+      }
+      setTenantConfig(cfg)
 
       // Wire event listener + render the initial menu screen
       await startGlasses()
@@ -39,4 +50,13 @@ export async function boot(): Promise<void> {
 
   // Manual retry button
   onConnectClick(() => void connect())
+
+  // Settings button — always available, independent of connection state
+  onSettingsClick(() => {
+    void (async () => {
+      const cfg = await promptForConfig(getTenantConfig())
+      await saveStoredConfig(cfg)
+      setTenantConfig(cfg)
+    })()
+  })
 }

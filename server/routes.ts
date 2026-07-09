@@ -1,12 +1,16 @@
-import { config } from './config'
-import { notion } from './notion-client'
+import type { Client } from '@notionhq/client'
 import { pageTitle, pageToTask, pageToNote, pageToProject, pageToTag } from './mappers'
 import { translateFilter } from './filters'
-import { ViewConfig, TASK_VIEWS, NOTE_VIEWS, PROJECT_VIEWS, TAG_VIEWS } from './views'
+import { ViewConfig, TASK_VIEWS, NOTE_VIEWS, PROJECT_VIEWS, TAG_VIEWS, resolveFilter } from './views'
+import type { TenantDb } from './tenant'
 
 export interface RouteContext {
   params: Record<string, string>
   body: unknown
+  // Present for every non-public route — the entry points guarantee a valid
+  // tenant was resolved from the request before the handler runs.
+  notion?: Client
+  db?: TenantDb
 }
 
 export interface RouteResult {
@@ -17,12 +21,16 @@ export interface RouteResult {
 export interface Route {
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
   path: string // Express-style, e.g. '/api/tasks/:id/done'
+  // Routes that don't touch Notion (e.g. /api/logs) skip the tenant gate.
+  public?: boolean
   handler: (ctx: RouteContext) => Promise<RouteResult>
 }
 
+type DbKey = keyof Omit<TenantDb, 'excludeProjectId'>
+
 function buildViewRoutes(
   domain: string,
-  databaseId: string,
+  dbKey: DbKey,
   views: ViewConfig[],
   resultKey: string,
   toResult: (page: any) => any
@@ -30,11 +38,12 @@ function buildViewRoutes(
   return views.map((view) => ({
     method: 'GET',
     path: `/api/${domain}/${view.path}`,
-    handler: async () => {
+    handler: async (ctx: RouteContext) => {
       try {
-        const response = await notion.databases.query({
-          database_id: databaseId,
-          filter: view.filter ? translateFilter(view.filter) : undefined,
+        const filter = resolveFilter(view, ctx.db!)
+        const response = await ctx.notion!.databases.query({
+          database_id: ctx.db![dbKey],
+          filter: filter ? translateFilter(filter) : undefined,
           sorts: view.sorts,
           page_size: 50,
         })
@@ -56,6 +65,7 @@ function buildViewRoutes(
 const logsRoute: Route = {
   method: 'POST',
   path: '/api/logs',
+  public: true,
   handler: async ({ body }) => {
     const { level, line } = (body as any) ?? {}
     if (typeof line !== 'string') {
@@ -75,11 +85,11 @@ const logsRoute: Route = {
 const tasksForProjectRoute: Route = {
   method: 'GET',
   path: '/api/tasks/for-project/:projectId',
-  handler: async ({ params }) => {
+  handler: async ({ params, notion, db }) => {
     try {
       const { projectId } = params
-      const response = await notion.databases.query({
-        database_id: config.notionTasksDb,
+      const response = await notion!.databases.query({
+        database_id: db!.tasks,
         filter: { property: 'Project', relation: { contains: projectId } },
         sorts: [{ property: 'Due', direction: 'ascending' }],
         page_size: 50,
@@ -102,11 +112,11 @@ const tasksForProjectRoute: Route = {
 const notesForProjectRoute: Route = {
   method: 'GET',
   path: '/api/notes/for-project/:projectId',
-  handler: async ({ params }) => {
+  handler: async ({ params, notion, db }) => {
     try {
       const { projectId } = params
-      const response = await notion.databases.query({
-        database_id: config.notionNotesDb,
+      const response = await notion!.databases.query({
+        database_id: db!.notes,
         filter: {
           and: [
             { property: 'Archived', checkbox: { equals: false } },
@@ -132,15 +142,15 @@ const notesForProjectRoute: Route = {
 const createTaskRoute: Route = {
   method: 'POST',
   path: '/api/tasks',
-  handler: async ({ body }) => {
+  handler: async ({ body, notion, db }) => {
     try {
       const { name } = (body as any) ?? {}
       if (!name || typeof name !== 'string') {
         return { status: 400, body: { error: 'Missing "name" in request body' } }
       }
 
-      const page = await notion.pages.create({
-        parent: { database_id: config.notionTasksDb },
+      const page = await notion!.pages.create({
+        parent: { database_id: db!.tasks },
         properties: {
           Name: {
             title: [{ text: { content: name } }],
@@ -163,13 +173,13 @@ const createTaskRoute: Route = {
 const markTaskDoneRoute: Route = {
   method: 'PATCH',
   path: '/api/tasks/:id/done',
-  handler: async ({ params }) => {
+  handler: async ({ params, notion }) => {
     try {
       const { id } = params
       if (!id) {
         return { status: 400, body: { error: 'Missing task id' } }
       }
-      const page = await notion.pages.update({
+      const page = await notion!.pages.update({
         page_id: id,
         properties: { Status: { status: { name: 'Done' } } },
       })
@@ -188,19 +198,19 @@ const markTaskDoneRoute: Route = {
 const taskMetadataRoute: Route = {
   method: 'GET',
   path: '/api/tasks/:id/metadata',
-  handler: async ({ params }) => {
+  handler: async ({ params, notion }) => {
     try {
       const { id } = params
       if (!id) {
         return { status: 400, body: { error: 'Missing task id' } }
       }
-      const page: any = await notion.pages.retrieve({ page_id: id })
+      const page: any = await notion!.pages.retrieve({ page_id: id })
       const due = page.properties['Due']?.date?.start ?? null
 
       let project: string | null = null
       const rel = page.properties['Project']?.relation ?? []
       if (rel.length > 0) {
-        const projectPage = await notion.pages.retrieve({ page_id: rel[0].id })
+        const projectPage = await notion!.pages.retrieve({ page_id: rel[0].id })
         project = pageTitle(projectPage)
       }
 
@@ -219,13 +229,13 @@ const taskMetadataRoute: Route = {
 const deleteTaskRoute: Route = {
   method: 'DELETE',
   path: '/api/tasks/:id',
-  handler: async ({ params }) => {
+  handler: async ({ params, notion }) => {
     try {
       const { id } = params
       if (!id) {
         return { status: 400, body: { error: 'Missing task id' } }
       }
-      const page = await notion.pages.update({
+      const page = await notion!.pages.update({
         page_id: id,
         in_trash: true,
       })
@@ -239,10 +249,10 @@ const deleteTaskRoute: Route = {
 
 export const ROUTES: Route[] = [
   logsRoute,
-  ...buildViewRoutes('tasks', config.notionTasksDb, TASK_VIEWS, 'tasks', pageToTask),
-  ...buildViewRoutes('notes', config.notionNotesDb, NOTE_VIEWS, 'notes', pageToNote),
-  ...buildViewRoutes('projects', config.notionProjectsDb, PROJECT_VIEWS, 'projects', pageToProject),
-  ...buildViewRoutes('tags', config.notionTagsDb, TAG_VIEWS, 'tags', pageToTag),
+  ...buildViewRoutes('tasks', 'tasks', TASK_VIEWS, 'tasks', pageToTask),
+  ...buildViewRoutes('notes', 'notes', NOTE_VIEWS, 'notes', pageToNote),
+  ...buildViewRoutes('projects', 'projects', PROJECT_VIEWS, 'projects', pageToProject),
+  ...buildViewRoutes('tags', 'tags', TAG_VIEWS, 'tags', pageToTag),
   tasksForProjectRoute,
   notesForProjectRoute,
   createTaskRoute,

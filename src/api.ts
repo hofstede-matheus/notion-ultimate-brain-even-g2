@@ -1,4 +1,5 @@
 import type { Task, Note, Project, Tag } from './state'
+import { getTenantHeader } from './tenant-config'
 
 /**
  * API client for the GlassTask backend server.
@@ -10,8 +11,16 @@ import type { Task, Note, Project, Tag } from './state'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 
+/** fetch() wrapper that attaches the current tenant's Notion config header. */
+function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: { ...init.headers, 'X-Notion-Config': getTenantHeader() },
+  })
+}
+
 async function fetchList<T>(path: string, resultKey: string, label: string): Promise<T[]> {
-  const res = await fetch(`${API_BASE}${path}`)
+  const res = await apiFetch(path)
   if (!res.ok) throw new Error(`Failed to fetch ${label}: ${res.status}`)
   const data = await res.json()
   return data[resultKey]
@@ -38,7 +47,7 @@ export function fetchTomorrowTasks(): Promise<Task[]> {
 }
 
 export async function createTask(name: string): Promise<{ id: string; name: string }> {
-  const res = await fetch(`${API_BASE}/api/tasks`, {
+  const res = await apiFetch('/api/tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
@@ -48,7 +57,7 @@ export async function createTask(name: string): Promise<{ id: string; name: stri
 }
 
 export async function markTaskDone(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/tasks/${id}/done`, { method: 'PATCH' })
+  const res = await apiFetch(`/api/tasks/${id}/done`, { method: 'PATCH' })
   if (!res.ok) throw new Error(`Failed to mark task done: ${res.status}`)
 }
 
@@ -58,13 +67,13 @@ export interface TaskMetadata {
 }
 
 export async function fetchTaskMetadata(id: string): Promise<TaskMetadata> {
-  const res = await fetch(`${API_BASE}/api/tasks/${id}/metadata`)
+  const res = await apiFetch(`/api/tasks/${id}/metadata`)
   if (!res.ok) throw new Error(`Failed to fetch task metadata: ${res.status}`)
   return res.json()
 }
 
 export async function deleteTask(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/tasks/${id}`, { method: 'DELETE' })
+  const res = await apiFetch(`/api/tasks/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error(`Failed to delete task: ${res.status}`)
 }
 

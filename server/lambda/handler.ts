@@ -1,14 +1,14 @@
-import { config, assertConfig } from '../config'
 import { ROUTES } from '../routes'
 import { matchRoute } from './match-route'
-
-assertConfig(config)
+import { parseTenant } from '../tenant'
+import { createNotionClient } from '../notion-client'
 
 // Minimal shape of a Lambda Function URL event/response — avoids taking a
 // dependency on @types/aws-lambda since this file must stay dependency-free.
 interface LambdaFunctionUrlEvent {
   requestContext: { http: { method: string } }
   rawPath: string
+  headers?: Record<string, string>
   body?: string | null
   isBase64Encoded?: boolean
 }
@@ -42,7 +42,22 @@ export async function handler(event: LambdaFunctionUrlEvent): Promise<LambdaFunc
     }
   }
 
-  const result = await match.route.handler({ params: match.params, body: parseBody(event) })
+  // Function URL lowercases incoming header names.
+  const tenant = parseTenant(event.headers?.['x-notion-config'])
+  if (!match.route.public && !tenant) {
+    return {
+      statusCode: 401,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ error: 'Missing or invalid Notion configuration' }),
+    }
+  }
+
+  const result = await match.route.handler({
+    params: match.params,
+    body: parseBody(event),
+    notion: tenant ? createNotionClient(tenant.token) : undefined,
+    db: tenant?.db,
+  })
 
   return {
     statusCode: result.status,

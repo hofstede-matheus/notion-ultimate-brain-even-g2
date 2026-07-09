@@ -68,9 +68,4 @@ jobs:
         working-directory: terraform
         env:
           TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-          TF_VAR_notion_api_key: ${{ secrets.NOTION_API_KEY }}
-          TF_VAR_notion_tasks_db: ${{ secrets.NOTION_TASKS_DB }}
-          TF_VAR_notion_notes_db: ${{ secrets.NOTION_NOTES_DB }}
-          TF_VAR_notion_projects_db: ${{ secrets.NOTION_PROJECTS_DB }}
-          TF_VAR_notion_tags_db: ${{ secrets.NOTION_TAGS_DB }}
         run: terraform apply -input=false -auto-approve
