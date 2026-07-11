@@ -2,43 +2,18 @@
   "name": "notion-ultimate-brain-even-g2",
   "version": "2.0.4",
   "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 5173",
-    "build": "vite build",
-    "qr": "IP=$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || ifconfig | awk '/^[a-z]/ {iface=$1} /inet / && iface ~ /^en/ && $2 !~ /^127/ {print $2; exit}') && [ -n \"$IP\" ] && evenhub qr --http --ip \"$IP\" --port 5173 --path / || echo \"No LAN IP found\"",
-    "pack": "npm run build && evenhub pack app.json dist -o notion-ultimate-brain-even-g2.ehpk",
-    "server": "npx tsx server/express/index.ts",
-    "dev:all": "concurrently \"npm run server\" \"npm run dev\"",
-    "build:lambda": "esbuild server/lambda/handler.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist-lambda/index.js && echo '{\"type\":\"commonjs\"}' > dist-lambda/package.json",
-    "tf:init": "terraform -chdir=terraform init",
-    "tf:plan": "npm run build:lambda && terraform -chdir=terraform plan",
-    "tf:apply": "npm run build:lambda && terraform -chdir=terraform apply",
-    "fetch:voice-model": "node scripts/fetch-vosk-model.cjs",
-    "ensure:voice-model": "node -e \"const fs=require('fs');const p='public/vosk/model.tar.gz';if(!fs.existsSync(p)){console.error('[ensure:voice-model] missing '+p+' — run npm run fetch:voice-model');process.exit(1)}\"",
-    "prebuild": "npm run ensure:voice-model",
-    "prepack": "npm run ensure:voice-model",
-    "test": "vitest run",
-    "test:watch": "vitest"
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20.9.0"
   },
-  "dependencies": {
-    "@evenrealities/even_hub_sdk": "^0.0.11",
-    "@notionhq/client": "^2.2.15",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "even-toolkit": "^1.7.7",
-    "express": "^4.21.2",
-    "vosk-browser": "^0.0.8"
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "check-types": "turbo run check-types"
   },
   "devDependencies": {
-    "@evenrealities/evenhub-cli": "latest",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "concurrently": "^9.1.2",
-    "esbuild": "^0.28.1",
-    "tsx": "^4.19.3",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.1",
-    "vitest": "^4.1.9"
+    "turbo": "^2.9.6",
+    "typescript": "^5.9.3"
   }
 }

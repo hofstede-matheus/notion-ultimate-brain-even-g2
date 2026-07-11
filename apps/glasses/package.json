@@ -1,0 +1,29 @@
+{
+  "name": "@notion-ub/glasses",
+  "version": "2.0.4",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "pnpm ensure:voice-model && vite build",
+    "qr": "IP=$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || ifconfig | awk '/^[a-z]/ {iface=$1} /inet / && iface ~ /^en/ && $2 !~ /^127/ {print $2; exit}') && [ -n \"$IP\" ] && evenhub qr --http --ip \"$IP\" --port 5173 --path / || echo \"No LAN IP found\"",
+    "pack": "pnpm ensure:voice-model && pnpm build && evenhub pack app.json dist -o notion-ultimate-brain-even-g2.ehpk",
+    "fetch:voice-model": "node scripts/fetch-vosk-model.cjs",
+    "ensure:voice-model": "node -e \"const fs=require('fs');const p='public/vosk/model.tar.gz';if(!fs.existsSync(p)){console.error('[ensure:voice-model] missing '+p+' — run pnpm fetch:voice-model');process.exit(1)}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@evenrealities/even_hub_sdk": "^0.0.11",
+    "even-toolkit": "^1.7.7",
+    "vosk-browser": "^0.0.8"
+  },
+  "devDependencies": {
+    "@evenrealities/evenhub-cli": "latest",
+    "@notion-ub/typescript-config": "workspace:*",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.1.9"
+  }
+}

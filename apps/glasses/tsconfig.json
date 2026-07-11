@@ -1,0 +1,4 @@
+{
+  "extends": "@notion-ub/typescript-config/dom.json",
+  "include": ["src/**/*.ts"]
+}

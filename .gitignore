@@ -1,9 +1,13 @@
 # Dependencies
 node_modules/
 
+# Turborepo
+.turbo/
+
 # Build output
 dist/
-dist-lambda/
+**/dist/
+**/dist-lambda/
 *.ehpk
 
 # Env / secrets
@@ -11,6 +15,10 @@ dist-lambda/
 .env.local
 .env.*.local
 .env.production
+**/.env
+**/.env.local
+**/.env.*.local
+**/.env.production
 
 # Logs
 npm-debug.log*
@@ -27,19 +35,19 @@ yarn-error.log*
 *.swp
 
 # Test / coverage
-coverage/
+**/coverage/
 
 # Kilo plans (local planning artifacts)
 .kilo/plans/
 
-# Offline voice model (~40 MB, fetched via npm run fetch:voice-model)
-public/vosk/model.tar.gz
+# Offline voice model (~40 MB, fetched via pnpm fetch:voice-model)
+**/public/vosk/model.tar.gz
 
 # Terraform
-terraform/.terraform/
-terraform/*.tfvars
-!terraform/terraform.tfvars.example
-terraform/*.tfstate
-terraform/*.tfstate.*
-terraform/dist-lambda.zip
-terraform/crash.log
+**/.terraform/
+**/*.tfvars
+!**/terraform.tfvars.example
+**/*.tfstate
+**/*.tfstate.*
+**/dist-lambda.zip
+**/crash.log
