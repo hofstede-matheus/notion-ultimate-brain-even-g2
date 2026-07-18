@@ -5,7 +5,7 @@ import { VOSK_MODEL_URL } from './glasses/constants'
 import { preloadVoskModel } from './stt'
 import { setStatus, disableConnect, hideConnect, showRetry, onConnectClick } from './web/shell'
 import { loadStoredConfig, saveStoredConfig, promptForConfig, onSettingsClick } from './web/settings'
-import { getTenantConfig, setTenantConfig } from './tenant-config'
+import { getTenantConfig, setTenantConfig, getDevEnvConfig } from './tenant-config'
 
 // ---------------------------------------------------------------------------
 // App bootstrap — connect the Even Hub bridge, ensure a Notion tenant config
@@ -23,6 +23,7 @@ export async function boot(): Promise<void> {
       setBridge(bridge)
 
       let cfg = await loadStoredConfig()
+      if (!cfg) cfg = getDevEnvConfig()
       if (!cfg) {
         setStatus('Enter your Notion settings to continue.')
         cfg = await promptForConfig()

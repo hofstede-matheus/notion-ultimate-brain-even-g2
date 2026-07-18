@@ -6,6 +6,10 @@ export default defineConfig({
   // `dist/` and the Vosk model under `public/` land where the rest of the
   // build tooling (evenhub pack, scripts/fetch-vosk-model.cjs) expects them.
   root: 'src/web',
+  // .env* files live at the package root (apps/glasses/), not under root
+  // (src/web/) — without this, Vite's default envDir (= root) would never
+  // find them and import.meta.env.VITE_* would always be undefined.
+  envDir: '../..',
   publicDir: '../../public',
   build: {
     outDir: '../../dist',
