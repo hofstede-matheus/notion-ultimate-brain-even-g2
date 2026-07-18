@@ -70,11 +70,11 @@ function readForm(): TenantConfig | null {
   return { token, tasksDb, notesDb, projectsDb, tagsDb, excludeProjectId }
 }
 
-export function showSettings(): void {
+function showSettings(): void {
   if (formEl) formEl.style.display = 'grid'
 }
 
-export function hideSettings(): void {
+function hideSettings(): void {
   if (formEl) formEl.style.display = 'none'
 }
 
