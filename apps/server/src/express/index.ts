@@ -2,7 +2,7 @@ import './load-env'
 import express from 'express'
 import cors from 'cors'
 import { config } from '../config'
-import { ROUTES } from '../routes'
+import { ROUTES, invokeRoute } from '../routes'
 import { parseTenant } from '../tenant'
 import { createNotionClient } from '../notion-client'
 
@@ -18,7 +18,7 @@ for (const route of ROUTES) {
       res.status(401).json({ error: 'Missing or invalid Notion configuration' })
       return
     }
-    const result = await route.handler({
+    const result = await invokeRoute(route, {
       params: req.params,
       body: req.body,
       notion: tenant ? createNotionClient(tenant.token) : undefined,

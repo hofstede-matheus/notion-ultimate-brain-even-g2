@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { ROUTES } from '../routes'
+import { ROUTES, invokeRoute } from '../routes'
 import type { Route, RouteContext } from '../routes'
 import type { TenantDb } from '../tenant'
 
@@ -56,7 +56,7 @@ describe('view routes', () => {
     const notion = fakeNotion()
     notion.databases.query.mockRejectedValue(new Error('notion down'))
 
-    const res = await route('GET', '/api/tasks/inbox').handler(ctx(notion))
+    const res = await invokeRoute(route('GET', '/api/tasks/inbox'), ctx(notion))
 
     expect(res.status).toBe(500)
     expect(res.body).toEqual({ error: 'notion down' })

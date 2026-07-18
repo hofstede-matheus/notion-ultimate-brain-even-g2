@@ -1,4 +1,4 @@
-import { ROUTES } from '../routes'
+import { ROUTES, invokeRoute } from '../routes'
 import { matchRoute } from './match-route'
 import { parseTenant } from '../tenant'
 import { createNotionClient } from '../notion-client'
@@ -52,7 +52,7 @@ export async function handler(event: LambdaFunctionUrlEvent): Promise<LambdaFunc
     }
   }
 
-  const result = await match.route.handler({
+  const result = await invokeRoute(match.route, {
     params: match.params,
     body: parseBody(event),
     notion: tenant ? createNotionClient(tenant.token) : undefined,

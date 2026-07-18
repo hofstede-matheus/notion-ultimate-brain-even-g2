@@ -26,6 +26,20 @@ export interface Route {
   handler: (ctx: RouteContext) => Promise<RouteResult>
 }
 
+/**
+ * Single 500-mapping boundary for both entry points (Express, Lambda) — the
+ * one place a handler's thrown error becomes a RouteResult, so individual
+ * handlers can stay straight-line "happy path" code.
+ */
+export async function invokeRoute(route: Route, ctx: RouteContext): Promise<RouteResult> {
+  try {
+    return await route.handler(ctx)
+  } catch (err: any) {
+    console.error(`[server] ${route.method} ${route.path} error:`, err.message)
+    return { status: 500, body: { error: err.message } }
+  }
+}
+
 type DbKey = keyof Omit<TenantDb, 'excludeProjectId'>
 
 function buildViewRoutes(
@@ -39,19 +53,14 @@ function buildViewRoutes(
     method: 'GET',
     path: `/api/${domain}/${view.path}`,
     handler: async (ctx: RouteContext) => {
-      try {
-        const filter = resolveFilter(view, ctx.db!)
-        const response = await ctx.notion!.databases.query({
-          database_id: ctx.db![dbKey],
-          filter: filter ? translateFilter(filter) : undefined,
-          sorts: view.sorts,
-          page_size: 50,
-        })
-        return { status: 200, body: { [resultKey]: response.results.map(toResult) } }
-      } catch (err: any) {
-        console.error(`[server] /api/${domain}/${view.path} error:`, err.message)
-        return { status: 500, body: { error: err.message } }
-      }
+      const filter = resolveFilter(view, ctx.db!)
+      const response = await ctx.notion!.databases.query({
+        database_id: ctx.db![dbKey],
+        filter: filter ? translateFilter(filter) : undefined,
+        sorts: view.sorts,
+        page_size: 50,
+      })
+      return { status: 200, body: { [resultKey]: response.results.map(toResult) } }
     },
   }))
 }
@@ -86,22 +95,17 @@ const tasksForProjectRoute: Route = {
   method: 'GET',
   path: '/api/tasks/for-project/:projectId',
   handler: async ({ params, notion, db }) => {
-    try {
-      const { projectId } = params
-      const response = await notion!.databases.query({
-        database_id: db!.tasks,
-        filter: { property: 'Project', relation: { contains: projectId } },
-        sorts: [{ property: 'Due', direction: 'ascending' }],
-        page_size: 50,
-      })
-      const tasks = response.results.map(pageToTask)
-      const notDone = tasks.filter((t) => t.status !== 'Done')
-      const done = tasks.filter((t) => t.status === 'Done')
-      return { status: 200, body: { tasks: [...notDone, ...done] } }
-    } catch (err: any) {
-      console.error('[server] GET /api/tasks/for-project/:projectId error:', err.message)
-      return { status: 500, body: { error: err.message } }
-    }
+    const { projectId } = params
+    const response = await notion!.databases.query({
+      database_id: db!.tasks,
+      filter: { property: 'Project', relation: { contains: projectId } },
+      sorts: [{ property: 'Due', direction: 'ascending' }],
+      page_size: 50,
+    })
+    const tasks = response.results.map(pageToTask)
+    const notDone = tasks.filter((t) => t.status !== 'Done')
+    const done = tasks.filter((t) => t.status === 'Done')
+    return { status: 200, body: { tasks: [...notDone, ...done] } }
   },
 }
 
@@ -113,24 +117,19 @@ const notesForProjectRoute: Route = {
   method: 'GET',
   path: '/api/notes/for-project/:projectId',
   handler: async ({ params, notion, db }) => {
-    try {
-      const { projectId } = params
-      const response = await notion!.databases.query({
-        database_id: db!.notes,
-        filter: {
-          and: [
-            { property: 'Archived', checkbox: { equals: false } },
-            { property: 'Project', relation: { contains: projectId } },
-          ],
-        },
-        sorts: [{ property: 'Updated', direction: 'descending' }],
-        page_size: 50,
-      })
-      return { status: 200, body: { notes: response.results.map(pageToNote) } }
-    } catch (err: any) {
-      console.error('[server] GET /api/notes/for-project/:projectId error:', err.message)
-      return { status: 500, body: { error: err.message } }
-    }
+    const { projectId } = params
+    const response = await notion!.databases.query({
+      database_id: db!.notes,
+      filter: {
+        and: [
+          { property: 'Archived', checkbox: { equals: false } },
+          { property: 'Project', relation: { contains: projectId } },
+        ],
+      },
+      sorts: [{ property: 'Updated', direction: 'descending' }],
+      page_size: 50,
+    })
+    return { status: 200, body: { notes: response.results.map(pageToNote) } }
   },
 }
 
@@ -143,26 +142,21 @@ const createTaskRoute: Route = {
   method: 'POST',
   path: '/api/tasks',
   handler: async ({ body, notion, db }) => {
-    try {
-      const { name } = (body as any) ?? {}
-      if (!name || typeof name !== 'string') {
-        return { status: 400, body: { error: 'Missing "name" in request body' } }
-      }
-
-      const page = await notion!.pages.create({
-        parent: { database_id: db!.tasks },
-        properties: {
-          Name: {
-            title: [{ text: { content: name } }],
-          },
-        },
-      })
-
-      return { status: 200, body: { id: page.id, name } }
-    } catch (err: any) {
-      console.error('[server] /api/tasks error:', err.message)
-      return { status: 500, body: { error: err.message } }
+    const { name } = (body as any) ?? {}
+    if (!name || typeof name !== 'string') {
+      return { status: 400, body: { error: 'Missing "name" in request body' } }
     }
+
+    const page = await notion!.pages.create({
+      parent: { database_id: db!.tasks },
+      properties: {
+        Name: {
+          title: [{ text: { content: name } }],
+        },
+      },
+    })
+
+    return { status: 200, body: { id: page.id, name } }
   },
 }
 
@@ -174,20 +168,15 @@ const markTaskDoneRoute: Route = {
   method: 'PATCH',
   path: '/api/tasks/:id/done',
   handler: async ({ params, notion }) => {
-    try {
-      const { id } = params
-      if (!id) {
-        return { status: 400, body: { error: 'Missing task id' } }
-      }
-      const page = await notion!.pages.update({
-        page_id: id,
-        properties: { Status: { status: { name: 'Done' } } },
-      })
-      return { status: 200, body: { id: page.id } }
-    } catch (err: any) {
-      console.error('[server] PATCH /api/tasks/:id/done error:', err.message)
-      return { status: 500, body: { error: err.message } }
+    const { id } = params
+    if (!id) {
+      return { status: 400, body: { error: 'Missing task id' } }
     }
+    const page = await notion!.pages.update({
+      page_id: id,
+      properties: { Status: { status: { name: 'Done' } } },
+    })
+    return { status: 200, body: { id: page.id } }
   },
 }
 
@@ -199,26 +188,21 @@ const taskMetadataRoute: Route = {
   method: 'GET',
   path: '/api/tasks/:id/metadata',
   handler: async ({ params, notion }) => {
-    try {
-      const { id } = params
-      if (!id) {
-        return { status: 400, body: { error: 'Missing task id' } }
-      }
-      const page: any = await notion!.pages.retrieve({ page_id: id })
-      const due = page.properties['Due']?.date?.start ?? null
-
-      let project: string | null = null
-      const rel = page.properties['Project']?.relation ?? []
-      if (rel.length > 0) {
-        const projectPage = await notion!.pages.retrieve({ page_id: rel[0].id })
-        project = pageTitle(projectPage)
-      }
-
-      return { status: 200, body: { project, due } }
-    } catch (err: any) {
-      console.error('[server] GET /api/tasks/:id/metadata error:', err.message)
-      return { status: 500, body: { error: err.message } }
+    const { id } = params
+    if (!id) {
+      return { status: 400, body: { error: 'Missing task id' } }
     }
+    const page: any = await notion!.pages.retrieve({ page_id: id })
+    const due = page.properties['Due']?.date?.start ?? null
+
+    let project: string | null = null
+    const rel = page.properties['Project']?.relation ?? []
+    if (rel.length > 0) {
+      const projectPage = await notion!.pages.retrieve({ page_id: rel[0].id })
+      project = pageTitle(projectPage)
+    }
+
+    return { status: 200, body: { project, due } }
   },
 }
 
@@ -230,20 +214,15 @@ const deleteTaskRoute: Route = {
   method: 'DELETE',
   path: '/api/tasks/:id',
   handler: async ({ params, notion }) => {
-    try {
-      const { id } = params
-      if (!id) {
-        return { status: 400, body: { error: 'Missing task id' } }
-      }
-      const page = await notion!.pages.update({
-        page_id: id,
-        in_trash: true,
-      })
-      return { status: 200, body: { id: page.id } }
-    } catch (err: any) {
-      console.error('[server] DELETE /api/tasks/:id error:', err.message)
-      return { status: 500, body: { error: err.message } }
+    const { id } = params
+    if (!id) {
+      return { status: 400, body: { error: 'Missing task id' } }
     }
+    const page = await notion!.pages.update({
+      page_id: id,
+      in_trash: true,
+    })
+    return { status: 200, body: { id: page.id } }
   },
 }
 
