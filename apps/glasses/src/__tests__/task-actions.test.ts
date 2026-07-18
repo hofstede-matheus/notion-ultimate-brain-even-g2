@@ -47,10 +47,6 @@ vi.mock('../api', () => ({
 }))
 
 vi.mock('../cache', () => ({
-  loadCachedTasks: vi.fn().mockResolvedValue(null),
-  saveCachedTasks: vi.fn().mockResolvedValue(undefined),
-  CACHE_KEY_TODAY: 'notionultimatebrain:today',
-  CACHE_KEY_INBOX: 'notionultimatebrain:inbox',
   loadCachedList: vi.fn().mockResolvedValue(null),
   saveCachedList: vi.fn().mockResolvedValue(undefined),
   cacheKeyForScreen: (screen: string) => `notionultimatebrain:${screen}`,
@@ -73,7 +69,7 @@ afterEach(() => {
 describe('tapping a task in the inbox list', () => {
   it('opens the task action menu instead of the mark-done confirm dialog', () => {
     state.screen = 'inbox'
-    state.inboxTasks = [{ id: 't1', name: 'Buy milk' }]
+    state.lists.inbox = [{ id: 't1', name: 'Buy milk' }]
 
     onEvenHubEvent(listClickEvent(0))
 
@@ -83,7 +79,7 @@ describe('tapping a task in the inbox list', () => {
 
   it('double-tap from the action menu returns to the originating list', () => {
     state.screen = 'inbox'
-    state.inboxTasks = [{ id: 't1', name: 'Buy milk' }]
+    state.lists.inbox = [{ id: 't1', name: 'Buy milk' }]
     onEvenHubEvent(listClickEvent(0))
 
     onEvenHubEvent(doubleTapEvent())
@@ -146,7 +142,7 @@ describe('selecting "Delete task" from the action menu', () => {
   })
 
   it('confirming delete calls the API, removes the task from its list, and shows a toast', async () => {
-    state.inboxTasks = [{ id: 't1', name: 'Buy milk' }]
+    state.lists.inbox = [{ id: 't1', name: 'Buy milk' }]
     state.screen = 'delete-confirm'
     state.pendingDelete = { taskId: 't1', taskName: 'Buy milk', returnTo: 'inbox' }
 
@@ -154,7 +150,7 @@ describe('selecting "Delete task" from the action menu', () => {
     await flushPromises()
 
     expect(deleteTask).toHaveBeenCalledWith('t1')
-    expect(state.inboxTasks).toEqual([])
+    expect(state.lists.inbox).toEqual([])
     expect(state.screen).toBe('delete-toast')
     expect(state.deleteToast?.taskName).toBe('Buy milk')
   })

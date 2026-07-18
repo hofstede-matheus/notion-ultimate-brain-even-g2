@@ -48,27 +48,6 @@ async function rebuildPage(config: {
 }
 
 /**
- * Set the active screen and fully rebuild its container(s) from current
- * state. Exported directly (rather than only via glasses/context.ts) so
- * tests and callers can drive a specific screen's render without going
- * through the event dispatcher.
- */
-export async function showOverdue(): Promise<void> {
-  state.screen = 'overdue'
-  await renderFull('overdue')
-}
-
-export async function showToday(): Promise<void> {
-  state.screen = 'today'
-  await renderFull('today')
-}
-
-export async function showInbox(): Promise<void> {
-  state.screen = 'inbox'
-  await renderFull('inbox')
-}
-
-/**
  * Inert placeholder for container id=2 on text-only screens. The G2 firmware
  * fails to re-add a container that was absent from the immediately preceding
  * rebuild (even with a stable name/ID) — so id=2 must appear in every single

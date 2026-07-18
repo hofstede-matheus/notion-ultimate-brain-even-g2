@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { state, setBridge } from '../state'
 import { onEvenHubEvent } from '../glasses/runtime'
-import { loadCachedTasks, saveCachedTasks } from '../cache'
+import { loadCachedList, saveCachedList } from '../cache'
 import { makeMockBridge, resetState, flushPromises, listClickEvent } from './helpers'
 
 // ---------------------------------------------------------------------------
@@ -41,11 +41,7 @@ vi.mock('../api', () => ({
 }))
 
 vi.mock('../cache', () => ({
-  loadCachedTasks: vi.fn(),
-  saveCachedTasks: vi.fn().mockResolvedValue(undefined),
-  CACHE_KEY_TODAY: 'notionultimatebrain:today',
-  CACHE_KEY_INBOX: 'notionultimatebrain:inbox',
-  loadCachedList: vi.fn().mockResolvedValue(null),
+  loadCachedList: vi.fn(),
   saveCachedList: vi.fn().mockResolvedValue(undefined),
   cacheKeyForScreen: (screen: string) => `notionultimatebrain:${screen}`,
 }))
@@ -94,14 +90,14 @@ async function openInbox() {
 
 describe('cold open (no prior cache)', () => {
   it('shows a loading placeholder immediately before the network responds', async () => {
-    vi.mocked(loadCachedTasks).mockResolvedValue(null)
+    vi.mocked(loadCachedList).mockResolvedValue(null)
     // Stall the network so we can inspect the intermediate state
     vi.mocked(fetchInboxTasks).mockReturnValue(new Promise(() => {}))
 
     state.screen = 'tasks-menu'
     onEvenHubEvent(listClickEvent(3))
 
-    // One flush gets past loadCachedTasks; showInbox fires synchronously after that
+    // One flush gets past loadCachedList; navigate('inbox') fires synchronously after that
     await flushPromises(2)
 
     expect(mockBridge.rebuildPageContainer).toHaveBeenCalled()
@@ -116,7 +112,7 @@ describe('cold open (no prior cache)', () => {
 
 describe('warm open (cache hit)', () => {
   it('shows cached tasks immediately before the network responds', async () => {
-    vi.mocked(loadCachedTasks).mockResolvedValue(CACHED_INBOX)
+    vi.mocked(loadCachedList).mockResolvedValue(CACHED_INBOX)
     vi.mocked(fetchInboxTasks).mockReturnValue(new Promise(() => {})) // stall network
 
     state.screen = 'tasks-menu'
@@ -137,14 +133,14 @@ describe('warm open (cache hit)', () => {
 
 describe('failed fetch on cold open', () => {
   it('shows an empty state instead of crashing or staying on "Fetching…"', async () => {
-    vi.mocked(loadCachedTasks).mockResolvedValue(null)
+    vi.mocked(loadCachedList).mockResolvedValue(null)
     vi.mocked(fetchInboxTasks).mockRejectedValue(new Error('Network error'))
 
     await openInbox()
 
     // After the fetch fails with no cache, tasks are empty and loading is false
     expect(state.loading).toBe(false)
-    expect(state.inboxTasks).toEqual([])
+    expect(state.lists.inbox).toEqual([])
 
     // The last render is the empty-state full rebuild (single text container,
     // no list — there's no partial-list-update API, so the settled state
@@ -162,13 +158,13 @@ describe('failed fetch on cold open', () => {
 
 describe('failed fetch on warm open', () => {
   it('keeps the cached tasks visible instead of blanking the screen', async () => {
-    vi.mocked(loadCachedTasks).mockResolvedValue(CACHED_INBOX)
+    vi.mocked(loadCachedList).mockResolvedValue(CACHED_INBOX)
     vi.mocked(fetchInboxTasks).mockRejectedValue(new Error('Network error'))
 
     await openInbox()
 
     // Cached data must survive the fetch failure
-    expect(state.inboxTasks).toEqual(CACHED_INBOX)
+    expect(state.lists.inbox).toEqual(CACHED_INBOX)
   })
 })
 
@@ -178,16 +174,16 @@ describe('failed fetch on warm open', () => {
 
 describe('successful background fetch', () => {
   it('saves the fresh data so the next open gets it instantly', async () => {
-    vi.mocked(loadCachedTasks).mockResolvedValue(CACHED_INBOX)
+    vi.mocked(loadCachedList).mockResolvedValue(CACHED_INBOX)
     vi.mocked(fetchInboxTasks).mockResolvedValue(FRESH_INBOX)
 
     await openInbox()
 
-    expect(vi.mocked(saveCachedTasks)).toHaveBeenCalledWith(
+    expect(vi.mocked(saveCachedList)).toHaveBeenCalledWith(
       'notionultimatebrain:inbox',
       FRESH_INBOX,
     )
-    expect(state.inboxTasks).toEqual(FRESH_INBOX)
+    expect(state.lists.inbox).toEqual(FRESH_INBOX)
   })
 })
 

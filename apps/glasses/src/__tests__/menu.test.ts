@@ -46,10 +46,6 @@ vi.mock('../api', () => ({
 }))
 
 vi.mock('../cache', () => ({
-  loadCachedTasks: vi.fn().mockResolvedValue(null),
-  saveCachedTasks: vi.fn().mockResolvedValue(undefined),
-  CACHE_KEY_TODAY: 'notionultimatebrain:today',
-  CACHE_KEY_INBOX: 'notionultimatebrain:inbox',
   loadCachedList: vi.fn().mockResolvedValue(null),
   saveCachedList: vi.fn().mockResolvedValue(undefined),
   cacheKeyForScreen: (screen: string) => `notionultimatebrain:${screen}`,
@@ -190,13 +186,13 @@ describe('double-clicking on the tasks submenu', () => {
 describe('entering the overdue screen from the tasks submenu', () => {
   it('resets the overdue cursor to 0 even if it was non-zero before', async () => {
     state.screen = 'tasks-menu'
-    state.overdueSelectedIndex = 5
+    state.selectedIndex.overdue = 5
 
     // Index 2 = "Overdue"
     onEvenHubEvent(listClickEvent(2))
     await flushPromises()
 
-    expect(state.overdueSelectedIndex).toBe(0)
+    expect(state.selectedIndex.overdue).toBe(0)
     expect(state.screen).toBe('overdue')
   })
 
@@ -219,26 +215,26 @@ describe('entering the overdue screen from the tasks submenu', () => {
 describe('entering the today screen from the tasks submenu', () => {
   it('resets the today cursor to 0 even if it was non-zero before', async () => {
     state.screen = 'tasks-menu'
-    state.todaySelectedIndex = 7
+    state.selectedIndex.today = 7
 
     // Index 1 = "Today"
     onEvenHubEvent(listClickEvent(1))
     await flushPromises()
 
-    expect(state.todaySelectedIndex).toBe(0)
+    expect(state.selectedIndex.today).toBe(0)
   })
 })
 
 describe('entering the inbox screen from the tasks submenu', () => {
   it('resets the inbox cursor to 0 even if it was non-zero before', async () => {
     state.screen = 'tasks-menu'
-    state.inboxSelectedIndex = 4
+    state.selectedIndex.inbox = 4
 
     // Index 3 = "Inbox"
     onEvenHubEvent(listClickEvent(3))
     await flushPromises()
 
-    expect(state.inboxSelectedIndex).toBe(0)
+    expect(state.selectedIndex.inbox).toBe(0)
   })
 })
 

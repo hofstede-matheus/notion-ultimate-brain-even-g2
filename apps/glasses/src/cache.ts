@@ -1,12 +1,8 @@
 import { getBridge } from './state'
-import type { Task } from './state'
 
 // ---------------------------------------------------------------------------
 // localStorage keys
 // ---------------------------------------------------------------------------
-
-export const CACHE_KEY_TODAY = 'notionultimatebrain:today'
-export const CACHE_KEY_INBOX = 'notionultimatebrain:inbox'
 
 /** Cache key for a generic list-view screen — see context.ts's enterView(). */
 export function cacheKeyForScreen(screen: string): string {
@@ -48,6 +44,3 @@ export async function saveCachedList<T>(key: string, items: T[]): Promise<void> 
     // ignore
   }
 }
-
-export const loadCachedTasks = loadCachedList<Task>
-export const saveCachedTasks = saveCachedList<Task>

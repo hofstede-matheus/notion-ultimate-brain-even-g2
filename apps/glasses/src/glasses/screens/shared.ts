@@ -41,12 +41,21 @@ function todayDateStr(): string {
 }
 
 /**
+ * Today and Overdue are both filtered views over the one array fetched from
+ * /api/tasks/today (due today or before) — stored under the 'today' key
+ * (see context.ts's DATA_KEY_OVERRIDES).
+ */
+function todayFetchedTasks(state: AppState): Task[] {
+  return (state.lists['today'] ?? []) as Task[]
+}
+
+/**
  * Returns tasks whose due date is before today, oldest first (source order
  * preserved). Shown on the Overdue screen.
  */
 export function getOverdueFlatTasks(state: AppState): Task[] {
   const todayStr = todayDateStr()
-  return state.todayTasks.filter((t) => t.dueDate && t.dueDate < todayStr)
+  return todayFetchedTasks(state).filter((t) => t.dueDate && t.dueDate < todayStr)
 }
 
 /**
@@ -54,14 +63,7 @@ export function getOverdueFlatTasks(state: AppState): Task[] {
  */
 export function getTodayFlatTasks(state: AppState): Task[] {
   const todayStr = todayDateStr()
-  return state.todayTasks.filter((t) => t.dueDate === todayStr)
-}
-
-/**
- * Returns the flat list of inbox tasks (preserves state order).
- */
-export function getInboxFlatTasks(state: AppState): Task[] {
-  return state.inboxTasks
+  return todayFetchedTasks(state).filter((t) => t.dueDate === todayStr)
 }
 
 /**
@@ -162,7 +164,7 @@ export function getListItems(state: AppState, screen: ScreenName): ListItem[] {
 const PROJECT_LIST_SCREENS: ScreenName[] = ['projects-active', 'projects-planned', 'projects-board', 'projects-archived']
 
 export interface ListScreenConfig {
-  /** This screen's own name — used to key state.lists / state.selectedIndex. */
+  /** This screen's own name — used to key state.selectedIndex (and state.lists, unless `selectItems` is given). */
   screen: ScreenName
   /** Screen to return to on GO_BACK (the owning domain's submenu). */
   parent: ScreenName
@@ -170,22 +172,43 @@ export interface ListScreenConfig {
   title: string | ((state: AppState) => string)
   /** Shown (alongside "Double-tap to go back.") when the list is empty. */
   emptyMessage?: string
+  /** Shown while state.loading. Defaults to 'Fetching…'. */
+  loadingMessage?: string
+  /** Whether the list-mode header appends "(count)". Defaults to true. */
+  countInHeader?: boolean
   /** Formats a single item's label. Defaults to `item.name`. */
   formatLabel?: (item: ListItem) => string
+  /**
+   * Overrides the item source for both display and selection — used by
+   * Today/Overdue, which are filtered views over the array fetched under a
+   * different screen key (see context.ts's DATA_KEY_OVERRIDES). Defaults to
+   * `state.lists[config.screen]`.
+   */
+  selectItems?: (state: AppState) => ListItem[]
+  /**
+   * Explicit item kind for SELECT_HIGHLIGHTED dispatch, bypassing the
+   * dueDate/PROJECT_LIST_SCREENS heuristics below — used by Today/Overdue/
+   * Inbox, whose items are always Tasks by construction.
+   */
+  onSelect?: 'task' | 'project'
 }
 
 /**
- * Generic factory for a fetched-list screen (Tasks/Notes/Projects/Tags views
- * beyond Today/Inbox/Overdue, which have bespoke display copy). Renders a
- * "Fetching…" placeholder while state.loading, an empty-state message when
- * the list is empty, otherwise a header + native list of item names. Reads
- * from state.lists[config.screen], populated by ctx.enterView() in
- * context.ts. SELECT_HIGHLIGHTED just records the cursor — there's no
- * detail screen yet.
+ * Generic factory for a fetched-list screen (every Tasks/Notes/Projects/Tags
+ * view, including Today/Overdue/Inbox). Renders a loading placeholder while
+ * state.loading, an empty-state message when the list is empty, otherwise a
+ * header + native list of item names. Reads from `config.selectItems(state)`
+ * if given, else `state.lists[config.screen]` — both populated by
+ * ctx.enterView() in context.ts. SELECT_HIGHLIGHTED just records the
+ * cursor — there's no detail screen yet (except the task-actions/
+ * project-detail dispatch below).
  */
 export function makeListScreen(config: ListScreenConfig): Screen<AppState, GlassCtx> {
   const emptyMessage = config.emptyMessage ?? 'No items.'
+  const loadingMessage = config.loadingMessage ?? 'Fetching…'
+  const countInHeader = config.countInHeader ?? true
   const formatLabel = config.formatLabel ?? ((item: ListItem) => item.name)
+  const selectItems = config.selectItems ?? ((state: AppState) => getListItems(state, config.screen))
 
   return {
     display(state) {
@@ -194,11 +217,11 @@ export function makeListScreen(config: ListScreenConfig): Screen<AppState, Glass
       if (state.loading) {
         return {
           mode: 'text',
-          content: [buildHeaderLine(title, state.spinnerFrame), '', 'Fetching…'].join('\n'),
+          content: [buildHeaderLine(title, state.spinnerFrame), '', loadingMessage].join('\n'),
         }
       }
 
-      const items = getListItems(state, config.screen)
+      const items = selectItems(state)
       if (items.length === 0) {
         return {
           mode: 'text',
@@ -212,7 +235,8 @@ export function makeListScreen(config: ListScreenConfig): Screen<AppState, Glass
         }
       }
 
-      const header = buildHeaderLine(`${title} (${items.length})`, state.spinnerFrame)
+      const headerTitle = countInHeader ? `${title} (${items.length})` : title
+      const header = buildHeaderLine(headerTitle, state.spinnerFrame)
       const listItems = items.slice(0, MAX_LIST_ITEMS).map((i) => truncateToByteLimit(formatLabel(i)))
       return { mode: 'list', header, items: listItems }
     },
@@ -228,13 +252,15 @@ export function makeListScreen(config: ListScreenConfig): Screen<AppState, Glass
       if (action.type === 'SELECT_HIGHLIGHTED') {
         if (typeof action.itemIndex === 'number') {
           state.selectedIndex[config.screen] = action.itemIndex
-          const item = state.lists[config.screen]?.[action.itemIndex]
-          // Only Task records carry a dueDate — guards against triggering
-          // the action menu on the Notes/Projects/Tags screens sharing this factory.
-          if (item && 'dueDate' in item) {
-            ctx.openTaskActions(item.id, item.name, config.screen)
-          } else if (item && PROJECT_LIST_SCREENS.includes(config.screen)) {
-            ctx.openProjectDetail(item.id, item.name, config.screen)
+          const item = selectItems(state)[action.itemIndex]
+          if (item) {
+            // Only Task records carry a dueDate — guards against triggering
+            // the action menu on the Notes/Projects/Tags screens sharing this factory.
+            const kind =
+              config.onSelect ??
+              ('dueDate' in item ? 'task' : PROJECT_LIST_SCREENS.includes(config.screen) ? 'project' : undefined)
+            if (kind === 'task') ctx.openTaskActions(item.id, item.name, config.screen)
+            else if (kind === 'project') ctx.openProjectDetail(item.id, item.name, config.screen)
           }
         }
         return nav

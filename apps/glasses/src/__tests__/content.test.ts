@@ -16,8 +16,19 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { state, setBridge } from '../state'
-import { showOverdue, showToday, showInbox } from '../glasses/render'
+import { renderFull } from '../glasses/render'
 import { makeMockBridge, resetState } from './helpers'
+
+/**
+ * Drives a screen's render the same way ctx.enterView()'s pipeline does
+ * (set state.screen, then renderFull assumes it's already current) — Today/
+ * Overdue/Inbox no longer have their own show*() helpers, they go through
+ * the same generic renderFull() as every other list screen.
+ */
+async function showScreen(screen: 'overdue' | 'today' | 'inbox'): Promise<void> {
+  state.screen = screen
+  await renderFull(screen)
+}
 
 let mockBridge: ReturnType<typeof makeMockBridge>
 
@@ -81,13 +92,13 @@ describe('overdue screen content', () => {
     yesterday.setDate(yesterday.getDate() - 1)
     const yesterdayStr = localDateStr(yesterday)
 
-    state.todayTasks = [
+    state.lists.today = [
       { id: '1', name: 'Write report', dueDate: yesterdayStr },
       { id: '2', name: 'Team standup', dueDate: todayStr },
     ]
     state.loading = false
 
-    await showOverdue()
+    await showScreen('overdue')
 
     const items = listItemNames()
     expect(items).toEqual(['Write report'])
@@ -98,11 +109,11 @@ describe('overdue screen content', () => {
 
   it('renders the empty state as full-page text (with an inert list placeholder) when nothing is overdue', async () => {
     const todayStr = localDateStr(new Date())
-    state.todayTasks = [{ id: '1', name: 'Team standup', dueDate: todayStr }]
+    state.lists.today = [{ id: '1', name: 'Team standup', dueDate: todayStr }]
     state.loading = false
-    state.overdueSelectedIndex = 0
+    state.selectedIndex.overdue = 0
 
-    await showOverdue()
+    await showScreen('overdue')
 
     expect(listItemNames()).toEqual([''])
     expect(headerText()).toContain('Nothing overdue!')
@@ -115,13 +126,13 @@ describe('overdue screen content', () => {
 
 describe('today screen with undated tasks', () => {
   it('does not display tasks that have no due date', async () => {
-    state.todayTasks = [
+    state.lists.today = [
       { id: '1', name: 'Undated task' },          // no dueDate
       { id: '2', name: 'Dated task', dueDate: localDateStr(new Date()) },
     ]
     state.loading = false
 
-    await showToday()
+    await showScreen('today')
 
     const items = listItemNames()
     expect(items).not.toContain('Undated task')
@@ -135,14 +146,14 @@ describe('today screen with undated tasks', () => {
 
 describe('inbox screen content', () => {
   it('reflects the correct number of tasks in the header', async () => {
-    state.inboxTasks = [
+    state.lists.inbox = [
       { id: '1', name: 'Task A' },
       { id: '2', name: 'Task B' },
       { id: '3', name: 'Task C' },
     ]
     state.loading = false
 
-    await showInbox()
+    await showScreen('inbox')
 
     expect(headerText()).toContain('INBOX (3)')
   })
@@ -163,24 +174,24 @@ describe('today screen list', () => {
     yesterday.setDate(yesterday.getDate() - 1)
     const yesterdayStr = localDateStr(yesterday)
 
-    state.todayTasks = [
+    state.lists.today = [
       { id: '1', name: 'Write report', dueDate: yesterdayStr },
       { id: '2', name: 'Team standup', dueDate: todayStr },
     ]
     state.loading = false
 
-    await showToday()
+    await showScreen('today')
 
     const items = listItemNames()
     expect(items).toEqual(['Team standup'])
   })
 
   it('renders the empty state as full-page text (with an inert list placeholder) when there are no tasks due today', async () => {
-    state.todayTasks = []
+    state.lists.today = []
     state.loading = false
-    state.todaySelectedIndex = 0
+    state.selectedIndex.today = 0
 
-    await showToday()
+    await showScreen('today')
 
     expect(listItemNames()).toEqual([''])
     expect(headerText()).toContain('No tasks due today!')
@@ -197,13 +208,13 @@ describe('overdue screen list', () => {
     yesterday.setDate(yesterday.getDate() - 1)
     const yesterdayStr = localDateStr(yesterday)
 
-    state.todayTasks = [
+    state.lists.today = [
       { id: '1', name: 'Overdue one', dueDate: yesterdayStr },
       { id: '2', name: 'Overdue two', dueDate: yesterdayStr },
     ]
     state.loading = false
 
-    await showOverdue()
+    await showScreen('overdue')
 
     expect(listItemNames()).toEqual(['Overdue one', 'Overdue two'])
   })
@@ -215,24 +226,24 @@ describe('overdue screen list', () => {
 
 describe('inbox screen list', () => {
   it('lists all tasks as plain names (no overdue markers)', async () => {
-    state.inboxTasks = [
+    state.lists.inbox = [
       { id: '1', name: 'Task A' },
       { id: '2', name: 'Task B' },
       { id: '3', name: 'Task C' },
     ]
     state.loading = false
 
-    await showInbox()
+    await showScreen('inbox')
 
     expect(listItemNames()).toEqual(['Task A', 'Task B', 'Task C'])
   })
 
   it('renders the empty state as full-page text (with an inert list placeholder) when inbox is empty', async () => {
-    state.inboxTasks = []
+    state.lists.inbox = []
     state.loading = false
-    state.inboxSelectedIndex = 0
+    state.selectedIndex.inbox = 0
 
-    await showInbox()
+    await showScreen('inbox')
 
     expect(listItemNames()).toEqual([''])
     expect(headerText()).toContain('Your inbox is empty!')

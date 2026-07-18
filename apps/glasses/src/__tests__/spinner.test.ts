@@ -35,10 +35,6 @@ vi.mock('../api', () => ({
 }))
 
 vi.mock('../cache', () => ({
-  loadCachedTasks: vi.fn().mockResolvedValue(null),
-  saveCachedTasks: vi.fn().mockResolvedValue(undefined),
-  CACHE_KEY_TODAY: 'notionultimatebrain:today',
-  CACHE_KEY_INBOX: 'notionultimatebrain:inbox',
   loadCachedList: vi.fn().mockResolvedValue(null),
   saveCachedList: vi.fn().mockResolvedValue(undefined),
   cacheKeyForScreen: (screen: string) => `notionultimatebrain:${screen}`,
@@ -81,7 +77,7 @@ afterEach(() => {
 async function openInboxAndAwaitSpinner() {
   state.screen = 'tasks-menu'
   onEvenHubEvent(listClickEvent(3))
-  // Flush loadCachedTasks → showInbox (sets screen) → startSpinner
+  // Flush loadCachedList → navigate (sets screen) → startSpinner
   await Promise.resolve()
   await Promise.resolve()
   await Promise.resolve()

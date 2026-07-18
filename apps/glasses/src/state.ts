@@ -80,21 +80,14 @@ export interface AppState {
   // bookkeeping only, unused by rendering.
   menuSelectedIndex: number
 
-  // Task data
-  todayTasks: Task[]
-  inboxTasks: Task[]
-
-  // Last listEvent selection reported by the firmware list widget. The widget
-  // owns its own highlight — these fields are stored for the future
-  // task-detail screen and reset on screen entry.
-  overdueSelectedIndex: number
-  todaySelectedIndex: number
-  inboxSelectedIndex: number
-
-  // Generic storage for every other list-view screen (Tasks/Notes/Projects/
-  // Tags views beyond Today/Inbox/Overdue, which keep their dedicated fields
-  // above for backward compatibility). Keyed by Screen name.
+  // Fetched list data for every list-view screen (Today/Overdue/Inbox and
+  // every Tasks/Notes/Projects/Tags view), keyed by Screen name. Today and
+  // Overdue are both filtered views over the same fetched array, stored
+  // under the 'today' key — see context.ts's DATA_KEY_OVERRIDES.
   lists: Partial<Record<Screen, ListItem[]>>
+  // Last listEvent selection reported by the firmware list widget. The
+  // widget owns its own highlight — these are stored for a future
+  // task-detail screen and reset on screen entry.
   selectedIndex: Partial<Record<Screen, number>>
 
   // Mark-task-done confirm dialog / toast — returnTo is the list screen to
@@ -132,11 +125,6 @@ export const state: AppState = {
   screen: 'menu',
   startupRendered: false,
   menuSelectedIndex: 0,
-  todayTasks: [],
-  inboxTasks: [],
-  overdueSelectedIndex: 0,
-  todaySelectedIndex: 0,
-  inboxSelectedIndex: 0,
   lists: {},
   selectedIndex: {},
   pendingMarkDone: null,

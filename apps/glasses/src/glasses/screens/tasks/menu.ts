@@ -16,24 +16,15 @@ const tasksMenuDef: MenuDef = {
   ],
 }
 
-/** Route a tasks-submenu target screen through the correct ctx entry point. */
+/**
+ * Route a tasks-submenu target screen through the correct ctx entry point.
+ * Add Task has no fetcher (VIEW_FETCHERS has no entry for it), so it needs a
+ * plain navigate; every other target — including Today/Overdue/Inbox — goes
+ * through the generic cache-then-fetch pipeline.
+ */
 function open(target: ScreenName, ctx: GlassCtx): void {
-  switch (target) {
-    case 'today':
-      ctx.enterToday()
-      break
-    case 'inbox':
-      ctx.enterInbox()
-      break
-    case 'overdue':
-      ctx.enterOverdue()
-      break
-    case 'add-task':
-      ctx.navigate(target)
-      break
-    default:
-      ctx.enterView(target)
-  }
+  if (target === 'add-task') ctx.navigate(target)
+  else ctx.enterView(target)
 }
 
 export const tasksMenuScreen: Screen<AppState, GlassCtx> = makeMenuScreen(

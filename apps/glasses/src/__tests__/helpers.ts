@@ -26,11 +26,6 @@ export function resetState() {
   state.screen = 'menu'
   state.startupRendered = true   // skip createStartUpPageContainer path
   state.menuSelectedIndex = 0
-  state.todayTasks = []
-  state.inboxTasks = []
-  state.overdueSelectedIndex = 0
-  state.todaySelectedIndex = 0
-  state.inboxSelectedIndex = 0
   state.lists = {}
   state.selectedIndex = {}
   state.recording = 'idle'

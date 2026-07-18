@@ -31,20 +31,21 @@ import {
   fetchTasksForProject,
   fetchNotesForProject,
 } from '../api'
-import { loadCachedTasks, saveCachedTasks, CACHE_KEY_TODAY, CACHE_KEY_INBOX, loadCachedList, saveCachedList, cacheKeyForScreen } from '../cache'
+import { loadCachedList, saveCachedList, cacheKeyForScreen } from '../cache'
 import * as stt from '../stt'
-import { renderFull, renderUpdate, showOverdue, showToday, showInbox } from './render'
+import { renderFull, renderUpdate } from './render'
 import { VOSK_MODEL_URL, SPINNER_FRAMES, SPINNER_INTERVAL_MS } from './constants'
 import type { GlassCtx } from './types'
 
 // ---------------------------------------------------------------------------
-// Generic list views — every Tasks/Notes/Projects/Tags screen beyond
-// Today/Inbox/Overdue (which have their own dedicated pipeline below,
-// sharing state.todayTasks/inboxTasks). One fetcher per screen name; the
-// generic enterView() cache-then-fetch pipeline is shared by all of them.
+// Generic list views — every Tasks/Notes/Projects/Tags screen, including
+// Today/Overdue/Inbox. One fetcher per data key; the generic enterView()
+// cache-then-fetch pipeline (below) is shared by all of them.
 // ---------------------------------------------------------------------------
 
 const VIEW_FETCHERS: Partial<Record<Screen, () => Promise<ListItem[]>>> = {
+  today: fetchTodayTasks,
+  inbox: fetchInboxTasks,
   'tasks-next-7-days': fetchNext7DaysTasks,
   'tasks-tomorrow': fetchTomorrowTasks,
   'notes-inbox': fetchInboxNotes,
@@ -67,6 +68,16 @@ const VIEW_FETCHERS: Partial<Record<Screen, () => Promise<ListItem[]>>> = {
   'tags-types': fetchTypeTags,
   'project-tasks': () => fetchTasksForProject(state.selectedProject!.id),
   'project-notes': () => fetchNotesForProject(state.selectedProject!.id),
+}
+
+/**
+ * Screens whose fetched data lives under a different state.lists/cache key.
+ * Overdue is a filtered view over the same array Today fetches
+ * (/api/tasks/today returns everything due today-or-before) — see
+ * getOverdueFlatTasks/getTodayFlatTasks in screens/shared.ts.
+ */
+const DATA_KEY_OVERRIDES: Partial<Record<Screen, Screen>> = {
+  overdue: 'today',
 }
 
 // ---------------------------------------------------------------------------
@@ -116,96 +127,10 @@ function shutdown(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Overdue / Today / Inbox entry — cache-then-fresh-fetch with a spinner
-// while in flight
+// List-view entry — cache-then-fresh-fetch with a spinner while in flight.
+// Covers every Tasks/Notes/Projects/Tags screen, including Today/Overdue/
+// Inbox (Overdue reads/writes the 'today' data key via DATA_KEY_OVERRIDES).
 // ---------------------------------------------------------------------------
-
-/**
- * Overdue and Today are both views over the same underlying task list
- * (state.todayTasks), just filtered differently (see shared.ts) — so they
- * share one fetch/cache pipeline, diverging only in which cursor to reset
- * and which screen to land on.
- */
-async function enterOverdueOrToday(screen: 'overdue' | 'today'): Promise<void> {
-  // 0. Reset cursor on screen entry
-  if (screen === 'overdue') state.overdueSelectedIndex = 0
-  else state.todaySelectedIndex = 0
-
-  // 1. Show cached data immediately (or a "Fetching…" placeholder if cold)
-  const cached = await loadCachedTasks(CACHE_KEY_TODAY)
-  if (cached !== null) {
-    state.todayTasks = cached
-    state.loading = false
-  } else {
-    state.loading = true
-  }
-  navigate(screen)
-
-  // 2. Spin while the fresh data loads in the background
-  startSpinner(() => {
-    void renderUpdate(screen)
-  })
-
-  try {
-    const fresh = await fetchTodayTasks()
-    state.todayTasks = fresh
-    state.loading = false
-    void saveCachedTasks(CACHE_KEY_TODAY, fresh)
-  } catch (e) {
-    if (state.loading) state.todayTasks = [] // no cache — show empty
-    state.loading = false
-  } finally {
-    stopSpinner()
-    // The fetched list may differ from what's on screen (item count, order,
-    // overdue/today split) — there's no partial-list-update API, so refresh
-    // via a full rebuild rather than the header-only renderUpdate.
-    if (state.screen === screen) void (screen === 'overdue' ? showOverdue() : showToday())
-  }
-}
-
-function enterOverdue(): Promise<void> {
-  return enterOverdueOrToday('overdue')
-}
-
-function enterToday(): Promise<void> {
-  return enterOverdueOrToday('today')
-}
-
-async function enterInbox(): Promise<void> {
-  // 0. Reset cursor on screen entry
-  state.inboxSelectedIndex = 0
-
-  // 1. Show cached data immediately (or a "Fetching…" placeholder if cold)
-  const cached = await loadCachedTasks(CACHE_KEY_INBOX)
-  if (cached !== null) {
-    state.inboxTasks = cached
-    state.loading = false
-  } else {
-    state.loading = true
-  }
-  navigate('inbox')
-
-  // 2. Spin while the fresh data loads in the background
-  startSpinner(() => {
-    void renderUpdate('inbox')
-  })
-
-  try {
-    const fresh = await fetchInboxTasks()
-    state.inboxTasks = fresh
-    state.loading = false
-    void saveCachedTasks(CACHE_KEY_INBOX, fresh)
-  } catch (e) {
-    if (state.loading) state.inboxTasks = [] // no cache — show empty
-    state.loading = false
-  } finally {
-    stopSpinner()
-    // The fetched list may differ from what's on screen — there's no
-    // partial-list-update API, so refresh via a full rebuild rather than
-    // the header-only renderUpdate.
-    if (state.screen === 'inbox') void showInbox()
-  }
-}
 
 /**
  * Cache key for a generic list-view screen, scoped by selected project for
@@ -220,24 +145,26 @@ function cacheKeyForListView(screen: Screen): string {
 }
 
 /**
- * Generic cache-then-fetch entry point for every list-view screen besides
- * Today/Inbox/Overdue — looks up the screen's fetcher in VIEW_FETCHERS,
- * caches under a key derived from the screen name, and mirrors the
- * enterOverdueOrToday/enterInbox pipeline above. A no-op (stays on the
- * current screen) if the screen has no registered fetcher.
+ * Generic cache-then-fetch entry point for every list-view screen — looks up
+ * the underlying data key's fetcher in VIEW_FETCHERS (Overdue resolves to
+ * Today's 'today' key via DATA_KEY_OVERRIDES), caches under a key derived
+ * from that data key, and lands on `screen`. A no-op (stays on the current
+ * screen) if the data key has no registered fetcher.
  */
 async function enterView(screen: Screen): Promise<void> {
-  const fetchFn = VIEW_FETCHERS[screen]
+  const dataKey = DATA_KEY_OVERRIDES[screen] ?? screen
+  const fetchFn = VIEW_FETCHERS[dataKey]
   if (!fetchFn) return
 
-  // 0. Reset cursor on screen entry
+  // 0. Reset this screen's own cursor on entry (Today/Overdue each keep
+  // their own cursor even though they share fetched data).
   state.selectedIndex[screen] = 0
 
   // 1. Show cached data immediately (or a "Fetching…" placeholder if cold)
-  const cacheKey = cacheKeyForListView(screen)
+  const cacheKey = cacheKeyForListView(dataKey)
   const cached = await loadCachedList<ListItem>(cacheKey)
   if (cached !== null) {
-    state.lists[screen] = cached
+    state.lists[dataKey] = cached
     state.loading = false
   } else {
     state.loading = true
@@ -251,11 +178,11 @@ async function enterView(screen: Screen): Promise<void> {
 
   try {
     const fresh = await fetchFn()
-    state.lists[screen] = fresh
+    state.lists[dataKey] = fresh
     state.loading = false
     void saveCachedList(cacheKey, fresh)
   } catch (e) {
-    if (state.loading) state.lists[screen] = [] // no cache — show empty
+    if (state.loading) state.lists[dataKey] = [] // no cache — show empty
     state.loading = false
   } finally {
     stopSpinner()
@@ -268,8 +195,8 @@ async function enterView(screen: Screen): Promise<void> {
 
 // ---------------------------------------------------------------------------
 // Mark Task Done — confirm dialog + toast, shared by every Tasks list screen
-// (Today/Overdue/Inbox and the generic Tasks views routed through
-// makeListScreen()). All of them key their owning list by `returnTo`.
+// (all routed through makeListScreen()). All of them key their owning list
+// by `returnTo`.
 // ---------------------------------------------------------------------------
 
 let markDoneToastTimeout: ReturnType<typeof setTimeout> | null = null
@@ -288,22 +215,15 @@ function dismissMarkDoneConfirm(): void {
 
 /**
  * Removes a task from whichever list actually owns it — Today and Overdue
- * are both filtered views over the same state.todayTasks array. Shared by
- * confirmMarkDone and confirmDelete, which both key the owning list by
- * `returnTo`.
+ * are both filtered views over the same 'today' data key (see
+ * DATA_KEY_OVERRIDES). Shared by confirmMarkDone and confirmDelete, which
+ * both key the owning list by `returnTo`.
  */
 function removeTaskFromOwningList(taskId: string, returnTo: Screen): void {
-  if (returnTo === 'today' || returnTo === 'overdue') {
-    state.todayTasks = state.todayTasks.filter((t) => t.id !== taskId)
-    void saveCachedTasks(CACHE_KEY_TODAY, state.todayTasks)
-  } else if (returnTo === 'inbox') {
-    state.inboxTasks = state.inboxTasks.filter((t) => t.id !== taskId)
-    void saveCachedTasks(CACHE_KEY_INBOX, state.inboxTasks)
-  } else {
-    const list = (state.lists[returnTo] ?? []).filter((item) => item.id !== taskId)
-    state.lists[returnTo] = list
-    void saveCachedList(cacheKeyForListView(returnTo), list)
-  }
+  const dataKey = DATA_KEY_OVERRIDES[returnTo] ?? returnTo
+  const list = (state.lists[dataKey] ?? []).filter((item) => item.id !== taskId)
+  state.lists[dataKey] = list
+  void saveCachedList(cacheKeyForListView(dataKey), list)
 }
 
 async function confirmMarkDone(): Promise<void> {
@@ -562,9 +482,6 @@ export function createGlassCtx(): GlassCtx {
     navigate,
     shutdown,
     stopSpinner,
-    enterOverdue: () => void enterOverdue(),
-    enterToday: () => void enterToday(),
-    enterInbox: () => void enterInbox(),
     enterView: (screen) => void enterView(screen),
     startRecording: () => void startRecording(),
     cancelRecordingAndGoBack,
