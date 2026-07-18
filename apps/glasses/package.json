@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@evenrealities/even_hub_sdk": "^0.0.11",
+    "@notion-ub/contracts": "workspace:*",
     "even-toolkit": "^1.7.7",
     "vosk-browser": "^0.0.8"
   },

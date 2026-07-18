@@ -6,7 +6,7 @@
  */
 
 import { getBridge } from '../state'
-import type { TenantConfig } from '../tenant-config'
+import type { TenantConfig } from '@notion-ub/contracts'
 
 const CONFIG_KEY = 'notionultimatebrain:config'
 

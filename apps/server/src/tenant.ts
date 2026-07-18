@@ -1,3 +1,5 @@
+import type { TenantConfig } from '@notion-ub/contracts'
+
 export interface TenantDb {
   tasks: string
   notes: string
@@ -11,16 +13,10 @@ export interface Tenant {
   db: TenantDb
 }
 
-// Wire shape carried in the X-Notion-Config header: a base64 JSON blob with
-// flat field names matching the frontend's TenantConfig.
-interface TenantHeaderPayload {
-  token?: unknown
-  tasksDb?: unknown
-  notesDb?: unknown
-  projectsDb?: unknown
-  tagsDb?: unknown
-  excludeProjectId?: unknown
-}
+// Wire shape carried in the X-Notion-Config header: a base64 JSON blob,
+// field-for-field the shared TenantConfig — but every value starts out
+// unknown until isNonEmptyString below validates it.
+type TenantHeaderPayload = { [K in keyof TenantConfig]?: unknown }
 
 function isNonEmptyString(v: unknown): v is string {
   return typeof v === 'string' && v.length > 0

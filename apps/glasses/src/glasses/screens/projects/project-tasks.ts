@@ -1,5 +1,5 @@
 import type { AppState } from '../../../state'
-import type { Task } from '../../../state'
+import type { Task } from '@notion-ub/contracts'
 import type { ScreenModule } from '../../types'
 import { makeListScreen } from '../shared'
 

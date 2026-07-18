@@ -1,4 +1,5 @@
 import type { EvenAppBridge } from '@evenrealities/even_hub_sdk'
+import type { Task, Note, Project, Tag } from '@notion-ub/contracts'
 
 export type ScreenName =
   | 'menu'
@@ -41,31 +42,6 @@ export type ScreenName =
   | 'project-notes'
 
 export type RecordingState = 'idle' | 'recording' | 'processing' | 'confirm' | 'done' | 'error'
-
-export interface Task {
-  id: string
-  name: string
-  dueDate?: string
-  status?: string
-}
-
-export interface Note {
-  id: string
-  name: string
-  icon?: string
-  lastEdited?: string
-}
-
-export interface Project {
-  id: string
-  name: string
-  status?: string
-}
-
-export interface Tag {
-  id: string
-  name: string
-}
 
 /** Anything a generic list screen can render — every domain record has a `name`. */
 export type ListItem = Task | Note | Project | Tag

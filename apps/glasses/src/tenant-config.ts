@@ -4,14 +4,7 @@
  * Persistence across app restarts lives in web/settings.ts.
  */
 
-export interface TenantConfig {
-  token: string
-  tasksDb: string
-  notesDb: string
-  projectsDb: string
-  tagsDb: string
-  excludeProjectId?: string
-}
+import type { TenantConfig } from '@notion-ub/contracts'
 
 let current: TenantConfig | null = null
 

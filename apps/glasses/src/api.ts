@@ -1,4 +1,4 @@
-import type { Task, Note, Project, Tag } from './state'
+import type { Task, Note, Project, Tag } from '@notion-ub/contracts'
 import { getTenantHeader } from './tenant-config'
 
 /**

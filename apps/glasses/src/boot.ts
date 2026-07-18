@@ -6,7 +6,7 @@ import { preloadVoskModel } from './stt'
 import { setStatus, disableConnect, hideConnect, showRetry, onConnectClick } from './web/shell'
 import { loadStoredConfig, saveStoredConfig, promptForConfig, onSettingsClick } from './web/settings'
 import { getTenantConfig, setTenantConfig, getDevEnvConfig } from './tenant-config'
-import type { TenantConfig } from './tenant-config'
+import type { TenantConfig } from '@notion-ub/contracts'
 
 // ---------------------------------------------------------------------------
 // App bootstrap — connect the Even Hub bridge, ensure a Notion tenant config

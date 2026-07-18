@@ -1,5 +1,6 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils'
-import type { AppState, Task, ListItem, ScreenName } from '../../state'
+import type { AppState, ListItem, ScreenName } from '../../state'
+import type { Task } from '@notion-ub/contracts'
 import type { ScreenModule, GlassCtx, MenuDef } from '../types'
 import { MAX_ITEM_BYTES, MAX_LIST_ITEMS } from '../constants'
 
