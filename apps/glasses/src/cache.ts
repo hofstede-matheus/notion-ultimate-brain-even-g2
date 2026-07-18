@@ -1,4 +1,4 @@
-import { getBridge } from './state'
+import { storageGet, storageSet } from 'even-toolkit/storage'
 
 // ---------------------------------------------------------------------------
 // localStorage keys
@@ -18,17 +18,8 @@ export function cacheKeyForScreen(screen: string): string {
  * Returns null when there is no entry or the stored value can't be parsed.
  */
 export async function loadCachedList<T>(key: string): Promise<T[] | null> {
-  const b = getBridge()
-  if (!b) return null
-  try {
-    const raw = await b.getLocalStorage(key)
-    if (!raw) return null
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return null
-    return parsed as T[]
-  } catch {
-    return null
-  }
+  const parsed = await storageGet<unknown>(key, null)
+  return Array.isArray(parsed) ? (parsed as T[]) : null
 }
 
 /**
@@ -36,11 +27,5 @@ export async function loadCachedList<T>(key: string): Promise<T[] | null> {
  * Failures are swallowed — cache writes are best-effort.
  */
 export async function saveCachedList<T>(key: string, items: T[]): Promise<void> {
-  const b = getBridge()
-  if (!b) return
-  try {
-    await b.setLocalStorage(key, JSON.stringify(items))
-  } catch {
-    // ignore
-  }
+  await storageSet(key, items)
 }
