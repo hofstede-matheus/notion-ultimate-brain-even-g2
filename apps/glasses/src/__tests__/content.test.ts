@@ -57,16 +57,17 @@ function listItemNames(): string[] {
 }
 
 /**
- * "Today" as the app computes it (local-midnight, then UTC date string via
- * toISOString) — NOT a plain `new Date().toISOString()`, which drifts by a
- * day whenever the test runs while local time and UTC are on different
- * calendar dates. Fixture dates must be generated the same way the app
- * classifies them, or the overdue/today split becomes wall-clock-dependent.
+ * A date's local YYYY-MM-DD, built from local calendar components — the same
+ * way the app classifies dueDates (see todayDateStr in screens/shared.ts).
+ * Must NOT go through toISOString(), which serializes as UTC and drifts by a
+ * day whenever local time and UTC are on different calendar dates, making the
+ * overdue/today split wall-clock-dependent.
  */
 function localDateStr(d: Date): string {
-  const copy = new Date(d)
-  copy.setHours(0, 0, 0, 0)
-  return copy.toISOString().split('T')[0]!
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 // ---------------------------------------------------------------------------

@@ -27,11 +27,17 @@ export function truncateToByteLimit(text: string, maxBytes: number = MAX_ITEM_BY
 /**
  * Returns today's local date as YYYY-MM-DD, matching the format tasks'
  * dueDate strings are compared against.
+ *
+ * Built from local calendar components on purpose — `toISOString()` would
+ * serialize as UTC and roll back to the previous day for users ahead of UTC,
+ * misclassifying yesterday's tasks as today (and dropping them from Overdue).
  */
 function todayDateStr(): string {
   const now = new Date()
-  now.setHours(0, 0, 0, 0)
-  return now.toISOString().split('T')[0]!
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 /**
