@@ -1,8 +1,7 @@
-import type { AppState } from '../../../state'
-import type { Screen, GlassCtx } from '../../types'
+import type { ScreenModule } from '../../types'
 import { makeListScreen } from '../shared'
 
-export const tagsFavoritesScreen: Screen<AppState, GlassCtx> = makeListScreen({
+export const tagsFavoritesScreen: ScreenModule = makeListScreen({
   screen: 'tags-favorites',
   parent: 'tags-menu',
   title: 'FAVORITE TAGS',

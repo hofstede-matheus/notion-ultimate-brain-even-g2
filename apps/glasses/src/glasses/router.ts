@@ -1,6 +1,6 @@
 import type { AppState } from '../state'
 import type { GlassCtx } from './types'
-import type { Screen, ScreenDisplay, AppGlassAction } from './types'
+import type { ScreenModule, ScreenDisplay, AppGlassAction } from './types'
 import { menuScreen } from './screens/menu'
 import { tasksMenuScreen } from './screens/tasks/menu'
 import { notesMenuScreen } from './screens/notes/menu'
@@ -41,7 +41,7 @@ import { tagsAzScreen } from './screens/tags/a-z'
 import { tagsTypesScreen } from './screens/tags/types'
 import { FALLBACK_SCREEN } from './constants'
 
-const SCREENS: Record<string, Screen<AppState, GlassCtx>> = {
+const SCREENS: Record<string, ScreenModule> = {
   menu: menuScreen,
   'tasks-menu': tasksMenuScreen,
   'notes-menu': notesMenuScreen,
@@ -82,7 +82,7 @@ const SCREENS: Record<string, Screen<AppState, GlassCtx>> = {
   'project-notes': projectNotesScreen,
 }
 
-function getScreen(name: string): Screen<AppState, GlassCtx> {
+function getScreen(name: string): ScreenModule {
   return SCREENS[name] ?? SCREENS[FALLBACK_SCREEN]!
 }
 

@@ -1,12 +1,11 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils'
-import type { AppState } from '../../../state'
-import type { GlassCtx, Screen } from '../../types'
+import type { ScreenModule } from '../../types'
 import { truncateToByteLimit } from '../shared'
 import { MAX_ITEM_BYTES } from '../../constants'
 
 const ACTIONS = ['Load metadata', 'Mark as done', 'Delete task']
 
-export const taskActionsScreen: Screen<AppState, GlassCtx> = {
+export const taskActionsScreen: ScreenModule = {
   display(state) {
     const selected = state.selectedTask
     const name = selected ? truncateToByteLimit(selected.taskName, MAX_ITEM_BYTES) : ''

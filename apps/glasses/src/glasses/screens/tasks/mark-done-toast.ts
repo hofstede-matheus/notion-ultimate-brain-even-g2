@@ -1,9 +1,8 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils'
-import type { AppState } from '../../../state'
-import type { GlassCtx, Screen } from '../../types'
+import type { ScreenModule } from '../../types'
 import { truncateToByteLimit } from '../shared'
 
-export const markDoneToastScreen: Screen<AppState, GlassCtx> = {
+export const markDoneToastScreen: ScreenModule = {
   display(state) {
     const t = state.actionToast
     const name = t && t.kind === 'markDone' ? truncateToByteLimit(t.taskName) : ''

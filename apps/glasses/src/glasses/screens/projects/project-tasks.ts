@@ -1,9 +1,9 @@
 import type { AppState } from '../../../state'
 import type { Task } from '../../../state'
-import type { Screen, GlassCtx } from '../../types'
+import type { ScreenModule } from '../../types'
 import { makeListScreen } from '../shared'
 
-export const projectTasksScreen: Screen<AppState, GlassCtx> = makeListScreen({
+export const projectTasksScreen: ScreenModule = makeListScreen({
   screen: 'project-tasks',
   parent: 'project-detail',
   title: (state: AppState) => `${state.selectedProject?.name ?? 'PROJECT'} — TASKS`,

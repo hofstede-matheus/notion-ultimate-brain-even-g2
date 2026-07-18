@@ -1,5 +1,4 @@
-import type { AppState } from '../../state'
-import type { Screen, GlassCtx, MenuDef } from '../types'
+import type { ScreenModule, MenuDef } from '../types'
 import { makeMenuScreen } from './shared'
 
 export const ROOT_MENU_ITEMS = ['Tasks', 'Notes', 'Projects', 'Tags']
@@ -14,4 +13,4 @@ const rootMenuDef: MenuDef = {
   ],
 }
 
-export const menuScreen: Screen<AppState, GlassCtx> = makeMenuScreen(rootMenuDef)
+export const menuScreen: ScreenModule = makeMenuScreen(rootMenuDef)

@@ -1,6 +1,6 @@
 import type { EvenAppBridge } from '@evenrealities/even_hub_sdk'
 
-export type Screen =
+export type ScreenName =
   | 'menu'
   | 'tasks-menu'
   | 'notes-menu'
@@ -71,32 +71,32 @@ export interface Tag {
 export type ListItem = Task | Note | Project | Tag
 
 export interface AppState {
-  screen: Screen
+  screen: ScreenName
   startupRendered: boolean
 
   // Fetched list data for every list-view screen (Today/Overdue/Inbox and
-  // every Tasks/Notes/Projects/Tags view), keyed by Screen name. Today and
+  // every Tasks/Notes/Projects/Tags view), keyed by screen name. Today and
   // Overdue are both filtered views over the same fetched array, stored
   // under the 'today' key — see context.ts's DATA_KEY_OVERRIDES.
-  lists: Partial<Record<Screen, ListItem[]>>
+  lists: Partial<Record<ScreenName, ListItem[]>>
 
   // Task confirm dialog — kind is 'markDone' or 'delete'; returnTo is the list screen to
   // navigate back to (Today/Overdue/Inbox or a generic Tasks screen).
-  pendingAction: { kind: 'markDone' | 'delete'; taskId: string; taskName: string; returnTo: Screen } | null
+  pendingAction: { kind: 'markDone' | 'delete'; taskId: string; taskName: string; returnTo: ScreenName } | null
 
   // The task the action menu / metadata / delete flow is operating on.
-  selectedTask: { taskId: string; taskName: string; returnTo: Screen } | null
+  selectedTask: { taskId: string; taskName: string; returnTo: ScreenName } | null
 
   // Metadata screen data (fetched on demand).
   taskMetadata: { loading: boolean; project: string | null; due: string | null; error: string } | null
 
   // Task action toast (mark-done or delete); shown after API call completes.
-  actionToast: { kind: 'markDone' | 'delete'; taskName: string; returnTo: Screen; untilMs: number } | null
+  actionToast: { kind: 'markDone' | 'delete'; taskName: string; returnTo: ScreenName; untilMs: number } | null
 
   // The project the Tasks/Notes drill-down menu (and its two list screens)
   // is currently scoped to — returnTo is the Projects list screen to
   // navigate back to (Active/Planned/Board/Archived).
-  selectedProject: { id: string; name: string; returnTo: Screen } | null
+  selectedProject: { id: string; name: string; returnTo: ScreenName } | null
 
   // Voice recording
   recording: RecordingState

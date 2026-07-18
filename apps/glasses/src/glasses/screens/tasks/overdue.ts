@@ -1,8 +1,7 @@
-import type { AppState } from '../../../state'
-import type { Screen, GlassCtx } from '../../types'
+import type { ScreenModule } from '../../types'
 import { makeListScreen, getOverdueFlatTasks } from '../shared'
 
-export const overdueScreen: Screen<AppState, GlassCtx> = makeListScreen({
+export const overdueScreen: ScreenModule = makeListScreen({
   screen: 'overdue',
   parent: 'tasks-menu',
   title: 'OVERDUE',

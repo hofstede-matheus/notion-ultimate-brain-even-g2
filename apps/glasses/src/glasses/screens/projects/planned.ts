@@ -1,8 +1,7 @@
-import type { AppState } from '../../../state'
-import type { Screen, GlassCtx } from '../../types'
+import type { ScreenModule } from '../../types'
 import { makeListScreen } from '../shared'
 
-export const plannedScreen: Screen<AppState, GlassCtx> = makeListScreen({
+export const plannedScreen: ScreenModule = makeListScreen({
   screen: 'projects-planned',
   parent: 'projects-menu',
   title: 'PLANNED PROJECTS',

@@ -1,6 +1,6 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils'
-import type { AppState, Task, ListItem, Screen as ScreenName } from '../../state'
-import type { Screen, GlassCtx, MenuDef } from '../types'
+import type { AppState, Task, ListItem, ScreenName } from '../../state'
+import type { ScreenModule, GlassCtx, MenuDef } from '../types'
 import { MAX_ITEM_BYTES, MAX_LIST_ITEMS } from '../constants'
 
 export { MAX_LIST_ITEMS } from '../constants'
@@ -89,7 +89,7 @@ export function formatDueDate(iso: string | null): string {
 export function makeMenuScreen(
   def: MenuDef,
   clickRouter?: (target: ScreenName, ctx: GlassCtx) => void,
-): Screen<AppState, GlassCtx> {
+): ScreenModule {
   const route = clickRouter ?? ((target, ctx) => ctx.navigate(target))
   return {
     display(_state) {
@@ -126,7 +126,7 @@ export function makeMenuScreen(
  * "Coming soon" message; GO_BACK returns to `parent` (the owning group's
  * submenu). Not wired into the router until its item gets a real `target`.
  */
-export function makeStubScreen(label: string, parent: ScreenName): Screen<AppState, GlassCtx> {
+export function makeStubScreen(label: string, parent: ScreenName): ScreenModule {
   return {
     display() {
       return {
@@ -201,7 +201,7 @@ export interface ListScreenConfig {
  * cursor — there's no detail screen yet (except the task-actions/
  * project-detail dispatch below).
  */
-export function makeListScreen(config: ListScreenConfig): Screen<AppState, GlassCtx> {
+export function makeListScreen(config: ListScreenConfig): ScreenModule {
   const emptyMessage = config.emptyMessage ?? 'No items.'
   const loadingMessage = config.loadingMessage ?? 'Fetching…'
   const countInHeader = config.countInHeader ?? true

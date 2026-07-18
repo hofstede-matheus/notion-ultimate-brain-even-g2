@@ -1,10 +1,9 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils'
-import type { AppState } from '../../../state'
-import type { GlassCtx, Screen } from '../../types'
+import type { ScreenModule } from '../../types'
 import { truncateToByteLimit } from '../shared'
 import { MAX_ITEM_BYTES } from '../../constants'
 
-export const deleteConfirmScreen: Screen<AppState, GlassCtx> = {
+export const deleteConfirmScreen: ScreenModule = {
   display(state) {
     const p = state.pendingAction
     const name = p && p.kind === 'delete' ? truncateToByteLimit(p.taskName, MAX_ITEM_BYTES) : ''

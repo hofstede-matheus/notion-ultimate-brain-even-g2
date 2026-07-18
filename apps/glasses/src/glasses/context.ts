@@ -1,6 +1,6 @@
 import { AudioInputSource } from '@evenrealities/even_hub_sdk'
 import { state, getBridge } from '../state'
-import type { Screen, ListItem } from '../state'
+import type { ScreenName, ListItem } from '../state'
 import {
   fetchTodayTasks,
   fetchInboxTasks,
@@ -43,7 +43,7 @@ import type { GlassCtx } from './types'
 // cache-then-fetch pipeline (below) is shared by all of them.
 // ---------------------------------------------------------------------------
 
-const VIEW_FETCHERS: Partial<Record<Screen, () => Promise<ListItem[]>>> = {
+const VIEW_FETCHERS: Partial<Record<ScreenName, () => Promise<ListItem[]>>> = {
   today: fetchTodayTasks,
   inbox: fetchInboxTasks,
   'tasks-next-7-days': fetchNext7DaysTasks,
@@ -76,7 +76,7 @@ const VIEW_FETCHERS: Partial<Record<Screen, () => Promise<ListItem[]>>> = {
  * (/api/tasks/today returns everything due today-or-before) — see
  * getOverdueFlatTasks/getTodayFlatTasks in screens/shared.ts.
  */
-const DATA_KEY_OVERRIDES: Partial<Record<Screen, Screen>> = {
+const DATA_KEY_OVERRIDES: Partial<Record<ScreenName, ScreenName>> = {
   overdue: 'today',
 }
 
@@ -109,7 +109,7 @@ function stopSpinner(): void {
 // Navigation
 // ---------------------------------------------------------------------------
 
-function navigate(screen: Screen): void {
+function navigate(screen: ScreenName): void {
   if (screen === 'add-task') {
     state.recording = 'idle'
     state.createdTaskName = ''
@@ -137,7 +137,7 @@ function shutdown(): void {
  * project-tasks/project-notes so switching projects doesn't flash the
  * previous project's cached list.
  */
-function cacheKeyForListView(screen: Screen): string {
+function cacheKeyForListView(screen: ScreenName): string {
   if (screen === 'project-tasks' || screen === 'project-notes') {
     return `${cacheKeyForScreen(screen)}:${state.selectedProject?.id ?? 'none'}`
   }
@@ -151,7 +151,7 @@ function cacheKeyForListView(screen: Screen): string {
  * from that data key, and lands on `screen`. A no-op (stays on the current
  * screen) if the data key has no registered fetcher.
  */
-async function enterView(screen: Screen): Promise<void> {
+async function enterView(screen: ScreenName): Promise<void> {
   const dataKey = DATA_KEY_OVERRIDES[screen] ?? screen
   const fetchFn = VIEW_FETCHERS[dataKey]
   if (!fetchFn) return
@@ -195,8 +195,8 @@ async function enterView(screen: Screen): Promise<void> {
 
 interface TaskAction {
   kind: 'markDone' | 'delete'
-  confirmScreenName: Screen
-  toastScreenName: Screen
+  confirmScreenName: ScreenName
+  toastScreenName: ScreenName
   confirmTitle: string
   toastTitle: string
   toastVerb: string
@@ -226,7 +226,7 @@ const TASK_ACTIONS: Record<'markDone' | 'delete', TaskAction> = {
 
 let actionToastTimeout: ReturnType<typeof setTimeout> | null = null
 
-function openConfirm(action: TaskAction, taskId: string, taskName: string, returnTo: Screen): void {
+function openConfirm(action: TaskAction, taskId: string, taskName: string, returnTo: ScreenName): void {
   state.pendingAction = { kind: action.kind, taskId, taskName, returnTo }
   state.errorMessage = ''
   navigate(action.confirmScreenName)
@@ -243,7 +243,7 @@ function dismissConfirm(): void {
  * are both filtered views over the same 'today' data key (see
  * DATA_KEY_OVERRIDES).
  */
-function removeTaskFromOwningList(taskId: string, returnTo: Screen): void {
+function removeTaskFromOwningList(taskId: string, returnTo: ScreenName): void {
   const dataKey = DATA_KEY_OVERRIDES[returnTo] ?? returnTo
   const list = (state.lists[dataKey] ?? []).filter((item) => item.id !== taskId)
   state.lists[dataKey] = list
@@ -291,7 +291,7 @@ function dismissActionToast(): void {
 // Offers Load metadata / Mark as done / Delete task.
 // ---------------------------------------------------------------------------
 
-function openTaskActions(taskId: string, taskName: string, returnTo: Screen): void {
+function openTaskActions(taskId: string, taskName: string, returnTo: ScreenName): void {
   state.selectedTask = { taskId, taskName, returnTo }
   navigate('task-actions')
 }
@@ -327,7 +327,7 @@ async function enterTaskMetadata(): Promise<void> {
 // screen. Stashes the project and opens the Tasks/Notes menu.
 // ---------------------------------------------------------------------------
 
-function openProjectDetail(projectId: string, projectName: string, returnTo: Screen): void {
+function openProjectDetail(projectId: string, projectName: string, returnTo: ScreenName): void {
   state.selectedProject = { id: projectId, name: projectName, returnTo }
   navigate('project-detail')
 }

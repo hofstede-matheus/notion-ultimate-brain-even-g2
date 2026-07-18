@@ -1,8 +1,7 @@
-import type { AppState } from '../../../state'
-import type { Screen, GlassCtx } from '../../types'
+import type { ScreenModule } from '../../types'
 import { makeListScreen } from '../shared'
 
-export const recentTagsScreen: Screen<AppState, GlassCtx> = makeListScreen({
+export const recentTagsScreen: ScreenModule = makeListScreen({
   screen: 'tags-recent',
   parent: 'tags-menu',
   title: 'RECENT TAGS',

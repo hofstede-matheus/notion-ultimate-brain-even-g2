@@ -1,11 +1,10 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils'
-import type { AppState } from '../../../state'
-import type { GlassCtx, Screen } from '../../types'
+import type { ScreenModule } from '../../types'
 import { truncateToByteLimit } from '../shared'
 
 const ITEMS = ['Tasks', 'Notes']
 
-export const projectDetailScreen: Screen<AppState, GlassCtx> = {
+export const projectDetailScreen: ScreenModule = {
   display(state) {
     const name = state.selectedProject ? truncateToByteLimit(state.selectedProject.name) : ''
     return {

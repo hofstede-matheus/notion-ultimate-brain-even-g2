@@ -7,7 +7,7 @@ import {
   ListItemContainerProperty,
 } from '@evenrealities/even_hub_sdk'
 import { state, getBridge } from '../state'
-import type { Screen as ScreenName } from '../state'
+import type { ScreenName } from '../state'
 import { router } from './router'
 import {
   SCREEN_W,

@@ -1,4 +1,4 @@
-import type { Screen as ScreenName } from '../state'
+import type { AppState, ScreenName } from '../state'
 
 /**
  * What a screen wants rendered. 'list' screens (Today/Inbox with >=1 items)
@@ -21,9 +21,9 @@ export type AppGlassAction =
   | { type: 'SELECT_HIGHLIGHTED'; itemIndex?: number; itemName?: string }
   | { type: 'GO_BACK' }
 
-export interface Screen<S, C> {
-  display: (snapshot: S) => ScreenDisplay
-  action: (action: AppGlassAction, snapshot: S, ctx: C) => void
+export interface ScreenModule {
+  display: (snapshot: AppState) => ScreenDisplay
+  action: (action: AppGlassAction, snapshot: AppState, ctx: GlassCtx) => void
 }
 
 /**

@@ -1,6 +1,5 @@
 import type { AppState } from '../../../state'
-import type { GlassCtx } from '../../types'
-import type { Screen } from '../../types'
+import type { ScreenModule } from '../../types'
 
 function addTaskContent(state: AppState): string {
   switch (state.recording) {
@@ -73,7 +72,7 @@ function addTaskContent(state: AppState): string {
   }
 }
 
-export const addTaskScreen: Screen<AppState, GlassCtx> = {
+export const addTaskScreen: ScreenModule = {
   display(state) {
     return { mode: 'text', content: addTaskContent(state) }
   },

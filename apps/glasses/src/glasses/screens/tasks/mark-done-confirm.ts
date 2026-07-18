@@ -1,10 +1,9 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils'
-import type { AppState } from '../../../state'
-import type { GlassCtx, Screen } from '../../types'
+import type { ScreenModule } from '../../types'
 import { truncateToByteLimit } from '../shared'
 import { MAX_ITEM_BYTES } from '../../constants'
 
-export const markDoneConfirmScreen: Screen<AppState, GlassCtx> = {
+export const markDoneConfirmScreen: ScreenModule = {
   display(state) {
     const p = state.pendingAction
     const name = p && p.kind === 'markDone' ? truncateToByteLimit(p.taskName, MAX_ITEM_BYTES) : ''

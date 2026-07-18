@@ -1,8 +1,7 @@
-import type { AppState } from '../../../state'
-import type { Screen, GlassCtx } from '../../types'
+import type { ScreenModule } from '../../types'
 import { makeListScreen } from '../shared'
 
-export const clipsScreen: Screen<AppState, GlassCtx> = makeListScreen({
+export const clipsScreen: ScreenModule = makeListScreen({
   screen: 'notes-clips',
   parent: 'notes-menu',
   title: 'CLIPS',

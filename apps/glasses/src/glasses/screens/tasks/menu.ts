@@ -1,6 +1,5 @@
-import type { AppState } from '../../../state'
-import type { Screen as ScreenName } from '../../../state'
-import type { Screen, GlassCtx, MenuDef } from '../../types'
+import type { ScreenName } from '../../../state'
+import type { ScreenModule, GlassCtx, MenuDef } from '../../types'
 import { makeMenuScreen } from '../shared'
 
 const tasksMenuDef: MenuDef = {
@@ -27,7 +26,7 @@ function open(target: ScreenName, ctx: GlassCtx): void {
   else ctx.enterView(target)
 }
 
-export const tasksMenuScreen: Screen<AppState, GlassCtx> = makeMenuScreen(
+export const tasksMenuScreen: ScreenModule = makeMenuScreen(
   tasksMenuDef,
   open,
 )

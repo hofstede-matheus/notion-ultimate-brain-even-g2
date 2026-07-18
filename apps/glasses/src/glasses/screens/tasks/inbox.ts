@@ -1,8 +1,7 @@
-import type { AppState } from '../../../state'
-import type { Screen, GlassCtx } from '../../types'
+import type { ScreenModule } from '../../types'
 import { makeListScreen } from '../shared'
 
-export const inboxScreen: Screen<AppState, GlassCtx> = makeListScreen({
+export const inboxScreen: ScreenModule = makeListScreen({
   screen: 'inbox',
   parent: 'tasks-menu',
   title: 'INBOX',

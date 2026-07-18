@@ -1,9 +1,8 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils'
-import type { AppState } from '../../../state'
-import type { GlassCtx, Screen } from '../../types'
+import type { ScreenModule } from '../../types'
 import { formatDueDate } from '../shared'
 
-export const taskMetadataScreen: Screen<AppState, GlassCtx> = {
+export const taskMetadataScreen: ScreenModule = {
   display(state) {
     const header = buildHeaderLine('TASK DETAILS', state.spinnerFrame)
     const meta = state.taskMetadata
