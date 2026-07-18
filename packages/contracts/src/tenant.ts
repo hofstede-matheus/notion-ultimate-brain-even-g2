@@ -10,4 +10,9 @@ export interface TenantConfig {
   projectsDb: string
   tagsDb: string
   excludeProjectId?: string
+  // IANA timezone name of the device (e.g. 'America/Sao_Paulo'), injected at
+  // header-build time by the glasses app. The server resolves relative date
+  // keywords ("today"/"tomorrow") against this zone so they match the user's
+  // local calendar day rather than UTC. Optional: absent falls back to UTC.
+  timeZone?: string
 }

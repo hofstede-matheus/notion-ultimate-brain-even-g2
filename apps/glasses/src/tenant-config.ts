@@ -18,7 +18,12 @@ export function setTenantConfig(cfg: TenantConfig): void {
 
 /** Base64 JSON payload for the X-Notion-Config header; '' when unset. */
 export function getTenantHeader(): string {
-  return current ? btoa(JSON.stringify(current)) : ''
+  if (!current) return ''
+  // Attach the device's live timezone so the server resolves "today"/"tomorrow"
+  // against the user's local calendar day, not UTC. Resolved here (not stored)
+  // so it always reflects the device's current zone.
+  const payload = { ...current, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }
+  return btoa(JSON.stringify(payload))
 }
 
 /**

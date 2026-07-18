@@ -13,6 +13,8 @@ export interface RouteContext {
   // tenant was resolved from the request before the handler runs.
   notion?: Client
   db?: TenantDb
+  // IANA timezone of the requesting device; drives relative-date resolution.
+  timeZone?: string
 }
 
 export interface RouteResult {
@@ -61,6 +63,7 @@ export async function runRoute(
     body,
     notion: tenant ? createNotionClient(tenant.token) : undefined,
     db: tenant?.db,
+    timeZone: tenant?.timeZone,
   })
 }
 
@@ -80,7 +83,7 @@ function buildViewRoutes(
       const filter = resolveFilter(view, ctx.db!)
       const response = await ctx.notion!.databases.query({
         database_id: ctx.db![dbKey],
-        filter: filter ? translateFilter(filter) : undefined,
+        filter: filter ? translateFilter(filter, ctx.timeZone) : undefined,
         sorts: view.sorts,
         page_size: 50,
       })

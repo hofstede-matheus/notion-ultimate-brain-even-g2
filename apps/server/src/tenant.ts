@@ -11,6 +11,9 @@ export interface TenantDb {
 export interface Tenant {
   token: string
   db: TenantDb
+  // IANA timezone of the requesting device; used to resolve relative date
+  // keywords against the user's local calendar day. Absent → UTC.
+  timeZone?: string
 }
 
 // Wire shape carried in the X-Notion-Config header: a base64 JSON blob,
@@ -38,7 +41,7 @@ export function parseTenant(headerValue: string | undefined | string[]): Tenant 
     return null
   }
 
-  const { token, tasksDb, notesDb, projectsDb, tagsDb, excludeProjectId } = payload
+  const { token, tasksDb, notesDb, projectsDb, tagsDb, excludeProjectId, timeZone } = payload
   if (
     !isNonEmptyString(token) ||
     !isNonEmptyString(tasksDb) ||
@@ -58,5 +61,6 @@ export function parseTenant(headerValue: string | undefined | string[]): Tenant 
       tags: tagsDb,
       ...(isNonEmptyString(excludeProjectId) ? { excludeProjectId } : {}),
     },
+    ...(isNonEmptyString(timeZone) ? { timeZone } : {}),
   }
 }

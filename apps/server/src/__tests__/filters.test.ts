@@ -42,6 +42,33 @@ describe('translateFilter', () => {
       const node = { property: 'Due', date: { equals: '2026-01-01' } }
       expect(translateFilter(node)).toEqual(node)
     })
+
+    it('resolves relative dates against the caller timezone, not UTC', () => {
+      // 20:00 UTC on Jul 18 is already Jul 19 05:00 in Tokyo (UTC+9). Without a
+      // timezone the date would resolve to the UTC day (Jul 18); with it, the
+      // user's local day (Jul 19) — the exact near-midnight off-by-one bug.
+      vi.setSystemTime(new Date('2026-07-18T20:00:00.000Z'))
+
+      expect(
+        translateFilter({ property: 'Due', date: { on_or_before: 'today' } }, 'Asia/Tokyo')
+      ).toEqual({ property: 'Due', date: { on_or_before: '2026-07-19' } })
+
+      expect(
+        translateFilter({ property: 'Due', date: { equals: 'tomorrow' } }, 'Asia/Tokyo')
+      ).toEqual({ property: 'Due', date: { equals: '2026-07-20' } })
+
+      // Same instant, no timezone → falls back to the UTC calendar day.
+      expect(
+        translateFilter({ property: 'Due', date: { on_or_before: 'today' } })
+      ).toEqual({ property: 'Due', date: { on_or_before: '2026-07-18' } })
+    })
+
+    it('falls back to UTC for an unknown timezone', () => {
+      vi.setSystemTime(new Date('2026-07-18T20:00:00.000Z'))
+      expect(
+        translateFilter({ property: 'Due', date: { equals: 'today' } }, 'Not/AZone')
+      ).toEqual({ property: 'Due', date: { equals: '2026-07-18' } })
+    })
   })
 
   describe('array-valued selects', () => {
