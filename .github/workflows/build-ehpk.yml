@@ -37,8 +37,8 @@ jobs:
 
       - name: Build .ehpk
         env:
-          VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
-        run: pnpm --filter @notion-ub/glasses pack
+          VITE_API_BASE: ${{ vars.VITE_API_BASE }}
+        run: pnpm --filter @notion-ub/glasses run pack
 
       - name: Upload .ehpk artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
