@@ -89,7 +89,6 @@ afterEach(() => {
 
 describe('returning to the root menu', () => {
   it('renders the native list with all four category items, in order', async () => {
-    state.menuSelectedIndex = 2
     state.screen = 'notes-menu'
 
     onEvenHubEvent(doubleTapEvent())
@@ -113,7 +112,6 @@ describe('returning to the root menu', () => {
 
 describe('scrolling on the root menu', () => {
   it('scroll up never triggers a render — the native list owns scrolling', () => {
-    state.menuSelectedIndex = 0
     state.screen = 'menu'
 
     onEvenHubEvent(scrollUpEvent())
@@ -123,7 +121,6 @@ describe('scrolling on the root menu', () => {
   })
 
   it('scroll down never triggers a render — the native list owns scrolling', () => {
-    state.menuSelectedIndex = ROOT_MENU_ITEMS.length - 1
     state.screen = 'menu'
 
     onEvenHubEvent(scrollDownEvent())
@@ -184,15 +181,13 @@ describe('double-clicking on the tasks submenu', () => {
 // ---------------------------------------------------------------------------
 
 describe('entering the overdue screen from the tasks submenu', () => {
-  it('resets the overdue cursor to 0 even if it was non-zero before', async () => {
+  it('navigates to overdue', async () => {
     state.screen = 'tasks-menu'
-    state.selectedIndex.overdue = 5
 
     // Index 2 = "Overdue"
     onEvenHubEvent(listClickEvent(2))
     await flushPromises()
 
-    expect(state.selectedIndex.overdue).toBe(0)
     expect(state.screen).toBe('overdue')
   })
 
@@ -213,28 +208,26 @@ describe('entering the overdue screen from the tasks submenu', () => {
 })
 
 describe('entering the today screen from the tasks submenu', () => {
-  it('resets the today cursor to 0 even if it was non-zero before', async () => {
+  it('navigates to today', async () => {
     state.screen = 'tasks-menu'
-    state.selectedIndex.today = 7
 
     // Index 1 = "Today"
     onEvenHubEvent(listClickEvent(1))
     await flushPromises()
 
-    expect(state.selectedIndex.today).toBe(0)
+    expect(state.screen).toBe('today')
   })
 })
 
 describe('entering the inbox screen from the tasks submenu', () => {
-  it('resets the inbox cursor to 0 even if it was non-zero before', async () => {
+  it('navigates to inbox', async () => {
     state.screen = 'tasks-menu'
-    state.selectedIndex.inbox = 4
 
     // Index 3 = "Inbox"
     onEvenHubEvent(listClickEvent(3))
     await flushPromises()
 
-    expect(state.selectedIndex.inbox).toBe(0)
+    expect(state.screen).toBe('inbox')
   })
 })
 

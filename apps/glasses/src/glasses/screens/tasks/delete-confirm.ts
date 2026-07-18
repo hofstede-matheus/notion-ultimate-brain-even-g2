@@ -19,19 +19,18 @@ export const deleteConfirmScreen: Screen<AppState, GlassCtx> = {
     }
   },
 
-  action(action, nav, _state, ctx) {
+  action(action, _state, ctx) {
     if (action.type === 'GO_BACK') {
       ctx.dismissDeleteConfirm()
-      return nav
+      return
     }
 
     if (action.type === 'SELECT_HIGHLIGHTED') {
       if (action.itemIndex === 0) void ctx.confirmDelete()
       else ctx.dismissDeleteConfirm()
-      return nav
+      return
     }
 
     // HIGHLIGHT_MOVE: the native list widget owns scroll/highlight — no-op
-    return nav
   },
 }

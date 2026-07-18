@@ -7,7 +7,6 @@ import { state, getBridge } from '../state'
 import * as stt from '../stt'
 import { router } from './router'
 import { createGlassCtx } from './context'
-import { currentNav } from './current-nav'
 import { renderFull } from './render'
 import { SCROLL_COOLDOWN_MS } from './constants'
 
@@ -100,7 +99,7 @@ export function onEvenHubEvent(event: EvenHubEvent): void {
   const action = toGlassAction(event, eventType)
   if (!action) return
 
-  router.onGlassAction(action, currentNav(), state, ctx)
+  router.onGlassAction(action, state, ctx)
 }
 
 /**

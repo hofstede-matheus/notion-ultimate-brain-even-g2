@@ -100,11 +100,11 @@ export function makeMenuScreen(
       }
     },
 
-    action(action, nav, _state, ctx) {
+    action(action, _state, ctx) {
       if (action.type === 'GO_BACK') {
         if (def.parent) ctx.navigate(def.parent)
         else ctx.shutdown()
-        return nav
+        return
       }
 
       if (action.type === 'SELECT_HIGHLIGHTED') {
@@ -113,11 +113,10 @@ export function makeMenuScreen(
           const item = def.items[idx]
           if (item?.target) route(item.target, ctx)
         }
-        return nav
+        return
       }
 
       // HIGHLIGHT_MOVE: the native list widget owns scroll/highlight — no-op
-      return nav
     },
   }
 }
@@ -142,9 +141,8 @@ export function makeStubScreen(label: string, parent: ScreenName): Screen<AppSta
       }
     },
 
-    action(action, nav, _state, ctx) {
+    action(action, _state, ctx) {
       if (action.type === 'GO_BACK') ctx.navigate(parent)
-      return nav
     },
   }
 }
@@ -164,7 +162,7 @@ export function getListItems(state: AppState, screen: ScreenName): ListItem[] {
 const PROJECT_LIST_SCREENS: ScreenName[] = ['projects-active', 'projects-planned', 'projects-board', 'projects-archived']
 
 export interface ListScreenConfig {
-  /** This screen's own name — used to key state.selectedIndex (and state.lists, unless `selectItems` is given). */
+  /** This screen's own name — used to key state.lists (unless `selectItems` is given). */
   screen: ScreenName
   /** Screen to return to on GO_BACK (the owning domain's submenu). */
   parent: ScreenName
@@ -241,17 +239,15 @@ export function makeListScreen(config: ListScreenConfig): Screen<AppState, Glass
       return { mode: 'list', header, items: listItems }
     },
 
-    action(action, nav, state, ctx) {
+    action(action, state, ctx) {
       if (action.type === 'GO_BACK') {
         ctx.stopSpinner()
-        state.selectedIndex[config.screen] = 0
         ctx.navigate(config.parent)
-        return nav
+        return
       }
 
       if (action.type === 'SELECT_HIGHLIGHTED') {
         if (typeof action.itemIndex === 'number') {
-          state.selectedIndex[config.screen] = action.itemIndex
           const item = selectItems(state)[action.itemIndex]
           if (item) {
             // Only Task records carry a dueDate — guards against triggering
@@ -263,11 +259,10 @@ export function makeListScreen(config: ListScreenConfig): Screen<AppState, Glass
             else if (kind === 'project') ctx.openProjectDetail(item.id, item.name, config.screen)
           }
         }
-        return nav
+        return
       }
 
       // HIGHLIGHT_MOVE: the native list widget owns scroll/highlight — no-op
-      return nav
     },
   }
 }

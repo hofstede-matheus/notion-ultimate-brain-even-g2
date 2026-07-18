@@ -78,7 +78,7 @@ export const addTaskScreen: Screen<AppState, GlassCtx> = {
     return { mode: 'text', content: addTaskContent(state) }
   },
 
-  action(action, nav, state, ctx) {
+  action(action, state, ctx) {
     if (action.type === 'GO_BACK') {
       if (state.recording === 'confirm') {
         ctx.discardAddTask()
@@ -86,7 +86,7 @@ export const addTaskScreen: Screen<AppState, GlassCtx> = {
         // Stop any active recording before going back
         ctx.cancelRecordingAndGoBack()
       }
-      return nav
+      return
     }
 
     if (action.type === 'SELECT_HIGHLIGHTED') {
@@ -98,7 +98,5 @@ export const addTaskScreen: Screen<AppState, GlassCtx> = {
     }
 
     // HIGHLIGHT_MOVE: no scrollable content on this screen — intentionally no-op
-
-    return nav
   },
 }

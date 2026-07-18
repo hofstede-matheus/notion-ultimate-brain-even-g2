@@ -25,9 +25,7 @@ export function makeMockBridge() {
 export function resetState() {
   state.screen = 'menu'
   state.startupRendered = true   // skip createStartUpPageContainer path
-  state.menuSelectedIndex = 0
   state.lists = {}
-  state.selectedIndex = {}
   state.recording = 'idle'
   state.createdTaskName = ''
   state.pendingTranscript = ''

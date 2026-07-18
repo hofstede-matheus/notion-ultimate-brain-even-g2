@@ -22,14 +22,13 @@ export const taskMetadataScreen: Screen<AppState, GlassCtx> = {
     return { mode: 'text', content: lines.join('\n') }
   },
 
-  action(action, nav, _state, ctx) {
+  action(action, _state, ctx) {
     if (action.type === 'GO_BACK') {
       ctx.stopSpinner()
       ctx.navigate('task-actions')
-      return nav
+      return
     }
 
     // SELECT_HIGHLIGHTED / HIGHLIGHT_MOVE: nothing to select on a text screen
-    return nav
   },
 }

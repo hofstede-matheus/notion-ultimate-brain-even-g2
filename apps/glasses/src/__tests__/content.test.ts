@@ -111,7 +111,6 @@ describe('overdue screen content', () => {
     const todayStr = localDateStr(new Date())
     state.lists.today = [{ id: '1', name: 'Team standup', dueDate: todayStr }]
     state.loading = false
-    state.selectedIndex.overdue = 0
 
     await showScreen('overdue')
 
@@ -189,7 +188,6 @@ describe('today screen list', () => {
   it('renders the empty state as full-page text (with an inert list placeholder) when there are no tasks due today', async () => {
     state.lists.today = []
     state.loading = false
-    state.selectedIndex.today = 0
 
     await showScreen('today')
 
@@ -241,7 +239,6 @@ describe('inbox screen list', () => {
   it('renders the empty state as full-page text (with an inert list placeholder) when inbox is empty', async () => {
     state.lists.inbox = []
     state.loading = false
-    state.selectedIndex.inbox = 0
 
     await showScreen('inbox')
 

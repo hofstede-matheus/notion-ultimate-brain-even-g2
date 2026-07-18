@@ -156,10 +156,6 @@ async function enterView(screen: Screen): Promise<void> {
   const fetchFn = VIEW_FETCHERS[dataKey]
   if (!fetchFn) return
 
-  // 0. Reset this screen's own cursor on entry (Today/Overdue each keep
-  // their own cursor even though they share fetched data).
-  state.selectedIndex[screen] = 0
-
   // 1. Show cached data immediately (or a "Fetching…" placeholder if cold)
   const cacheKey = cacheKeyForListView(dataKey)
   const cached = await loadCachedList<ListItem>(cacheKey)

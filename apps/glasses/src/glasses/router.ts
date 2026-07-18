@@ -1,6 +1,6 @@
 import type { AppState } from '../state'
 import type { GlassCtx } from './types'
-import type { Screen, ScreenDisplay, AppGlassAction, GlassNavState } from './types'
+import type { Screen, ScreenDisplay, AppGlassAction } from './types'
 import { menuScreen } from './screens/menu'
 import { tasksMenuScreen } from './screens/tasks/menu'
 import { notesMenuScreen } from './screens/notes/menu'
@@ -87,10 +87,10 @@ function getScreen(name: string): Screen<AppState, GlassCtx> {
 }
 
 export const router = {
-  toDisplayData(snapshot: AppState, nav: GlassNavState): ScreenDisplay {
-    return getScreen(nav.screen).display(snapshot, nav)
+  toDisplayData(snapshot: AppState): ScreenDisplay {
+    return getScreen(snapshot.screen).display(snapshot)
   },
-  onGlassAction(action: AppGlassAction, nav: GlassNavState, snapshot: AppState, ctx: GlassCtx): GlassNavState {
-    return getScreen(nav.screen).action(action, nav, snapshot, ctx)
+  onGlassAction(action: AppGlassAction, snapshot: AppState, ctx: GlassCtx): void {
+    getScreen(snapshot.screen).action(action, snapshot, ctx)
   },
 }

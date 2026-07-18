@@ -17,12 +17,12 @@ export const taskActionsScreen: Screen<AppState, GlassCtx> = {
     }
   },
 
-  action(action, nav, state, ctx) {
+  action(action, state, ctx) {
     const selected = state.selectedTask
 
     if (action.type === 'GO_BACK') {
       ctx.navigate(selected?.returnTo ?? 'tasks-menu')
-      return nav
+      return
     }
 
     if (action.type === 'SELECT_HIGHLIGHTED') {
@@ -31,10 +31,9 @@ export const taskActionsScreen: Screen<AppState, GlassCtx> = {
         else if (action.itemIndex === 1) ctx.openMarkDoneConfirm(selected.taskId, selected.taskName, selected.returnTo)
         else if (action.itemIndex === 2) ctx.openDeleteConfirm()
       }
-      return nav
+      return
     }
 
     // HIGHLIGHT_MOVE: the native list widget owns scroll/highlight — no-op
-    return nav
   },
 }

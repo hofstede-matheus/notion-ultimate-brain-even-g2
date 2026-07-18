@@ -19,9 +19,8 @@ export const markDoneToastScreen: Screen<AppState, GlassCtx> = {
     }
   },
 
-  action(action, nav, _state, ctx) {
+  action(action, _state, ctx) {
     // Allow immediate exit even before the 1.5s timer fires
     if (action.type === 'GO_BACK') ctx.dismissToastAndReturn()
-    return nav
   },
 }

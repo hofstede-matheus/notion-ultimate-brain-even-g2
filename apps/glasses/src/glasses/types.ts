@@ -1,7 +1,4 @@
-import type { GlassNavState } from 'even-toolkit/types'
 import type { Screen as ScreenName } from '../state'
-
-export type { GlassNavState }
 
 /**
  * What a screen wants rendered. 'list' screens (Today/Inbox with >=1 items)
@@ -25,8 +22,8 @@ export type AppGlassAction =
   | { type: 'GO_BACK' }
 
 export interface Screen<S, C> {
-  display: (snapshot: S, nav: GlassNavState) => ScreenDisplay
-  action: (action: AppGlassAction, nav: GlassNavState, snapshot: S, ctx: C) => GlassNavState
+  display: (snapshot: S) => ScreenDisplay
+  action: (action: AppGlassAction, snapshot: S, ctx: C) => void
 }
 
 /**

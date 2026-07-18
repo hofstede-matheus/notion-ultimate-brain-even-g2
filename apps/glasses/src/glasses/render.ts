@@ -9,7 +9,6 @@ import {
 import { state, getBridge } from '../state'
 import type { Screen as ScreenName } from '../state'
 import { router } from './router'
-import { currentNav } from './current-nav'
 import {
   SCREEN_W,
   SCREEN_H,
@@ -23,7 +22,7 @@ import {
 } from './constants'
 
 function currentDisplay() {
-  return router.toDisplayData(state, currentNav())
+  return router.toDisplayData(state)
 }
 
 // ---------------------------------------------------------------------------
