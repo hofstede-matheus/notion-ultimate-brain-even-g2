@@ -2,7 +2,9 @@ import type { Client } from '@notionhq/client'
 import { pageTitle, pageToTask, pageToNote, pageToProject, pageToTag } from './mappers'
 import { translateFilter } from './filters'
 import { ViewConfig, TASK_VIEWS, NOTE_VIEWS, PROJECT_VIEWS, TAG_VIEWS, resolveFilter } from './views'
+import { parseTenant } from './tenant'
 import type { TenantDb } from './tenant'
+import { createNotionClient } from './notion-client'
 
 export interface RouteContext {
   params: Record<string, string>
@@ -38,6 +40,28 @@ export async function invokeRoute(route: Route, ctx: RouteContext): Promise<Rout
     console.error(`[server] ${route.method} ${route.path} error:`, err.message)
     return { status: 500, body: { error: err.message } }
   }
+}
+
+/**
+ * Shared dispatch for both entry points: parses the tenant header, 401s a
+ * non-public route with no valid tenant, builds the handler ctx, and runs it
+ * through the S1 error boundary. Express and Lambda keep only their
+ * transport-specific glue (param/body extraction, response serialization).
+ */
+export async function runRoute(
+  route: Route,
+  { params, body, tenantHeader }: { params: Record<string, string>; body: unknown; tenantHeader: string | string[] | undefined }
+): Promise<RouteResult> {
+  const tenant = parseTenant(tenantHeader)
+  if (!route.public && !tenant) {
+    return { status: 401, body: { error: 'Missing or invalid Notion configuration' } }
+  }
+  return invokeRoute(route, {
+    params,
+    body,
+    notion: tenant ? createNotionClient(tenant.token) : undefined,
+    db: tenant?.db,
+  })
 }
 
 type DbKey = keyof Omit<TenantDb, 'excludeProjectId'>

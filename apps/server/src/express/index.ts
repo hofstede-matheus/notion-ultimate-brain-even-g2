@@ -2,9 +2,7 @@ import './load-env'
 import express from 'express'
 import cors from 'cors'
 import { config } from '../config'
-import { ROUTES, invokeRoute } from '../routes'
-import { parseTenant } from '../tenant'
-import { createNotionClient } from '../notion-client'
+import { ROUTES, runRoute } from '../routes'
 
 const app = express()
 app.use(cors())
@@ -13,16 +11,10 @@ app.use(express.json())
 for (const route of ROUTES) {
   const method = route.method.toLowerCase() as 'get' | 'post' | 'patch' | 'delete'
   app[method](route.path, async (req, res) => {
-    const tenant = parseTenant(req.headers['x-notion-config'])
-    if (!route.public && !tenant) {
-      res.status(401).json({ error: 'Missing or invalid Notion configuration' })
-      return
-    }
-    const result = await invokeRoute(route, {
+    const result = await runRoute(route, {
       params: req.params,
       body: req.body,
-      notion: tenant ? createNotionClient(tenant.token) : undefined,
-      db: tenant?.db,
+      tenantHeader: req.headers['x-notion-config'],
     })
     res.status(result.status).json(result.body)
   })
