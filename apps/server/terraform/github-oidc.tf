@@ -19,6 +19,19 @@ resource "aws_iam_openid_connect_provider" "github_actions" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.github_actions.certificates[0].sha1_fingerprint]
+
+  # AWS IAM ignores the thumbprint for well-known IdPs like GitHub Actions
+  # (it verifies against a trusted CA library instead), so the value only
+  # matters at creation time. GitHub rotates this certificate periodically;
+  # without ignoring it, every rotation makes the data source report a new
+  # fingerprint, Terraform tries to update the provider in-place, and the CI
+  # deploy role — which is intentionally read-only on this provider — fails
+  # the apply. Ignoring the drift keeps CI plans clean while preserving the
+  # trust boundary. Rotate it deliberately with a local `terraform apply` if
+  # ever needed.
+  lifecycle {
+    ignore_changes = [thumbprint_list]
+  }
 }
 
 resource "aws_iam_role" "github_actions_deploy" {
