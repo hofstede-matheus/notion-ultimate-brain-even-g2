@@ -80,10 +80,9 @@ export interface AppState {
   // under the 'today' key — see context.ts's DATA_KEY_OVERRIDES.
   lists: Partial<Record<Screen, ListItem[]>>
 
-  // Mark-task-done confirm dialog / toast — returnTo is the list screen to
+  // Task confirm dialog — kind is 'markDone' or 'delete'; returnTo is the list screen to
   // navigate back to (Today/Overdue/Inbox or a generic Tasks screen).
-  pendingMarkDone: { taskId: string; taskName: string; returnTo: Screen } | null
-  markDoneToast: { taskName: string; returnTo: Screen; untilMs: number } | null
+  pendingAction: { kind: 'markDone' | 'delete'; taskId: string; taskName: string; returnTo: Screen } | null
 
   // The task the action menu / metadata / delete flow is operating on.
   selectedTask: { taskId: string; taskName: string; returnTo: Screen } | null
@@ -91,9 +90,8 @@ export interface AppState {
   // Metadata screen data (fetched on demand).
   taskMetadata: { loading: boolean; project: string | null; due: string | null; error: string } | null
 
-  // Delete confirm dialog / toast — mirrors pendingMarkDone / markDoneToast.
-  pendingDelete: { taskId: string; taskName: string; returnTo: Screen } | null
-  deleteToast: { taskName: string; returnTo: Screen; untilMs: number } | null
+  // Task action toast (mark-done or delete); shown after API call completes.
+  actionToast: { kind: 'markDone' | 'delete'; taskName: string; returnTo: Screen; untilMs: number } | null
 
   // The project the Tasks/Notes drill-down menu (and its two list screens)
   // is currently scoped to — returnTo is the Projects list screen to
@@ -115,12 +113,10 @@ export const state: AppState = {
   screen: 'menu',
   startupRendered: false,
   lists: {},
-  pendingMarkDone: null,
-  markDoneToast: null,
+  pendingAction: null,
   selectedTask: null,
   taskMetadata: null,
-  pendingDelete: null,
-  deleteToast: null,
+  actionToast: null,
   selectedProject: null,
   recording: 'idle',
   createdTaskName: '',

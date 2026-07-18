@@ -28,8 +28,8 @@ export const taskActionsScreen: Screen<AppState, GlassCtx> = {
     if (action.type === 'SELECT_HIGHLIGHTED') {
       if (typeof action.itemIndex === 'number' && selected) {
         if (action.itemIndex === 0) ctx.enterTaskMetadata()
-        else if (action.itemIndex === 1) ctx.openMarkDoneConfirm(selected.taskId, selected.taskName, selected.returnTo)
-        else if (action.itemIndex === 2) ctx.openDeleteConfirm()
+        else if (action.itemIndex === 1) ctx.openConfirm('markDone', selected.taskId, selected.taskName, selected.returnTo)
+        else if (action.itemIndex === 2) ctx.openConfirm('delete', selected.taskId, selected.taskName, selected.returnTo)
       }
       return
     }

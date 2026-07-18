@@ -5,8 +5,8 @@ import { truncateToByteLimit } from '../shared'
 
 export const deleteToastScreen: Screen<AppState, GlassCtx> = {
   display(state) {
-    const t = state.deleteToast
-    const name = t ? truncateToByteLimit(t.taskName) : ''
+    const t = state.actionToast
+    const name = t && t.kind === 'delete' ? truncateToByteLimit(t.taskName) : ''
     return {
       mode: 'text',
       content: [
@@ -21,6 +21,6 @@ export const deleteToastScreen: Screen<AppState, GlassCtx> = {
 
   action(action, _state, ctx) {
     // Allow immediate exit even before the 1.5s timer fires
-    if (action.type === 'GO_BACK') ctx.dismissDeleteToastAndReturn()
+    if (action.type === 'GO_BACK') ctx.dismissActionToast()
   },
 }

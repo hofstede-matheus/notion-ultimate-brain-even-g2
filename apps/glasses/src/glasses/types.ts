@@ -36,22 +36,18 @@ export interface GlassCtx {
   navigate(screen: ScreenName): void
   shutdown(): void
   stopSpinner(): void
-  /** Cache-then-fetch entry point for every list-view screen (see context.ts's VIEW_FETCHERS). */
+  /** Cache-then-fetch entry point for every list-view screen. */
   enterView(screen: ScreenName): void
   startRecording(): void
   cancelRecordingAndGoBack(): void
   confirmAddTask(): Promise<void>
   discardAddTask(): void
-  openMarkDoneConfirm(taskId: string, taskName: string, returnTo: ScreenName): void
-  confirmMarkDone(): Promise<void>
-  dismissMarkDoneConfirm(): void
-  dismissToastAndReturn(): void
+  openConfirm(action: 'markDone' | 'delete', taskId: string, taskName: string, returnTo: ScreenName): void
+  confirmAction(): Promise<void>
+  dismissConfirm(): void
+  dismissActionToast(): void
   openTaskActions(taskId: string, taskName: string, returnTo: ScreenName): void
   enterTaskMetadata(): void
-  openDeleteConfirm(): void
-  dismissDeleteConfirm(): void
-  confirmDelete(): Promise<void>
-  dismissDeleteToastAndReturn(): void
   openProjectDetail(projectId: string, projectName: string, returnTo: ScreenName): void
 }
 

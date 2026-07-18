@@ -190,30 +190,58 @@ async function enterView(screen: Screen): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Mark Task Done — confirm dialog + toast, shared by every Tasks list screen
-// (all routed through makeListScreen()). All of them key their owning list
-// by `returnTo`.
+// Task actions — confirm dialog + toast for mark-done and delete, unified flow
 // ---------------------------------------------------------------------------
 
-let markDoneToastTimeout: ReturnType<typeof setTimeout> | null = null
-
-function openMarkDoneConfirm(taskId: string, taskName: string, returnTo: Screen): void {
-  state.pendingMarkDone = { taskId, taskName, returnTo }
-  state.errorMessage = ''
-  navigate('mark-done-confirm')
+interface TaskAction {
+  kind: 'markDone' | 'delete'
+  confirmScreenName: Screen
+  toastScreenName: Screen
+  confirmTitle: string
+  toastTitle: string
+  toastVerb: string
+  apiCall: (taskId: string) => Promise<void>
 }
 
-function dismissMarkDoneConfirm(): void {
-  const returnTo = state.pendingMarkDone?.returnTo ?? 'tasks-menu'
-  state.pendingMarkDone = null
+const TASK_ACTIONS: Record<'markDone' | 'delete', TaskAction> = {
+  markDone: {
+    kind: 'markDone',
+    confirmScreenName: 'mark-done-confirm',
+    toastScreenName: 'mark-done-toast',
+    confirmTitle: 'MARK AS DONE?',
+    toastTitle: 'DONE',
+    toastVerb: 'Marked done',
+    apiCall: markTaskDone,
+  },
+  delete: {
+    kind: 'delete',
+    confirmScreenName: 'delete-confirm',
+    toastScreenName: 'delete-toast',
+    confirmTitle: 'DELETE TASK?',
+    toastTitle: 'DELETED',
+    toastVerb: 'Deleted',
+    apiCall: deleteTask,
+  },
+}
+
+let actionToastTimeout: ReturnType<typeof setTimeout> | null = null
+
+function openConfirm(action: TaskAction, taskId: string, taskName: string, returnTo: Screen): void {
+  state.pendingAction = { kind: action.kind, taskId, taskName, returnTo }
+  state.errorMessage = ''
+  navigate(action.confirmScreenName)
+}
+
+function dismissConfirm(): void {
+  const returnTo = state.pendingAction?.returnTo ?? 'tasks-menu'
+  state.pendingAction = null
   navigate(returnTo)
 }
 
 /**
  * Removes a task from whichever list actually owns it — Today and Overdue
  * are both filtered views over the same 'today' data key (see
- * DATA_KEY_OVERRIDES). Shared by confirmMarkDone and confirmDelete, which
- * both key the owning list by `returnTo`.
+ * DATA_KEY_OVERRIDES).
  */
 function removeTaskFromOwningList(taskId: string, returnTo: Screen): void {
   const dataKey = DATA_KEY_OVERRIDES[returnTo] ?? returnTo
@@ -222,39 +250,39 @@ function removeTaskFromOwningList(taskId: string, returnTo: Screen): void {
   void saveCachedList(cacheKeyForListView(dataKey), list)
 }
 
-async function confirmMarkDone(): Promise<void> {
-  const pending = state.pendingMarkDone
+async function confirmAction(): Promise<void> {
+  const pending = state.pendingAction
   if (!pending) return
-  const { taskId, taskName, returnTo } = pending
+  const { kind, taskId, returnTo } = pending
+  const action = TASK_ACTIONS[kind]
 
   try {
-    await markTaskDone(taskId)
-
+    await action.apiCall(taskId)
     removeTaskFromOwningList(taskId, returnTo)
 
-    state.pendingMarkDone = null
-    state.markDoneToast = { taskName, returnTo, untilMs: Date.now() + 1500 }
-    navigate('mark-done-toast')
+    state.pendingAction = null
+    state.actionToast = { kind, taskName: pending.taskName, returnTo, untilMs: Date.now() + 1500 }
+    navigate(action.toastScreenName)
 
-    if (markDoneToastTimeout !== null) clearTimeout(markDoneToastTimeout)
-    markDoneToastTimeout = setTimeout(() => {
-      markDoneToastTimeout = null
-      state.markDoneToast = null
+    if (actionToastTimeout !== null) clearTimeout(actionToastTimeout)
+    actionToastTimeout = setTimeout(() => {
+      actionToastTimeout = null
+      state.actionToast = null
       navigate(returnTo)
     }, 1500)
   } catch (e) {
     state.errorMessage = e instanceof Error ? e.message : 'Unknown error'
-    void renderUpdate('mark-done-confirm')
+    void renderUpdate(action.confirmScreenName)
   }
 }
 
-function dismissToastAndReturn(): void {
-  if (markDoneToastTimeout !== null) {
-    clearTimeout(markDoneToastTimeout)
-    markDoneToastTimeout = null
+function dismissActionToast(): void {
+  if (actionToastTimeout !== null) {
+    clearTimeout(actionToastTimeout)
+    actionToastTimeout = null
   }
-  const returnTo = state.markDoneToast?.returnTo ?? 'tasks-menu'
-  state.markDoneToast = null
+  const returnTo = state.actionToast?.returnTo ?? 'tasks-menu'
+  state.actionToast = null
   navigate(returnTo)
 }
 
@@ -293,61 +321,6 @@ async function enterTaskMetadata(): Promise<void> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Delete Task — confirm dialog + toast, direct parallel of Mark Task Done.
-// ---------------------------------------------------------------------------
-
-let deleteToastTimeout: ReturnType<typeof setTimeout> | null = null
-
-function openDeleteConfirm(): void {
-  const selected = state.selectedTask
-  if (!selected) return
-  state.pendingDelete = { ...selected }
-  state.errorMessage = ''
-  navigate('delete-confirm')
-}
-
-function dismissDeleteConfirm(): void {
-  const returnTo = state.pendingDelete?.returnTo ?? 'tasks-menu'
-  state.pendingDelete = null
-  navigate(returnTo)
-}
-
-async function confirmDelete(): Promise<void> {
-  const pending = state.pendingDelete
-  if (!pending) return
-  const { taskId, taskName, returnTo } = pending
-
-  try {
-    await deleteTask(taskId)
-
-    removeTaskFromOwningList(taskId, returnTo)
-
-    state.pendingDelete = null
-    state.deleteToast = { taskName, returnTo, untilMs: Date.now() + 1500 }
-    navigate('delete-toast')
-
-    if (deleteToastTimeout !== null) clearTimeout(deleteToastTimeout)
-    deleteToastTimeout = setTimeout(() => {
-      deleteToastTimeout = null
-      state.deleteToast = null
-      navigate(returnTo)
-    }, 1500)
-  } catch (e) {
-    state.errorMessage = e instanceof Error ? e.message : 'Unknown error'
-    void renderUpdate('delete-confirm')
-  }
-}
-
-function dismissDeleteToastAndReturn(): void {
-  if (deleteToastTimeout !== null) {
-    clearTimeout(deleteToastTimeout)
-    deleteToastTimeout = null
-  }
-  const returnTo = state.deleteToast?.returnTo ?? 'tasks-menu'
-  state.deleteToast = null
-  navigate(returnTo)
-}
 
 // ---------------------------------------------------------------------------
 // Project drill-down — reached by tapping a project in any Projects list
@@ -483,16 +456,15 @@ export function createGlassCtx(): GlassCtx {
     cancelRecordingAndGoBack,
     confirmAddTask,
     discardAddTask,
-    openMarkDoneConfirm,
-    confirmMarkDone,
-    dismissMarkDoneConfirm,
-    dismissToastAndReturn,
+    openConfirm: (kind, taskId, taskName, returnTo) => {
+      const action = TASK_ACTIONS[kind]
+      openConfirm(action, taskId, taskName, returnTo)
+    },
+    confirmAction,
+    dismissConfirm,
+    dismissActionToast,
     openTaskActions,
     enterTaskMetadata: () => void enterTaskMetadata(),
-    openDeleteConfirm,
-    dismissDeleteConfirm,
-    confirmDelete,
-    dismissDeleteToastAndReturn,
     openProjectDetail,
   }
 }

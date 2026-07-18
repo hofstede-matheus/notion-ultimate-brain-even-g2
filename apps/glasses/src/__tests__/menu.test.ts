@@ -21,6 +21,8 @@ vi.mock('../api', () => ({
   fetchTodayTasks: vi.fn().mockResolvedValue([]),
   fetchInboxTasks: vi.fn().mockResolvedValue([]),
   createTask: vi.fn().mockResolvedValue({ id: '1', name: 'Test' }),
+  markTaskDone: vi.fn().mockResolvedValue(undefined),
+  deleteTask: vi.fn().mockResolvedValue(undefined),
   fetchNext7DaysTasks: vi.fn().mockResolvedValue([]),
   fetchTomorrowTasks: vi.fn().mockResolvedValue([]),
   fetchInboxNotes: vi.fn().mockResolvedValue([]),

@@ -5,8 +5,8 @@ import { truncateToByteLimit } from '../shared'
 
 export const markDoneToastScreen: Screen<AppState, GlassCtx> = {
   display(state) {
-    const t = state.markDoneToast
-    const name = t ? truncateToByteLimit(t.taskName) : ''
+    const t = state.actionToast
+    const name = t && t.kind === 'markDone' ? truncateToByteLimit(t.taskName) : ''
     return {
       mode: 'text',
       content: [
@@ -21,6 +21,6 @@ export const markDoneToastScreen: Screen<AppState, GlassCtx> = {
 
   action(action, _state, ctx) {
     // Allow immediate exit even before the 1.5s timer fires
-    if (action.type === 'GO_BACK') ctx.dismissToastAndReturn()
+    if (action.type === 'GO_BACK') ctx.dismissActionToast()
   },
 }

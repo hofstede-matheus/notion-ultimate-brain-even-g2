@@ -6,8 +6,8 @@ import { MAX_ITEM_BYTES } from '../../constants'
 
 export const markDoneConfirmScreen: Screen<AppState, GlassCtx> = {
   display(state) {
-    const p = state.pendingMarkDone
-    const name = p ? truncateToByteLimit(p.taskName, MAX_ITEM_BYTES) : ''
+    const p = state.pendingAction
+    const name = p && p.kind === 'markDone' ? truncateToByteLimit(p.taskName, MAX_ITEM_BYTES) : ''
     const header = state.errorMessage
       ? buildHeaderLine(`FAILED: ${truncateToByteLimit(state.errorMessage, MAX_ITEM_BYTES)}`, '')
       : buildHeaderLine('MARK AS DONE?', state.spinnerFrame)
@@ -21,13 +21,13 @@ export const markDoneConfirmScreen: Screen<AppState, GlassCtx> = {
 
   action(action, _state, ctx) {
     if (action.type === 'GO_BACK') {
-      ctx.dismissMarkDoneConfirm()
+      ctx.dismissConfirm()
       return
     }
 
     if (action.type === 'SELECT_HIGHLIGHTED') {
-      if (action.itemIndex === 0) void ctx.confirmMarkDone()
-      else ctx.dismissMarkDoneConfirm()
+      if (action.itemIndex === 0) void ctx.confirmAction()
+      else ctx.dismissConfirm()
       return
     }
 

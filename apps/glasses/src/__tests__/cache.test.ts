@@ -16,6 +16,8 @@ vi.mock('../api', () => ({
   fetchTodayTasks: vi.fn(),
   fetchInboxTasks: vi.fn(),
   createTask: vi.fn(),
+  markTaskDone: vi.fn(),
+  deleteTask: vi.fn(),
   fetchNext7DaysTasks: vi.fn().mockResolvedValue([]),
   fetchTomorrowTasks: vi.fn().mockResolvedValue([]),
   fetchInboxNotes: vi.fn().mockResolvedValue([]),

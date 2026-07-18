@@ -119,14 +119,14 @@ describe('selecting "Load metadata" from the action menu', () => {
 })
 
 describe('selecting "Mark as done" from the action menu', () => {
-  it('reuses the existing mark-done confirm flow', () => {
+  it('opens the mark-done confirm flow', () => {
     state.screen = 'task-actions'
     state.selectedTask = { taskId: 't1', taskName: 'Buy milk', returnTo: 'inbox' }
 
     onEvenHubEvent(listClickEvent(1))
 
     expect(state.screen).toBe('mark-done-confirm')
-    expect(state.pendingMarkDone).toEqual({ taskId: 't1', taskName: 'Buy milk', returnTo: 'inbox' })
+    expect(state.pendingAction).toEqual({ kind: 'markDone', taskId: 't1', taskName: 'Buy milk', returnTo: 'inbox' })
   })
 })
 
@@ -138,13 +138,13 @@ describe('selecting "Delete task" from the action menu', () => {
     onEvenHubEvent(listClickEvent(2))
 
     expect(state.screen).toBe('delete-confirm')
-    expect(state.pendingDelete).toEqual({ taskId: 't1', taskName: 'Buy milk', returnTo: 'inbox' })
+    expect(state.pendingAction).toEqual({ kind: 'delete', taskId: 't1', taskName: 'Buy milk', returnTo: 'inbox' })
   })
 
   it('confirming delete calls the API, removes the task from its list, and shows a toast', async () => {
     state.lists.inbox = [{ id: 't1', name: 'Buy milk' }]
     state.screen = 'delete-confirm'
-    state.pendingDelete = { taskId: 't1', taskName: 'Buy milk', returnTo: 'inbox' }
+    state.pendingAction = { kind: 'delete', taskId: 't1', taskName: 'Buy milk', returnTo: 'inbox' }
 
     onEvenHubEvent(listClickEvent(0))
     await flushPromises()
@@ -152,12 +152,12 @@ describe('selecting "Delete task" from the action menu', () => {
     expect(deleteTask).toHaveBeenCalledWith('t1')
     expect(state.lists.inbox).toEqual([])
     expect(state.screen).toBe('delete-toast')
-    expect(state.deleteToast?.taskName).toBe('Buy milk')
+    expect(state.actionToast?.taskName).toBe('Buy milk')
   })
 
   it('cancelling delete returns to the originating list without calling the API', () => {
     state.screen = 'delete-confirm'
-    state.pendingDelete = { taskId: 't1', taskName: 'Buy milk', returnTo: 'inbox' }
+    state.pendingAction = { kind: 'delete', taskId: 't1', taskName: 'Buy milk', returnTo: 'inbox' }
 
     onEvenHubEvent(listClickEvent(1))
 
