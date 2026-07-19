@@ -5,4 +5,4 @@
  * definitions.
  */
 
-export type Level = 'log' | 'info' | 'warn' | 'error' | 'debug'
+export type Level = 'log' | 'info' | 'warn' | 'error' | 'debug';

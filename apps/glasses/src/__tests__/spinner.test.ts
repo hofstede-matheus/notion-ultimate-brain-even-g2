@@ -1,10 +1,12 @@
 /**
  * Tests 11–14: Spinner behaviour
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { state, setBridge } from '../state'
-import { onEvenHubEvent } from '../glasses/runtime'
-import { makeMockBridge, resetState, doubleTapEvent, listClickEvent } from './helpers'
+
+import type { EvenAppBridge, TextContainerUpgrade } from '@evenrealities/even_hub_sdk';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { onEvenHubEvent } from '../glasses/runtime';
+import { type ListItem, setBridge, state } from '../state';
+import { doubleTapEvent, listClickEvent, makeMockBridge, resetState } from './helpers';
 
 vi.mock('../api', () => ({
   fetchTodayTasks: vi.fn(),
@@ -34,13 +36,13 @@ vi.mock('../api', () => ({
   fetchTypeTags: vi.fn().mockResolvedValue([]),
   fetchTasksForProject: vi.fn().mockResolvedValue([]),
   fetchNotesForProject: vi.fn().mockResolvedValue([]),
-}))
+}));
 
 vi.mock('../cache', () => ({
   loadCachedList: vi.fn().mockResolvedValue(null),
   saveCachedList: vi.fn().mockResolvedValue(undefined),
   cacheKeyForScreen: (screen: string) => `notionultimatebrain:${screen}`,
-}))
+}));
 
 vi.mock('../stt', () => ({
   isListening: vi.fn().mockReturnValue(false),
@@ -49,40 +51,40 @@ vi.mock('../stt', () => ({
   ensureRecognizer: vi.fn().mockResolvedValue(true),
   feedAudio: vi.fn(),
   preloadVoskModel: vi.fn(),
-}))
+}));
 
-import { fetchInboxTasks } from '../api'
+import { fetchInboxTasks } from '../api';
 
-let mockBridge: ReturnType<typeof makeMockBridge>
+let mockBridge: ReturnType<typeof makeMockBridge>;
 
 // ---------------------------------------------------------------------------
 // Shared setup: fake timers + fresh state before every test
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
-  vi.useFakeTimers()
-  mockBridge = makeMockBridge()
-  setBridge(mockBridge as any)
-  resetState()
-  vi.mocked(fetchInboxTasks).mockReturnValue(new Promise(() => {})) // never resolves by default
-})
+  vi.useFakeTimers();
+  mockBridge = makeMockBridge();
+  setBridge(mockBridge as unknown as EvenAppBridge);
+  resetState();
+  vi.mocked(fetchInboxTasks).mockReturnValue(new Promise(() => {})); // never resolves by default
+});
 
 afterEach(() => {
-  vi.useRealTimers()
-  vi.clearAllMocks()
-})
+  vi.useRealTimers();
+  vi.clearAllMocks();
+});
 
 // ---------------------------------------------------------------------------
 // Helper: open inbox and settle the async pipeline up to (but not past) the
 // pending network request, so the spinner is running but no data has arrived.
 // ---------------------------------------------------------------------------
 async function openInboxAndAwaitSpinner() {
-  state.screen = 'tasks-menu'
-  onEvenHubEvent(listClickEvent(3))
+  state.screen = 'tasks-menu';
+  onEvenHubEvent(listClickEvent(3));
   // Flush loadCachedList → navigate (sets screen) → startSpinner
-  await Promise.resolve()
-  await Promise.resolve()
-  await Promise.resolve()
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
 }
 
 // ---------------------------------------------------------------------------
@@ -91,26 +93,26 @@ async function openInboxAndAwaitSpinner() {
 
 describe('spinner while fetching', () => {
   it('is visible in the screen header while a fetch is in progress', async () => {
-    await openInboxAndAwaitSpinner()
+    await openInboxAndAwaitSpinner();
 
     // spinnerFrame is set synchronously by startSpinner
-    expect(state.spinnerFrame).toBe('|')
+    expect(state.spinnerFrame).toBe('|');
 
     // Advance one interval tick so the spinner callback fires
-    vi.advanceTimersByTime(250)
-    await Promise.resolve()
-    await Promise.resolve()
+    vi.advanceTimersByTime(250);
+    await Promise.resolve();
+    await Promise.resolve();
 
     // updateInboxContent should have been called — its content includes the frame
     // (during cold-open loading, the page is in fallback text mode, so the
     // header text contains the fetching copy + the spinner frame character).
-    expect(mockBridge.textContainerUpgrade).toHaveBeenCalled()
-    const upgrade = mockBridge.textContainerUpgrade.mock.calls.at(-1)![0] as any
-    expect(upgrade.containerID).toBe(1)
-    expect(upgrade.content).toContain('Fetching tasks...')
-    expect(upgrade.content).toMatch(/[|/\-\\]/)
-  })
-})
+    expect(mockBridge.textContainerUpgrade).toHaveBeenCalled();
+    const upgrade = mockBridge.textContainerUpgrade.mock.calls.at(-1)?.[0] as TextContainerUpgrade;
+    expect(upgrade.containerID).toBe(1);
+    expect(upgrade.content).toContain('Fetching tasks...');
+    expect(upgrade.content).toMatch(/[|/\-\\]/);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 12 — spinner disappears after fetch completes (success and failure)
@@ -118,39 +120,41 @@ describe('spinner while fetching', () => {
 
 describe('spinner after fetch completes', () => {
   it('disappears when the fetch succeeds', async () => {
-    let resolveFetch!: (v: any[]) => void
+    let resolveFetch!: (v: ListItem[]) => void;
     vi.mocked(fetchInboxTasks).mockReturnValue(
-      new Promise(resolve => { resolveFetch = resolve }),
-    )
+      new Promise((resolve) => {
+        resolveFetch = resolve;
+      }),
+    );
 
-    await openInboxAndAwaitSpinner()
-    expect(state.spinnerFrame).toBe('|')
+    await openInboxAndAwaitSpinner();
+    expect(state.spinnerFrame).toBe('|');
 
-    resolveFetch([])
-    await Promise.resolve()
-    await Promise.resolve()
-    await Promise.resolve()
+    resolveFetch([]);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
 
-    expect(state.spinnerFrame).toBe('')
-  })
+    expect(state.spinnerFrame).toBe('');
+  });
 
   it('disappears when the fetch fails', async () => {
-    vi.mocked(fetchInboxTasks).mockRejectedValue(new Error('Network error'))
+    vi.mocked(fetchInboxTasks).mockRejectedValue(new Error('Network error'));
 
     // A rejected mock settles on the very next microtask tick, so stopSpinner
     // may already have run by the time openInboxAndAwaitSpinner returns.
     // We only assert the final state.
-    state.screen = 'tasks-menu'
-    onEvenHubEvent(listClickEvent(3))
-    await Promise.resolve()
-    await Promise.resolve()
-    await Promise.resolve()
-    await Promise.resolve()
-    await Promise.resolve()
+    state.screen = 'tasks-menu';
+    onEvenHubEvent(listClickEvent(3));
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
 
-    expect(state.spinnerFrame).toBe('')
-  })
-})
+    expect(state.spinnerFrame).toBe('');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 13 — spinner stops when user navigates away
@@ -158,17 +162,17 @@ describe('spinner after fetch completes', () => {
 
 describe('navigating away mid-fetch', () => {
   it('stops the spinner immediately on double-tap back', async () => {
-    await openInboxAndAwaitSpinner()
+    await openInboxAndAwaitSpinner();
 
-    expect(state.screen).toBe('inbox')
-    expect(state.spinnerFrame).toBe('|')
+    expect(state.screen).toBe('inbox');
+    expect(state.spinnerFrame).toBe('|');
 
-    onEvenHubEvent(doubleTapEvent())
+    onEvenHubEvent(doubleTapEvent());
 
     // stopSpinner is called synchronously inside the double-tap handler
-    expect(state.spinnerFrame).toBe('')
-  })
-})
+    expect(state.spinnerFrame).toBe('');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 14 — no duplicate spinners
@@ -177,24 +181,24 @@ describe('navigating away mid-fetch', () => {
 describe('opening the same screen twice', () => {
   it('never produces two simultaneous spinners', async () => {
     // First open
-    await openInboxAndAwaitSpinner()
+    await openInboxAndAwaitSpinner();
 
     // Simulate user going back (without going through double-tap handler,
     // so the first spinner interval is still alive) then opening again.
-    state.screen = 'menu'
-    await openInboxAndAwaitSpinner()
+    state.screen = 'menu';
+    await openInboxAndAwaitSpinner();
 
     // startSpinner calls stopSpinner first, so only one interval should exist.
     // Advancing time: if two intervals ran, textContainerUpgrade would be
     // called twice per tick; with one, exactly once.
-    mockBridge.textContainerUpgrade.mockClear()
-    vi.advanceTimersByTime(250)
-    await Promise.resolve()
-    await Promise.resolve()
+    mockBridge.textContainerUpgrade.mockClear();
+    vi.advanceTimersByTime(250);
+    await Promise.resolve();
+    await Promise.resolve();
 
-    expect(mockBridge.textContainerUpgrade).toHaveBeenCalledTimes(1)
-  })
-})
+    expect(mockBridge.textContainerUpgrade).toHaveBeenCalledTimes(1);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Bonus: spinner cycles through all four frames in order
@@ -202,16 +206,16 @@ describe('opening the same screen twice', () => {
 
 describe('spinner animation', () => {
   it('cycles through all four frames', async () => {
-    await openInboxAndAwaitSpinner()
+    await openInboxAndAwaitSpinner();
 
-    const frames = new Set<string>()
-    frames.add(state.spinnerFrame) // initial '|'
+    const frames = new Set<string>();
+    frames.add(state.spinnerFrame); // initial '|'
 
     for (let i = 0; i < 3; i++) {
-      vi.advanceTimersByTime(250)
-      frames.add(state.spinnerFrame)
+      vi.advanceTimersByTime(250);
+      frames.add(state.spinnerFrame);
     }
 
-    expect(frames).toEqual(new Set(['|', '/', '-', '\\']))
-  })
-})
+    expect(frames).toEqual(new Set(['|', '/', '-', '\\']));
+  });
+});

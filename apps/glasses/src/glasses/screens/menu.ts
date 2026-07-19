@@ -1,7 +1,7 @@
-import type { ScreenModule, MenuDef } from '../types'
-import { makeMenuScreen } from './shared'
+import type { MenuDef, ScreenModule } from '../types';
+import { makeMenuScreen } from './shared';
 
-export const ROOT_MENU_ITEMS = ['Tasks', 'Notes', 'Projects', 'Tags']
+export const ROOT_MENU_ITEMS = ['Tasks', 'Notes', 'Projects', 'Tags'];
 
 const rootMenuDef: MenuDef = {
   title: 'Ultimate Brain for Even G2',
@@ -11,6 +11,6 @@ const rootMenuDef: MenuDef = {
     { label: 'Projects', target: 'projects-menu' },
     { label: 'Tags', target: 'tags-menu' },
   ],
-}
+};
 
-export const menuScreen: ScreenModule = makeMenuScreen(rootMenuDef)
+export const menuScreen: ScreenModule = makeMenuScreen(rootMenuDef);

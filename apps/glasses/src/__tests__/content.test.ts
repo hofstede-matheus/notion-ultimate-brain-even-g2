@@ -14,10 +14,12 @@
  * render.ts's placeholderListContainer). Tests assert on header text + list
  * item names.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { state, setBridge } from '../state'
-import { renderFull } from '../glasses/render'
-import { makeMockBridge, resetState } from './helpers'
+
+import type { EvenAppBridge, RebuildPageContainer } from '@evenrealities/even_hub_sdk';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderFull } from '../glasses/render';
+import { setBridge, state } from '../state';
+import { makeMockBridge, resetState } from './helpers';
 
 /**
  * Drives a screen's render the same way ctx.enterView()'s pipeline does
@@ -26,45 +28,37 @@ import { makeMockBridge, resetState } from './helpers'
  * the same generic renderFull() as every other list screen.
  */
 async function showScreen(screen: 'overdue' | 'today' | 'inbox'): Promise<void> {
-  state.screen = screen
-  await renderFull(screen)
+  state.screen = screen;
+  await renderFull();
 }
 
-let mockBridge: ReturnType<typeof makeMockBridge>
+let mockBridge: ReturnType<typeof makeMockBridge>;
 
 beforeEach(() => {
-  mockBridge = makeMockBridge()
-  setBridge(mockBridge as any)
-  resetState()
-})
+  mockBridge = makeMockBridge();
+  setBridge(mockBridge as unknown as EvenAppBridge);
+  resetState();
+});
 
 afterEach(() => {
-  vi.clearAllMocks()
-})
+  vi.clearAllMocks();
+});
 
 // ---------------------------------------------------------------------------
 // Helpers: extract container contents from the last rebuildPageContainer call
 // ---------------------------------------------------------------------------
 
-interface RebuildConfig {
-  containerTotalNum?: number
-  textObject?: Array<{ containerID: number; content?: string }>
-  listObject?: Array<{
-    itemContainer?: { itemName?: string[]; itemCount?: number }
-  }>
-}
-
-function lastRebuildConfig(): RebuildConfig {
-  const calls = mockBridge.rebuildPageContainer.mock.calls
-  return calls.at(-1)![0] as unknown as RebuildConfig
+function lastRebuildConfig(): RebuildPageContainer {
+  const calls = mockBridge.rebuildPageContainer.mock.calls;
+  return calls.at(-1)?.[0] as RebuildPageContainer;
 }
 
 function headerText(): string {
-  return lastRebuildConfig().textObject?.[0]?.content ?? ''
+  return lastRebuildConfig().textObject?.[0]?.content ?? '';
 }
 
 function listItemNames(): string[] {
-  return lastRebuildConfig().listObject?.[0]?.itemContainer?.itemName ?? []
+  return lastRebuildConfig().listObject?.[0]?.itemContainer?.itemName ?? [];
 }
 
 /**
@@ -75,10 +69,10 @@ function listItemNames(): string[] {
  * overdue/today split wall-clock-dependent.
  */
 function localDateStr(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -87,37 +81,37 @@ function localDateStr(d: Date): string {
 
 describe('overdue screen content', () => {
   it('shows only overdue tasks, with the overdue count in the header', async () => {
-    const todayStr = localDateStr(new Date())
-    const yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = localDateStr(yesterday)
+    const todayStr = localDateStr(new Date());
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = localDateStr(yesterday);
 
     state.lists.today = [
       { id: '1', name: 'Write report', dueDate: yesterdayStr },
       { id: '2', name: 'Team standup', dueDate: todayStr },
-    ]
-    state.loading = false
+    ];
+    state.loading = false;
 
-    await showScreen('overdue')
+    await showScreen('overdue');
 
-    const items = listItemNames()
-    expect(items).toEqual(['Write report'])
+    const items = listItemNames();
+    expect(items).toEqual(['Write report']);
 
-    const header = headerText()
-    expect(header).toContain('OVERDUE (1)')
-  })
+    const header = headerText();
+    expect(header).toContain('OVERDUE (1)');
+  });
 
   it('renders the empty state as full-page text (with an inert list placeholder) when nothing is overdue', async () => {
-    const todayStr = localDateStr(new Date())
-    state.lists.today = [{ id: '1', name: 'Team standup', dueDate: todayStr }]
-    state.loading = false
+    const todayStr = localDateStr(new Date());
+    state.lists.today = [{ id: '1', name: 'Team standup', dueDate: todayStr }];
+    state.loading = false;
 
-    await showScreen('overdue')
+    await showScreen('overdue');
 
-    expect(listItemNames()).toEqual([''])
-    expect(headerText()).toContain('Nothing overdue!')
-  })
-})
+    expect(listItemNames()).toEqual(['']);
+    expect(headerText()).toContain('Nothing overdue!');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 16 — tasks without a due date
@@ -126,18 +120,18 @@ describe('overdue screen content', () => {
 describe('today screen with undated tasks', () => {
   it('does not display tasks that have no due date', async () => {
     state.lists.today = [
-      { id: '1', name: 'Undated task' },          // no dueDate
+      { id: '1', name: 'Undated task' }, // no dueDate
       { id: '2', name: 'Dated task', dueDate: localDateStr(new Date()) },
-    ]
-    state.loading = false
+    ];
+    state.loading = false;
 
-    await showScreen('today')
+    await showScreen('today');
 
-    const items = listItemNames()
-    expect(items).not.toContain('Undated task')
-    expect(items).toContain('Dated task')
-  })
-})
+    const items = listItemNames();
+    expect(items).not.toContain('Undated task');
+    expect(items).toContain('Dated task');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 17 — inbox task count (in header)
@@ -149,14 +143,14 @@ describe('inbox screen content', () => {
       { id: '1', name: 'Task A' },
       { id: '2', name: 'Task B' },
       { id: '3', name: 'Task C' },
-    ]
-    state.loading = false
+    ];
+    state.loading = false;
 
-    await showScreen('inbox')
+    await showScreen('inbox');
 
-    expect(headerText()).toContain('INBOX (3)')
-  })
-})
+    expect(headerText()).toContain('INBOX (3)');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Selection — Today screen
@@ -168,33 +162,33 @@ describe('inbox screen content', () => {
 
 describe('today screen list', () => {
   it('lists only tasks due today (overdue tasks belong on the Overdue screen)', async () => {
-    const todayStr = localDateStr(new Date())
-    const yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = localDateStr(yesterday)
+    const todayStr = localDateStr(new Date());
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = localDateStr(yesterday);
 
     state.lists.today = [
       { id: '1', name: 'Write report', dueDate: yesterdayStr },
       { id: '2', name: 'Team standup', dueDate: todayStr },
-    ]
-    state.loading = false
+    ];
+    state.loading = false;
 
-    await showScreen('today')
+    await showScreen('today');
 
-    const items = listItemNames()
-    expect(items).toEqual(['Team standup'])
-  })
+    const items = listItemNames();
+    expect(items).toEqual(['Team standup']);
+  });
 
   it('renders the empty state as full-page text (with an inert list placeholder) when there are no tasks due today', async () => {
-    state.lists.today = []
-    state.loading = false
+    state.lists.today = [];
+    state.loading = false;
 
-    await showScreen('today')
+    await showScreen('today');
 
-    expect(listItemNames()).toEqual([''])
-    expect(headerText()).toContain('No tasks due today!')
-  })
-})
+    expect(listItemNames()).toEqual(['']);
+    expect(headerText()).toContain('No tasks due today!');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Selection — Overdue screen
@@ -202,21 +196,21 @@ describe('today screen list', () => {
 
 describe('overdue screen list', () => {
   it('lists multiple overdue items in order, as plain names', async () => {
-    const yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = localDateStr(yesterday)
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = localDateStr(yesterday);
 
     state.lists.today = [
       { id: '1', name: 'Overdue one', dueDate: yesterdayStr },
       { id: '2', name: 'Overdue two', dueDate: yesterdayStr },
-    ]
-    state.loading = false
+    ];
+    state.loading = false;
 
-    await showScreen('overdue')
+    await showScreen('overdue');
 
-    expect(listItemNames()).toEqual(['Overdue one', 'Overdue two'])
-  })
-})
+    expect(listItemNames()).toEqual(['Overdue one', 'Overdue two']);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Selection — Inbox screen
@@ -228,21 +222,21 @@ describe('inbox screen list', () => {
       { id: '1', name: 'Task A' },
       { id: '2', name: 'Task B' },
       { id: '3', name: 'Task C' },
-    ]
-    state.loading = false
+    ];
+    state.loading = false;
 
-    await showScreen('inbox')
+    await showScreen('inbox');
 
-    expect(listItemNames()).toEqual(['Task A', 'Task B', 'Task C'])
-  })
+    expect(listItemNames()).toEqual(['Task A', 'Task B', 'Task C']);
+  });
 
   it('renders the empty state as full-page text (with an inert list placeholder) when inbox is empty', async () => {
-    state.lists.inbox = []
-    state.loading = false
+    state.lists.inbox = [];
+    state.loading = false;
 
-    await showScreen('inbox')
+    await showScreen('inbox');
 
-    expect(listItemNames()).toEqual([''])
-    expect(headerText()).toContain('Your inbox is empty!')
-  })
-})
+    expect(listItemNames()).toEqual(['']);
+    expect(headerText()).toContain('Your inbox is empty!');
+  });
+});

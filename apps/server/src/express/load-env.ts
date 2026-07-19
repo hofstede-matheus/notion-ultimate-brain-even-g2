@@ -1,2 +1,3 @@
-import dotenv from 'dotenv'
-dotenv.config({ override: true })
+import dotenv from 'dotenv';
+
+dotenv.config({ override: true });

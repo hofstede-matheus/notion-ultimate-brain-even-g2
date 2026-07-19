@@ -1,7 +1,7 @@
-import './styles.css'
-import { installLogger } from './logger'
-import { boot } from '../boot'
+import './styles.css';
+import { boot } from '../boot';
+import { installLogger } from './logger';
 
-installLogger()
+installLogger();
 
-boot().catch(() => {})
+boot().catch(() => {});

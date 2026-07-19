@@ -1,2 +1,2 @@
-export type { Task, Note, Project, Tag } from './records'
-export type { TenantConfig } from './tenant'
+export type { Note, Project, Tag, Task } from './records';
+export type { TenantConfig } from './tenant';

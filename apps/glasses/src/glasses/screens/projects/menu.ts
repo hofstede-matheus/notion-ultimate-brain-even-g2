@@ -1,6 +1,6 @@
-import type { ScreenName } from '../../../state'
-import type { ScreenModule, GlassCtx, MenuDef } from '../../types'
-import { makeMenuScreen } from '../shared'
+import type { ScreenName } from '../../../state';
+import type { GlassCtx, MenuDef, ScreenModule } from '../../types';
+import { makeMenuScreen } from '../shared';
 
 const projectsMenuDef: MenuDef = {
   title: 'PROJECTS',
@@ -11,11 +11,11 @@ const projectsMenuDef: MenuDef = {
     { label: 'Board', target: 'projects-board' },
     { label: 'Archived', target: 'projects-archived' },
   ],
-}
+};
 
 /** Route a projects-submenu target screen through the correct ctx entry point. */
 function open(target: ScreenName, ctx: GlassCtx): void {
-  ctx.enterView(target)
+  ctx.enterView(target);
 }
 
-export const projectsMenuScreen: ScreenModule = makeMenuScreen(projectsMenuDef, open)
+export const projectsMenuScreen: ScreenModule = makeMenuScreen(projectsMenuDef, open);

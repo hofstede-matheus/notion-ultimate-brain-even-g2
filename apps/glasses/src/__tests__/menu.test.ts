@@ -1,21 +1,23 @@
 /**
  * Tests 1–5: Menu navigation
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { state, setBridge } from '../state'
-import { onEvenHubEvent } from '../glasses/runtime'
-import { ROOT_MENU_ITEMS } from '../glasses/screens/menu'
+
+import type { EvenAppBridge, RebuildPageContainer } from '@evenrealities/even_hub_sdk';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fetchInboxNotes } from '../api';
+import { onEvenHubEvent } from '../glasses/runtime';
+import { ROOT_MENU_ITEMS } from '../glasses/screens/menu';
+import { setBridge, state } from '../state';
 import {
-  makeMockBridge,
-  resetState,
+  doubleTapEvent,
   flushPromises,
   listClickEvent,
   listClickEventFirstItemOmittedIndex,
-  scrollUpEvent,
+  makeMockBridge,
+  resetState,
   scrollDownEvent,
-  doubleTapEvent,
-} from './helpers'
-import { fetchInboxNotes } from '../api'
+  scrollUpEvent,
+} from './helpers';
 
 vi.mock('../api', () => ({
   fetchTodayTasks: vi.fn().mockResolvedValue([]),
@@ -45,13 +47,13 @@ vi.mock('../api', () => ({
   fetchTypeTags: vi.fn().mockResolvedValue([]),
   fetchTasksForProject: vi.fn().mockResolvedValue([]),
   fetchNotesForProject: vi.fn().mockResolvedValue([]),
-}))
+}));
 
 vi.mock('../cache', () => ({
   loadCachedList: vi.fn().mockResolvedValue(null),
   saveCachedList: vi.fn().mockResolvedValue(undefined),
   cacheKeyForScreen: (screen: string) => `notionultimatebrain:${screen}`,
-}))
+}));
 
 vi.mock('../stt', () => ({
   isListening: vi.fn().mockReturnValue(false),
@@ -60,23 +62,23 @@ vi.mock('../stt', () => ({
   ensureRecognizer: vi.fn().mockResolvedValue(true),
   feedAudio: vi.fn(),
   preloadVoskModel: vi.fn(),
-}))
+}));
 
-let mockBridge: ReturnType<typeof makeMockBridge>
+let mockBridge: ReturnType<typeof makeMockBridge>;
 
 beforeEach(() => {
-  mockBridge = makeMockBridge()
-  setBridge(mockBridge as any)
-  resetState()
+  mockBridge = makeMockBridge();
+  setBridge(mockBridge as unknown as EvenAppBridge);
+  resetState();
   // Advance fake time to clear the 300 ms scroll throttle from any prior test
-  vi.useFakeTimers()
-  vi.advanceTimersByTime(1000)
-  vi.useRealTimers()
-})
+  vi.useFakeTimers();
+  vi.advanceTimersByTime(1000);
+  vi.useRealTimers();
+});
 
 afterEach(() => {
-  vi.clearAllMocks()
-})
+  vi.clearAllMocks();
+});
 
 // ---------------------------------------------------------------------------
 // Test 1
@@ -91,18 +93,18 @@ afterEach(() => {
 
 describe('returning to the root menu', () => {
   it('renders the native list with all four category items, in order', async () => {
-    state.screen = 'notes-menu'
+    state.screen = 'notes-menu';
 
-    onEvenHubEvent(doubleTapEvent())
-    await flushPromises()
+    onEvenHubEvent(doubleTapEvent());
+    await flushPromises();
 
-    expect(mockBridge.rebuildPageContainer).toHaveBeenCalled()
-    const arg = mockBridge.rebuildPageContainer.mock.calls[0]![0] as any
-    const items: string[] = arg.listObject[0].itemContainer.itemName
+    expect(mockBridge.rebuildPageContainer).toHaveBeenCalled();
+    const arg = mockBridge.rebuildPageContainer.mock.calls[0]?.[0] as RebuildPageContainer;
+    const items: string[] = arg.listObject?.[0]?.itemContainer?.itemName ?? [];
 
-    expect(items).toEqual(ROOT_MENU_ITEMS)
-  })
-})
+    expect(items).toEqual(ROOT_MENU_ITEMS);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 2 / 3
@@ -114,23 +116,23 @@ describe('returning to the root menu', () => {
 
 describe('scrolling on the root menu', () => {
   it('scroll up never triggers a render — the native list owns scrolling', () => {
-    state.screen = 'menu'
+    state.screen = 'menu';
 
-    onEvenHubEvent(scrollUpEvent())
+    onEvenHubEvent(scrollUpEvent());
 
-    expect(mockBridge.textContainerUpgrade).not.toHaveBeenCalled()
-    expect(mockBridge.rebuildPageContainer).not.toHaveBeenCalled()
-  })
+    expect(mockBridge.textContainerUpgrade).not.toHaveBeenCalled();
+    expect(mockBridge.rebuildPageContainer).not.toHaveBeenCalled();
+  });
 
   it('scroll down never triggers a render — the native list owns scrolling', () => {
-    state.screen = 'menu'
+    state.screen = 'menu';
 
-    onEvenHubEvent(scrollDownEvent())
+    onEvenHubEvent(scrollDownEvent());
 
-    expect(mockBridge.textContainerUpgrade).not.toHaveBeenCalled()
-    expect(mockBridge.rebuildPageContainer).not.toHaveBeenCalled()
-  })
-})
+    expect(mockBridge.textContainerUpgrade).not.toHaveBeenCalled();
+    expect(mockBridge.rebuildPageContainer).not.toHaveBeenCalled();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 4
@@ -138,14 +140,14 @@ describe('scrolling on the root menu', () => {
 
 describe('clicking on the root menu', () => {
   it('opens the submenu indicated by the native list selection, not a hardcoded index', () => {
-    state.screen = 'menu'
+    state.screen = 'menu';
 
     // Firmware reports index 0 ("Tasks") was tapped
-    onEvenHubEvent(listClickEvent(0))
+    onEvenHubEvent(listClickEvent(0));
 
-    expect(state.screen).toBe('tasks-menu')
-  })
-})
+    expect(state.screen).toBe('tasks-menu');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 5
@@ -153,13 +155,13 @@ describe('clicking on the root menu', () => {
 
 describe('double-clicking on the root menu', () => {
   it('exits the app by calling shutDownPageContainer', () => {
-    state.screen = 'menu'
+    state.screen = 'menu';
 
-    onEvenHubEvent(doubleTapEvent())
+    onEvenHubEvent(doubleTapEvent());
 
-    expect(mockBridge.shutDownPageContainer).toHaveBeenCalledWith(1)
-  })
-})
+    expect(mockBridge.shutDownPageContainer).toHaveBeenCalledWith(1);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Tasks submenu
@@ -167,15 +169,14 @@ describe('double-clicking on the root menu', () => {
 
 describe('double-clicking on the tasks submenu', () => {
   it('goes back to the root menu, not shutdown', () => {
-    state.screen = 'tasks-menu'
+    state.screen = 'tasks-menu';
 
-    onEvenHubEvent(doubleTapEvent())
+    onEvenHubEvent(doubleTapEvent());
 
-    expect(state.screen).toBe('menu')
-    expect(mockBridge.shutDownPageContainer).not.toHaveBeenCalled()
-  })
-})
-
+    expect(state.screen).toBe('menu');
+    expect(mockBridge.shutDownPageContainer).not.toHaveBeenCalled();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Index reset when entering the today / inbox / overdue screens from the
@@ -184,14 +185,14 @@ describe('double-clicking on the tasks submenu', () => {
 
 describe('entering the overdue screen from the tasks submenu', () => {
   it('navigates to overdue', async () => {
-    state.screen = 'tasks-menu'
+    state.screen = 'tasks-menu';
 
     // Index 2 = "Overdue"
-    onEvenHubEvent(listClickEvent(2))
-    await flushPromises()
+    onEvenHubEvent(listClickEvent(2));
+    await flushPromises();
 
-    expect(state.screen).toBe('overdue')
-  })
+    expect(state.screen).toBe('overdue');
+  });
 
   // Regression test: the firmware bridge omits currentSelectItemIndex from
   // the click payload entirely when it's 0 (proto3 JSON drops zero-valued
@@ -200,49 +201,49 @@ describe('entering the overdue screen from the tasks submenu', () => {
   // still open the add-task screen even though itemIndex never actually
   // arrives as 0.
   it('opens Add Task when the firmware omits currentSelectItemIndex for the first item', async () => {
-    state.screen = 'tasks-menu'
+    state.screen = 'tasks-menu';
 
-    onEvenHubEvent(listClickEventFirstItemOmittedIndex())
-    await flushPromises()
+    onEvenHubEvent(listClickEventFirstItemOmittedIndex());
+    await flushPromises();
 
-    expect(state.screen).toBe('add-task')
-  })
-})
+    expect(state.screen).toBe('add-task');
+  });
+});
 
 describe('entering the today screen from the tasks submenu', () => {
   it('navigates to today', async () => {
-    state.screen = 'tasks-menu'
+    state.screen = 'tasks-menu';
 
     // Index 1 = "Today"
-    onEvenHubEvent(listClickEvent(1))
-    await flushPromises()
+    onEvenHubEvent(listClickEvent(1));
+    await flushPromises();
 
-    expect(state.screen).toBe('today')
-  })
-})
+    expect(state.screen).toBe('today');
+  });
+});
 
 describe('entering the inbox screen from the tasks submenu', () => {
   it('navigates to inbox', async () => {
-    state.screen = 'tasks-menu'
+    state.screen = 'tasks-menu';
 
     // Index 3 = "Inbox"
-    onEvenHubEvent(listClickEvent(3))
-    await flushPromises()
+    onEvenHubEvent(listClickEvent(3));
+    await flushPromises();
 
-    expect(state.screen).toBe('inbox')
-  })
-})
+    expect(state.screen).toBe('inbox');
+  });
+});
 
 describe('entering the add-task screen from the tasks submenu', () => {
   it('opens add-task when the first item is tapped', () => {
-    state.screen = 'tasks-menu'
+    state.screen = 'tasks-menu';
 
     // Index 0 = "Add Task (Voice)"
-    onEvenHubEvent(listClickEvent(0))
+    onEvenHubEvent(listClickEvent(0));
 
-    expect(state.screen).toBe('add-task')
-  })
-})
+    expect(state.screen).toBe('add-task');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Generic list-view wiring (ctx.enterView) — covers every Tasks/Notes/
@@ -252,15 +253,15 @@ describe('entering the add-task screen from the tasks submenu', () => {
 
 describe('entering a generic notes view (Inbox) from the notes submenu', () => {
   it('navigates to the notes-inbox screen and loads via the registered fetcher', async () => {
-    vi.mocked(fetchInboxNotes).mockResolvedValueOnce([{ id: 'n1', name: 'Note one' }])
-    state.screen = 'notes-menu'
+    vi.mocked(fetchInboxNotes).mockResolvedValueOnce([{ id: 'n1', name: 'Note one' }]);
+    state.screen = 'notes-menu';
 
     // Index 0 = "Inbox"
-    onEvenHubEvent(listClickEvent(0))
-    await flushPromises()
+    onEvenHubEvent(listClickEvent(0));
+    await flushPromises();
 
-    expect(state.screen).toBe('notes-inbox')
-    expect(fetchInboxNotes).toHaveBeenCalled()
-    expect(state.lists['notes-inbox']).toEqual([{ id: 'n1', name: 'Note one' }])
-  })
-})
+    expect(state.screen).toBe('notes-inbox');
+    expect(fetchInboxNotes).toHaveBeenCalled();
+    expect(state.lists['notes-inbox']).toEqual([{ id: 'n1', name: 'Note one' }]);
+  });
+});

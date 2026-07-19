@@ -1,6 +1,6 @@
-import type { ScreenName } from '../../../state'
-import type { ScreenModule, GlassCtx, MenuDef } from '../../types'
-import { makeMenuScreen } from '../shared'
+import type { ScreenName } from '../../../state';
+import type { GlassCtx, MenuDef, ScreenModule } from '../../types';
+import { makeMenuScreen } from '../shared';
 
 const tasksMenuDef: MenuDef = {
   title: 'TASKS',
@@ -13,7 +13,7 @@ const tasksMenuDef: MenuDef = {
     { label: 'Next 7 Days', target: 'tasks-next-7-days' },
     { label: 'Tomorrow', target: 'tasks-tomorrow' },
   ],
-}
+};
 
 /**
  * Route a tasks-submenu target screen through the correct ctx entry point.
@@ -22,11 +22,8 @@ const tasksMenuDef: MenuDef = {
  * through the generic cache-then-fetch pipeline.
  */
 function open(target: ScreenName, ctx: GlassCtx): void {
-  if (target === 'add-task') ctx.navigate(target)
-  else ctx.enterView(target)
+  if (target === 'add-task') ctx.navigate(target);
+  else ctx.enterView(target);
 }
 
-export const tasksMenuScreen: ScreenModule = makeMenuScreen(
-  tasksMenuDef,
-  open,
-)
+export const tasksMenuScreen: ScreenModule = makeMenuScreen(tasksMenuDef, open);

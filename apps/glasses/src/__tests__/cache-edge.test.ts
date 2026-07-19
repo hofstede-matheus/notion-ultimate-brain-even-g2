@@ -8,19 +8,19 @@
  * these tests target what cache.ts itself still owns: the array-shape guard
  * on read and delegation on write.
  */
-import { describe, it, expect, afterEach, vi } from 'vitest'
-import { loadCachedList, saveCachedList } from '../cache'
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { loadCachedList, saveCachedList } from '../cache';
 
 const { storageGet, storageSet } = vi.hoisted(() => ({
   storageGet: vi.fn(),
   storageSet: vi.fn().mockResolvedValue(undefined),
-}))
+}));
 
-vi.mock('even-toolkit/storage', () => ({ storageGet, storageSet }))
+vi.mock('even-toolkit/storage', () => ({ storageGet, storageSet }));
 
 afterEach(() => {
-  vi.clearAllMocks()
-})
+  vi.clearAllMocks();
+});
 
 // ---------------------------------------------------------------------------
 // Test 18 — no entry (storageGet already fell back to null: missing key,
@@ -29,13 +29,13 @@ afterEach(() => {
 
 describe('loadCachedList — no entry', () => {
   it('returns null when storageGet resolves its fallback', async () => {
-    storageGet.mockResolvedValue(null)
+    storageGet.mockResolvedValue(null);
 
-    const result = await loadCachedList('nonexistent-key')
-    expect(result).toBeNull()
-    expect(storageGet).toHaveBeenCalledWith('nonexistent-key', null)
-  })
-})
+    const result = await loadCachedList('nonexistent-key');
+    expect(result).toBeNull();
+    expect(storageGet).toHaveBeenCalledWith('nonexistent-key', null);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 19 — entry exists but isn't a list (valid JSON, wrong shape)
@@ -43,11 +43,11 @@ describe('loadCachedList — no entry', () => {
 
 describe('loadCachedList — non-array entry', () => {
   it('returns null instead of the malformed value', async () => {
-    storageGet.mockResolvedValue({ not: 'a list' })
+    storageGet.mockResolvedValue({ not: 'a list' });
 
-    await expect(loadCachedList('key')).resolves.toBeNull()
-  })
-})
+    await expect(loadCachedList('key')).resolves.toBeNull();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 20 — write delegates to storageSet, whose own bridge-failure handling
@@ -56,7 +56,7 @@ describe('loadCachedList — non-array entry', () => {
 
 describe('saveCachedList', () => {
   it('delegates to storageSet with the given key and items', async () => {
-    await expect(saveCachedList('key', [1, 2, 3])).resolves.toBeUndefined()
-    expect(storageSet).toHaveBeenCalledWith('key', [1, 2, 3])
-  })
-})
+    await expect(saveCachedList('key', [1, 2, 3])).resolves.toBeUndefined();
+    expect(storageSet).toHaveBeenCalledWith('key', [1, 2, 3]);
+  });
+});

@@ -1,35 +1,29 @@
-import {
-  OsEventTypeList,
-  type EvenHubEvent,
-} from '@evenrealities/even_hub_sdk'
-import type { AppGlassAction } from './types'
-import { state, getBridge } from '../state'
-import * as stt from '../stt'
-import { router } from './router'
-import { createGlassCtx } from './context'
-import { renderFull } from './render'
-import { SCROLL_COOLDOWN_MS } from './constants'
+import { type EvenHubEvent, OsEventTypeList } from '@evenrealities/even_hub_sdk';
+import { getBridge, state } from '../state';
+import * as stt from '../stt';
+import { SCROLL_COOLDOWN_MS } from './constants';
+import { createGlassCtx } from './context';
+import { renderFull } from './render';
+import { router } from './router';
+import type { AppGlassAction } from './types';
 
-const ctx = createGlassCtx()
+const ctx = createGlassCtx();
 
 // ---------------------------------------------------------------------------
 // Event type normalisation (SDK quirk: CLICK_EVENT=0 → undefined)
 // ---------------------------------------------------------------------------
 
 function resolveEventType(event: EvenHubEvent): OsEventTypeList | undefined {
-  const raw =
-    event.listEvent?.eventType ??
-    event.textEvent?.eventType ??
-    event.sysEvent?.eventType
+  const raw = event.listEvent?.eventType ?? event.textEvent?.eventType ?? event.sysEvent?.eventType;
 
-  if (typeof raw === 'number') return raw as OsEventTypeList
+  if (typeof raw === 'number') return raw as OsEventTypeList;
 
   // If an event object exists but type is undefined, it's a click (0 → undefined)
   if (event.listEvent || event.textEvent || event.sysEvent) {
-    return OsEventTypeList.CLICK_EVENT
+    return OsEventTypeList.CLICK_EVENT;
   }
 
-  return undefined
+  return undefined;
 }
 
 function toGlassAction(event: EvenHubEvent, eventType: OsEventTypeList): AppGlassAction | null {
@@ -49,15 +43,15 @@ function toGlassAction(event: EvenHubEvent, eventType: OsEventTypeList): AppGlas
         type: 'SELECT_HIGHLIGHTED',
         itemIndex: event.listEvent ? (event.listEvent.currentSelectItemIndex ?? 0) : undefined,
         itemName: event.listEvent?.currentSelectItemName,
-      }
+      };
     case OsEventTypeList.DOUBLE_CLICK_EVENT:
-      return { type: 'GO_BACK' }
+      return { type: 'GO_BACK' };
     case OsEventTypeList.SCROLL_TOP_EVENT:
-      return { type: 'HIGHLIGHT_MOVE', direction: 'up' }
+      return { type: 'HIGHLIGHT_MOVE', direction: 'up' };
     case OsEventTypeList.SCROLL_BOTTOM_EVENT:
-      return { type: 'HIGHLIGHT_MOVE', direction: 'down' }
+      return { type: 'HIGHLIGHT_MOVE', direction: 'down' };
     default:
-      return null
+      return null;
   }
 }
 
@@ -65,13 +59,13 @@ function toGlassAction(event: EvenHubEvent, eventType: OsEventTypeList): AppGlas
 // Scroll throttle (300ms cooldown)
 // ---------------------------------------------------------------------------
 
-let lastScrollAt = 0
+let lastScrollAt = 0;
 
 function isScrollThrottled(): boolean {
-  const now = Date.now()
-  if (now - lastScrollAt < SCROLL_COOLDOWN_MS) return true
-  lastScrollAt = now
-  return false
+  const now = Date.now();
+  if (now - lastScrollAt < SCROLL_COOLDOWN_MS) return true;
+  lastScrollAt = now;
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -81,25 +75,25 @@ function isScrollThrottled(): boolean {
 export function onEvenHubEvent(event: EvenHubEvent): void {
   // Route PCM audio frames to Vosk while a session is active.
   if (event.audioEvent && event.audioEvent.audioPcm != null && stt.isListening()) {
-    stt.feedAudio(event.audioEvent.audioPcm)
-    return
+    stt.feedAudio(event.audioEvent.audioPcm);
+    return;
   }
 
-  const eventType = resolveEventType(event)
-  if (eventType === undefined) return
+  const eventType = resolveEventType(event);
+  if (eventType === undefined) return;
 
   // Throttle scroll events
   if (
     eventType === OsEventTypeList.SCROLL_TOP_EVENT ||
     eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT
   ) {
-    if (isScrollThrottled()) return
+    if (isScrollThrottled()) return;
   }
 
-  const action = toGlassAction(event, eventType)
-  if (!action) return
+  const action = toGlassAction(event, eventType);
+  if (!action) return;
 
-  router.onGlassAction(action, state, ctx)
+  router.onGlassAction(action, state, ctx);
 }
 
 /**
@@ -107,9 +101,9 @@ export function onEvenHubEvent(event: EvenHubEvent): void {
  * initial menu screen. Call once after the bridge is connected.
  */
 export async function startGlasses(): Promise<void> {
-  const b = getBridge()
-  if (!b) return
-  b.onEvenHubEvent(onEvenHubEvent)
-  state.screen = 'menu'
-  await renderFull('menu')
+  const b = getBridge();
+  if (!b) return;
+  b.onEvenHubEvent(onEvenHubEvent);
+  state.screen = 'menu';
+  await renderFull();
 }

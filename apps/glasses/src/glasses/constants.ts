@@ -11,7 +11,7 @@
 // ---------------------------------------------------------------------------
 
 /** G2 native list widget item cap. */
-export const MAX_LIST_ITEMS = 20
+export const MAX_LIST_ITEMS = 20;
 
 /**
  * G2 native list widget per-item text cap, in UTF-8 bytes (not JS chars) —
@@ -19,26 +19,26 @@ export const MAX_LIST_ITEMS = 20
  * titles with accented/multi-byte characters (common in Portuguese task
  * names here) can overflow well before 63 JS `.length` characters.
  */
-export const MAX_ITEM_BYTES = 63
+export const MAX_ITEM_BYTES = 63;
 
 // ---------------------------------------------------------------------------
 // Display geometry (G2: 576×288 monochrome, even pixels)
 // ---------------------------------------------------------------------------
 
 /** Display width in pixels. */
-export const SCREEN_W = 576
+export const SCREEN_W = 576;
 
 /** Display height in pixels. */
-export const SCREEN_H = 288
+export const SCREEN_H = 288;
 
 /** Header band height in pixels. */
-export const HEADER_H = 52
+export const HEADER_H = 52;
 
 /** Native-list band height in pixels. */
-export const LIST_H = SCREEN_H - HEADER_H
+export const LIST_H = SCREEN_H - HEADER_H;
 
 /** Inner padding for text containers, in pixels. */
-export const CONTAINER_PADDING = 8
+export const CONTAINER_PADDING = 8;
 
 // ---------------------------------------------------------------------------
 // Container IDs and names (stable across the app lifetime)
@@ -49,44 +49,44 @@ export const CONTAINER_PADDING = 8
 // (returns false, list never updates). Names are also capped at 16 chars.
 
 /** Header text container ID. */
-export const CONTAINER_ID_HEADER = 1
+export const CONTAINER_ID_HEADER = 1;
 
 /** Native list container ID. */
-export const CONTAINER_ID_LIST = 2
+export const CONTAINER_ID_LIST = 2;
 
 /** Header text container name (must stay stable). */
-export const HEADER_CONTAINER_NAME = 'ub-header'
+export const HEADER_CONTAINER_NAME = 'ub-header';
 
 /** Native list container name (must stay stable). */
-export const LIST_CONTAINER_NAME = 'ub-list'
+export const LIST_CONTAINER_NAME = 'ub-list';
 
 // ---------------------------------------------------------------------------
 // Event handling
 // ---------------------------------------------------------------------------
 
 /** Minimum interval between scroll events, in milliseconds. */
-export const SCROLL_COOLDOWN_MS = 300
+export const SCROLL_COOLDOWN_MS = 300;
 
 // ---------------------------------------------------------------------------
 // Spinner
 // ---------------------------------------------------------------------------
 
 /** ASCII spinner frames cycled while a background fetch is in flight. */
-export const SPINNER_FRAMES: readonly string[] = ['|', '/', '-', '\\']
+export const SPINNER_FRAMES: readonly string[] = ['|', '/', '-', '\\'];
 
 /** Spinner tick interval, in milliseconds. */
-export const SPINNER_INTERVAL_MS = 250
+export const SPINNER_INTERVAL_MS = 250;
 
 // ---------------------------------------------------------------------------
 // STT / Vosk
 // ---------------------------------------------------------------------------
 
 /** Path (relative to the web root) where the Vosk model tarball is served. */
-export const VOSK_MODEL_URL = '/vosk/model.tar.gz'
+export const VOSK_MODEL_URL = '/vosk/model.tar.gz';
 
 // ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
 /** Screen name to fall back to when an unknown screen is requested. */
-export const FALLBACK_SCREEN = 'menu'
+export const FALLBACK_SCREEN = 'menu';

@@ -1,4 +1,4 @@
-import { storageGet, storageSet } from 'even-toolkit/storage'
+import { storageGet, storageSet } from 'even-toolkit/storage';
 
 // ---------------------------------------------------------------------------
 // localStorage keys
@@ -6,7 +6,7 @@ import { storageGet, storageSet } from 'even-toolkit/storage'
 
 /** Cache key for a generic list-view screen — see context.ts's enterView(). */
 export function cacheKeyForScreen(screen: string): string {
-  return `notionultimatebrain:${screen}`
+  return `notionultimatebrain:${screen}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -18,8 +18,8 @@ export function cacheKeyForScreen(screen: string): string {
  * Returns null when there is no entry or the stored value can't be parsed.
  */
 export async function loadCachedList<T>(key: string): Promise<T[] | null> {
-  const parsed = await storageGet<unknown>(key, null)
-  return Array.isArray(parsed) ? (parsed as T[]) : null
+  const parsed = await storageGet<unknown>(key, null);
+  return Array.isArray(parsed) ? (parsed as T[]) : null;
 }
 
 /**
@@ -27,5 +27,5 @@ export async function loadCachedList<T>(key: string): Promise<T[] | null> {
  * Failures are swallowed — cache writes are best-effort.
  */
 export async function saveCachedList<T>(key: string, items: T[]): Promise<void> {
-  await storageSet(key, items)
+  await storageSet(key, items);
 }

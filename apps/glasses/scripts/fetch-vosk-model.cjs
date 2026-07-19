@@ -14,11 +14,11 @@
  * so it gets packed into the .ehpk and served locally — fully offline at runtime.
  * If the file is absent the app shows an error on the Add Task screen.
  */
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const https = require('https');
-const { execFileSync } = require('child_process');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const https = require('node:https');
+const { execFileSync } = require('node:child_process');
 
 // English small model (~40 MB) — same one used by EvenChess
 const MODEL_URL = 'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip';

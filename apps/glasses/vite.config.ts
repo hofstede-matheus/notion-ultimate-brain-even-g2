@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   // index.html lives in src/web/ (the browser-only shell) rather than the
@@ -25,4 +25,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

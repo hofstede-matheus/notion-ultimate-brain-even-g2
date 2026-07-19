@@ -9,9 +9,7 @@
   "description": "View today's tasks, process your inbox, and capture new tasks by voice — all from your Even Realities G2 glasses.",
   "author": "mediato.dev",
   "entrypoint": "index.html",
-  "supported_languages": [
-    "en"
-  ],
+  "supported_languages": ["en"],
   "permissions": [
     {
       "name": "network",

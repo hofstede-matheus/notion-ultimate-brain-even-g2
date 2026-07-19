@@ -1,14 +1,43 @@
-import type { TenantDb } from './tenant'
+import type { TenantDb } from './tenant';
+
+/**
+ * The subset of the Notion query-filter grammar these view tables use. Covers
+ * the boolean groups (and/or) plus the per-property conditions below; relative
+ * date keywords and array-valued select equals are rewritten into valid public
+ * API filters by translateFilter() before they reach Notion.
+ */
+export interface NotionFilter {
+  property?: string;
+  and?: NotionFilter[];
+  or?: NotionFilter[];
+  relation?: {
+    contains?: string;
+    does_not_contain?: string;
+    is_empty?: boolean;
+    is_not_empty?: boolean;
+  };
+  status?: { equals?: string; does_not_equal?: string };
+  date?: { equals?: string; on_or_before?: string; is_empty?: boolean };
+  select?: { equals?: string | string[]; does_not_equal?: string | string[] };
+  checkbox?: { equals?: boolean };
+  url?: { is_empty?: boolean; is_not_empty?: boolean };
+}
+
+/** A Notion query sort clause. */
+export interface NotionSort {
+  property: string;
+  direction: 'ascending' | 'descending';
+}
 
 export interface ViewConfig {
-  path: string
-  filter?: any | ((db: TenantDb) => any)
-  sorts?: any[]
+  path: string;
+  filter?: NotionFilter | ((db: TenantDb) => NotionFilter);
+  sorts?: NotionSort[];
 }
 
 /** Resolve a ViewConfig's filter against the current tenant's db config. */
-export function resolveFilter(view: ViewConfig, db: TenantDb): any {
-  return typeof view.filter === 'function' ? view.filter(db) : view.filter
+export function resolveFilter(view: ViewConfig, db: TenantDb): NotionFilter | undefined {
+  return typeof view.filter === 'function' ? view.filter(db) : view.filter;
 }
 
 // ---------------------------------------------------------------------------
@@ -75,19 +104,19 @@ export const TASK_VIEWS: ViewConfig[] = [
       { property: 'Sub-Task Sorter', direction: 'ascending' },
     ],
   },
-]
+];
 
 // ---------------------------------------------------------------------------
 // Notes views
 // ---------------------------------------------------------------------------
 
-const NOTE_TYPE_EXCLUDE_STANDARD = ['Journal', 'Meeting', 'Web Clip', 'Daily']
+const NOTE_TYPE_EXCLUDE_STANDARD = ['Journal', 'Meeting', 'Web Clip', 'Daily'];
 const NOTE_URL_OR_VOICE: ViewConfig['filter'] = {
   or: [
     { property: 'URL', url: { is_empty: true } },
     { property: 'Type', select: { equals: 'Voice Note' } },
   ],
-}
+};
 
 export const NOTE_VIEWS: ViewConfig[] = [
   {
@@ -101,7 +130,10 @@ export const NOTE_VIEWS: ViewConfig[] = [
             { property: 'Project', relation: { is_empty: true } },
           ],
         },
-        { property: 'Type', select: { does_not_equal: ['Daily', 'Book', 'Recipe', 'Journal', 'Meeting'] } },
+        {
+          property: 'Type',
+          select: { does_not_equal: ['Daily', 'Book', 'Recipe', 'Journal', 'Meeting'] },
+        },
         { property: 'Content', relation: { is_empty: true } },
       ],
     },
@@ -209,7 +241,7 @@ export const NOTE_VIEWS: ViewConfig[] = [
     filter: { property: 'Archived', checkbox: { equals: false } },
     sorts: [{ property: 'Updated', direction: 'descending' }],
   },
-]
+];
 
 // ---------------------------------------------------------------------------
 // Projects views
@@ -256,7 +288,7 @@ export const PROJECT_VIEWS: ViewConfig[] = [
     filter: { property: 'Archived', checkbox: { equals: true } },
     sorts: [{ property: 'Latest Activity', direction: 'descending' }],
   },
-]
+];
 
 // ---------------------------------------------------------------------------
 // Tags views
@@ -287,4 +319,4 @@ export const TAG_VIEWS: ViewConfig[] = [
     filter: { property: 'Archived', checkbox: { equals: false } },
     sorts: [{ property: 'Name', direction: 'ascending' }],
   },
-]
+];

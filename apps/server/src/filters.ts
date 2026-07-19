@@ -1,3 +1,5 @@
+import type { NotionFilter } from './views';
+
 // ---------------------------------------------------------------------------
 // Filter translation
 //
@@ -20,64 +22,74 @@
  * aligned with the user's local calendar day near local midnight.
  */
 function localDateISO(offsetDays: number, timeZone: string): string {
-  let ymd: string
+  let ymd: string;
   try {
     ymd = new Intl.DateTimeFormat('en-CA', {
       timeZone,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-    }).format(new Date())
+    }).format(new Date());
   } catch {
     ymd = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'UTC',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-    }).format(new Date())
+    }).format(new Date());
   }
-  if (offsetDays === 0) return ymd
-  const [y, m, d] = ymd.split('-').map(Number)
-  return new Date(Date.UTC(y, m - 1, d + offsetDays)).toISOString().split('T')[0]
+  if (offsetDays === 0) return ymd;
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + offsetDays)).toISOString().split('T')[0];
 }
 
 const RELATIVE_DATE_OFFSETS: Record<string, number> = {
   today: 0,
   tomorrow: 1,
   one_week_from_now: 7,
-}
+};
 
-function flattenBool(kind: 'and' | 'or', children: any[]): any {
-  const merged: any[] = []
+function flattenBool(kind: 'and' | 'or', children: NotionFilter[]): NotionFilter {
+  const merged: NotionFilter[] = [];
   for (const child of children) {
-    if (child[kind]) merged.push(...child[kind])
-    else merged.push(child)
+    const group = child[kind];
+    if (group) merged.push(...group);
+    else merged.push(child);
   }
-  return { [kind]: merged }
+  return { [kind]: merged };
 }
 
-export function translateFilter(node: any, timeZone = 'UTC'): any {
-  if (node.and) return flattenBool('and', node.and.map((c: any) => translateFilter(c, timeZone)))
-  if (node.or) return flattenBool('or', node.or.map((c: any) => translateFilter(c, timeZone)))
+export function translateFilter(node: NotionFilter, timeZone = 'UTC'): NotionFilter {
+  if (node.and)
+    return flattenBool(
+      'and',
+      node.and.map((c) => translateFilter(c, timeZone)),
+    );
+  if (node.or)
+    return flattenBool(
+      'or',
+      node.or.map((c) => translateFilter(c, timeZone)),
+    );
 
-  const { property } = node
+  const { property } = node;
 
   if (node.select) {
-    const [op, value] = Object.entries(node.select)[0] as [string, any]
+    const [op, value] = Object.entries(node.select)[0] as [string, string | string[]];
     if (Array.isArray(value)) {
-      const parts = value.map((v) => ({ property, select: { [op]: v } }))
-      return op === 'equals' ? { or: parts } : { and: parts }
+      const parts: NotionFilter[] = value.map((v) => ({ property, select: { [op]: v } }));
+      return op === 'equals' ? { or: parts } : { and: parts };
     }
-    return node
+    return node;
   }
 
   if (node.date) {
-    const [op, value] = Object.entries(node.date)[0] as [string, any]
-    if (typeof value === 'string' && value in RELATIVE_DATE_OFFSETS) {
-      return { property, date: { [op]: localDateISO(RELATIVE_DATE_OFFSETS[value], timeZone) } }
+    const [op, value] = Object.entries(node.date)[0] as [string, string];
+    const offset = RELATIVE_DATE_OFFSETS[value];
+    if (offset !== undefined) {
+      return { property, date: { [op]: localDateISO(offset, timeZone) } };
     }
-    return node
+    return node;
   }
 
-  return node
+  return node;
 }

@@ -1,5 +1,5 @@
-import type { ScreenModule } from '../../types'
-import { makeListScreen, getOverdueFlatTasks } from '../shared'
+import type { ScreenModule } from '../../types';
+import { getOverdueFlatTasks, makeListScreen } from '../shared';
 
 export const overdueScreen: ScreenModule = makeListScreen({
   screen: 'overdue',
@@ -9,4 +9,4 @@ export const overdueScreen: ScreenModule = makeListScreen({
   loadingMessage: 'Fetching tasks...',
   selectItems: getOverdueFlatTasks,
   onSelect: 'task',
-})
+});
