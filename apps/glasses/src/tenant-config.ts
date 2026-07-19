@@ -4,26 +4,26 @@
  * Persistence across app restarts lives in web/settings.ts.
  */
 
-import type { TenantConfig } from '@notion-ub/contracts'
+import type { TenantConfig } from '@notion-ub/contracts';
 
-let current: TenantConfig | null = null
+let current: TenantConfig | null = null;
 
 export function getTenantConfig(): TenantConfig | null {
-  return current
+  return current;
 }
 
 export function setTenantConfig(cfg: TenantConfig): void {
-  current = cfg
+  current = cfg;
 }
 
 /** Base64 JSON payload for the X-Notion-Config header; '' when unset. */
 export function getTenantHeader(): string {
-  if (!current) return ''
+  if (!current) return '';
   // Attach the device's live timezone so the server resolves "today"/"tomorrow"
   // against the user's local calendar day, not UTC. Resolved here (not stored)
   // so it always reflects the device's current zone.
-  const payload = { ...current, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }
-  return btoa(JSON.stringify(payload))
+  const payload = { ...current, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone };
+  return btoa(JSON.stringify(payload));
 }
 
 /**
@@ -32,13 +32,13 @@ export function getTenantHeader(): string {
  * resolves during `vite dev` (import.meta.env.DEV) — never in a built app.
  */
 export function getDevEnvConfig(): TenantConfig | null {
-  if (!import.meta.env.DEV) return null
-  const token = import.meta.env.VITE_NOTION_TOKEN
-  const tasksDb = import.meta.env.VITE_NOTION_TASKS_DB
-  const notesDb = import.meta.env.VITE_NOTION_NOTES_DB
-  const projectsDb = import.meta.env.VITE_NOTION_PROJECTS_DB
-  const tagsDb = import.meta.env.VITE_NOTION_TAGS_DB
-  if (!token || !tasksDb || !notesDb || !projectsDb || !tagsDb) return null
+  if (!import.meta.env.DEV) return null;
+  const token = import.meta.env.VITE_NOTION_TOKEN;
+  const tasksDb = import.meta.env.VITE_NOTION_TASKS_DB;
+  const notesDb = import.meta.env.VITE_NOTION_NOTES_DB;
+  const projectsDb = import.meta.env.VITE_NOTION_PROJECTS_DB;
+  const tagsDb = import.meta.env.VITE_NOTION_TAGS_DB;
+  if (!token || !tasksDb || !notesDb || !projectsDb || !tagsDb) return null;
   return {
     token,
     tasksDb,
@@ -46,5 +46,5 @@ export function getDevEnvConfig(): TenantConfig | null {
     projectsDb,
     tagsDb,
     excludeProjectId: import.meta.env.VITE_NOTION_EXCLUDE_PROJECT_ID || undefined,
-  }
+  };
 }

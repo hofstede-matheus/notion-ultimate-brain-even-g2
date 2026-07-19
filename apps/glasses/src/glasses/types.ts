@@ -1,4 +1,4 @@
-import type { AppState, ScreenName } from '../state'
+import type { AppState, ScreenName } from '../state';
 
 /**
  * What a screen wants rendered. 'list' screens (Today/Inbox with >=1 items)
@@ -8,7 +8,7 @@ import type { AppState, ScreenName } from '../state'
  */
 export type ScreenDisplay =
   | { mode: 'text'; content: string }
-  | { mode: 'list'; header: string; items: string[] }
+  | { mode: 'list'; header: string; items: string[] };
 
 /**
  * Extends the toolkit's GlassAction shape with native-list selection data,
@@ -19,11 +19,11 @@ export type ScreenDisplay =
 export type AppGlassAction =
   | { type: 'HIGHLIGHT_MOVE'; direction: 'up' | 'down' }
   | { type: 'SELECT_HIGHLIGHTED'; itemIndex?: number; itemName?: string }
-  | { type: 'GO_BACK' }
+  | { type: 'GO_BACK' };
 
 export interface ScreenModule {
-  display: (snapshot: AppState) => ScreenDisplay
-  action: (action: AppGlassAction, snapshot: AppState, ctx: GlassCtx) => void
+  display: (snapshot: AppState) => ScreenDisplay;
+  action: (action: AppGlassAction, snapshot: AppState, ctx: GlassCtx) => void;
 }
 
 /**
@@ -33,33 +33,38 @@ export interface ScreenModule {
  * and module-state plumbing.
  */
 export interface GlassCtx {
-  navigate(screen: ScreenName): void
-  shutdown(): void
-  stopSpinner(): void
+  navigate(screen: ScreenName): void;
+  shutdown(): void;
+  stopSpinner(): void;
   /** Cache-then-fetch entry point for every list-view screen. */
-  enterView(screen: ScreenName): void
-  startRecording(): void
-  cancelRecordingAndGoBack(): void
-  confirmAddTask(): Promise<void>
-  discardAddTask(): void
-  openConfirm(action: 'markDone' | 'delete', taskId: string, taskName: string, returnTo: ScreenName): void
-  confirmAction(): Promise<void>
-  dismissConfirm(): void
-  dismissActionToast(): void
-  openTaskActions(taskId: string, taskName: string, returnTo: ScreenName): void
-  enterTaskMetadata(): void
-  openProjectDetail(projectId: string, projectName: string, returnTo: ScreenName): void
+  enterView(screen: ScreenName): void;
+  startRecording(): void;
+  cancelRecordingAndGoBack(): void;
+  confirmAddTask(): Promise<void>;
+  discardAddTask(): void;
+  openConfirm(
+    action: 'markDone' | 'delete',
+    taskId: string,
+    taskName: string,
+    returnTo: ScreenName,
+  ): void;
+  confirmAction(): Promise<void>;
+  dismissConfirm(): void;
+  dismissActionToast(): void;
+  openTaskActions(taskId: string, taskName: string, returnTo: ScreenName): void;
+  enterTaskMetadata(): void;
+  openProjectDetail(projectId: string, projectName: string, returnTo: ScreenName): void;
 }
 
 /** A single entry in a menu screen — `target` undefined means the row is a no-op stub. */
 export interface MenuItem {
-  label: string
-  target?: ScreenName
+  label: string;
+  target?: ScreenName;
 }
 
 /** Definition of a menu screen: title, optional parent (root if absent), and its items. */
 export interface MenuDef {
-  title: string
-  parent?: ScreenName
-  items: MenuItem[]
+  title: string;
+  parent?: ScreenName;
+  items: MenuItem[];
 }

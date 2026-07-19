@@ -1,5 +1,5 @@
-import type { ScreenModule } from '../../types'
-import { makeListScreen, getTodayFlatTasks } from '../shared'
+import type { ScreenModule } from '../../types';
+import { getTodayFlatTasks, makeListScreen } from '../shared';
 
 export const todayScreen: ScreenModule = makeListScreen({
   screen: 'today',
@@ -10,4 +10,4 @@ export const todayScreen: ScreenModule = makeListScreen({
   countInHeader: false,
   selectItems: getTodayFlatTasks,
   onSelect: 'task',
-})
+});

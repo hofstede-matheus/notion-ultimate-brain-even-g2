@@ -1,11 +1,11 @@
-import { buildHeaderLine } from 'even-toolkit/text-utils'
-import type { ScreenModule } from '../../types'
-import { truncateToByteLimit } from '../shared'
+import { buildHeaderLine } from 'even-toolkit/text-utils';
+import type { ScreenModule } from '../../types';
+import { truncateToByteLimit } from '../shared';
 
 export const deleteToastScreen: ScreenModule = {
   display(state) {
-    const t = state.actionToast
-    const name = t && t.kind === 'delete' ? truncateToByteLimit(t.taskName) : ''
+    const t = state.actionToast;
+    const name = t && t.kind === 'delete' ? truncateToByteLimit(t.taskName) : '';
     return {
       mode: 'text',
       content: [
@@ -15,11 +15,11 @@ export const deleteToastScreen: ScreenModule = {
         '',
         'Returning...',
       ].join('\n'),
-    }
+    };
   },
 
   action(action, _state, ctx) {
     // Allow immediate exit even before the 1.5s timer fires
-    if (action.type === 'GO_BACK') ctx.dismissActionToast()
+    if (action.type === 'GO_BACK') ctx.dismissActionToast();
   },
-}
+};

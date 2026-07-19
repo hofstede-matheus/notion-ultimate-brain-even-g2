@@ -1,11 +1,13 @@
 /**
  * Tests 6–10, 18–20: Cache behaviour (cold open, warm open, edge cases)
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { state, setBridge } from '../state'
-import { onEvenHubEvent } from '../glasses/runtime'
-import { loadCachedList, saveCachedList } from '../cache'
-import { makeMockBridge, resetState, flushPromises, listClickEvent } from './helpers'
+
+import type { EvenAppBridge, RebuildPageContainer } from '@evenrealities/even_hub_sdk';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadCachedList, saveCachedList } from '../cache';
+import { onEvenHubEvent } from '../glasses/runtime';
+import { setBridge, state } from '../state';
+import { flushPromises, listClickEvent, makeMockBridge, resetState } from './helpers';
 
 // ---------------------------------------------------------------------------
 // Module mocks — api and stt are controlled; cache is mocked so we can
@@ -40,13 +42,13 @@ vi.mock('../api', () => ({
   fetchTypeTags: vi.fn().mockResolvedValue([]),
   fetchTasksForProject: vi.fn().mockResolvedValue([]),
   fetchNotesForProject: vi.fn().mockResolvedValue([]),
-}))
+}));
 
 vi.mock('../cache', () => ({
   loadCachedList: vi.fn(),
   saveCachedList: vi.fn().mockResolvedValue(undefined),
   cacheKeyForScreen: (screen: string) => `notionultimatebrain:${screen}`,
-}))
+}));
 
 vi.mock('../stt', () => ({
   isListening: vi.fn().mockReturnValue(false),
@@ -55,35 +57,35 @@ vi.mock('../stt', () => ({
   ensureRecognizer: vi.fn().mockResolvedValue(true),
   feedAudio: vi.fn(),
   preloadVoskModel: vi.fn(),
-}))
+}));
 
-import { fetchInboxTasks } from '../api'
+import { fetchInboxTasks } from '../api';
 
-let mockBridge: ReturnType<typeof makeMockBridge>
+let mockBridge: ReturnType<typeof makeMockBridge>;
 
-const CACHED_INBOX = [{ id: 'c1', name: 'Cached task' }]
-const FRESH_INBOX  = [{ id: 'f1', name: 'Fresh task' }]
+const CACHED_INBOX = [{ id: 'c1', name: 'Cached task' }];
+const FRESH_INBOX = [{ id: 'f1', name: 'Fresh task' }];
 
 beforeEach(() => {
-  mockBridge = makeMockBridge()
-  setBridge(mockBridge as any)
-  resetState()
+  mockBridge = makeMockBridge();
+  setBridge(mockBridge as unknown as EvenAppBridge);
+  resetState();
 
   // Default: instant successful network response
-  vi.mocked(fetchInboxTasks).mockResolvedValue(FRESH_INBOX)
-})
+  vi.mocked(fetchInboxTasks).mockResolvedValue(FRESH_INBOX);
+});
 
 afterEach(() => {
-  vi.clearAllMocks()
-})
+  vi.clearAllMocks();
+});
 
 // ---------------------------------------------------------------------------
 // Helper: open the inbox screen and wait for the full async pipeline
 // ---------------------------------------------------------------------------
 async function openInbox() {
-  state.screen = 'tasks-menu'
-  onEvenHubEvent(listClickEvent(3))
-  await flushPromises(10)
+  state.screen = 'tasks-menu';
+  onEvenHubEvent(listClickEvent(3));
+  await flushPromises(10);
 }
 
 // ---------------------------------------------------------------------------
@@ -92,21 +94,21 @@ async function openInbox() {
 
 describe('cold open (no prior cache)', () => {
   it('shows a loading placeholder immediately before the network responds', async () => {
-    vi.mocked(loadCachedList).mockResolvedValue(null)
+    vi.mocked(loadCachedList).mockResolvedValue(null);
     // Stall the network so we can inspect the intermediate state
-    vi.mocked(fetchInboxTasks).mockReturnValue(new Promise(() => {}))
+    vi.mocked(fetchInboxTasks).mockReturnValue(new Promise(() => {}));
 
-    state.screen = 'tasks-menu'
-    onEvenHubEvent(listClickEvent(3))
+    state.screen = 'tasks-menu';
+    onEvenHubEvent(listClickEvent(3));
 
     // One flush gets past loadCachedList; navigate('inbox') fires synchronously after that
-    await flushPromises(2)
+    await flushPromises(2);
 
-    expect(mockBridge.rebuildPageContainer).toHaveBeenCalled()
-    const arg = mockBridge.rebuildPageContainer.mock.calls[0]![0] as any
-    expect(arg.textObject[0].content).toContain('Fetching tasks...')
-  })
-})
+    expect(mockBridge.rebuildPageContainer).toHaveBeenCalled();
+    const arg = mockBridge.rebuildPageContainer.mock.calls[0]?.[0] as RebuildPageContainer;
+    expect(arg.textObject?.[0]?.content).toContain('Fetching tasks...');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 7 — warm open
@@ -114,20 +116,20 @@ describe('cold open (no prior cache)', () => {
 
 describe('warm open (cache hit)', () => {
   it('shows cached tasks immediately before the network responds', async () => {
-    vi.mocked(loadCachedList).mockResolvedValue(CACHED_INBOX)
-    vi.mocked(fetchInboxTasks).mockReturnValue(new Promise(() => {})) // stall network
+    vi.mocked(loadCachedList).mockResolvedValue(CACHED_INBOX);
+    vi.mocked(fetchInboxTasks).mockReturnValue(new Promise(() => {})); // stall network
 
-    state.screen = 'tasks-menu'
-    onEvenHubEvent(listClickEvent(3))
-    await flushPromises(2)
+    state.screen = 'tasks-menu';
+    onEvenHubEvent(listClickEvent(3));
+    await flushPromises(2);
 
-    expect(mockBridge.rebuildPageContainer).toHaveBeenCalled()
-    const arg = mockBridge.rebuildPageContainer.mock.calls[0]![0] as any
+    expect(mockBridge.rebuildPageContainer).toHaveBeenCalled();
+    const arg = mockBridge.rebuildPageContainer.mock.calls[0]?.[0] as RebuildPageContainer;
     // Warm open → header+list mode. The cached task name lives in the list
     // items, not in the header text container.
-    expect(arg.listObject[0].itemContainer.itemName).toContain('Cached task')
-  })
-})
+    expect(arg.listObject?.[0]?.itemContainer?.itemName).toContain('Cached task');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 8 — failed fetch, cold open
@@ -135,24 +137,26 @@ describe('warm open (cache hit)', () => {
 
 describe('failed fetch on cold open', () => {
   it('shows an empty state instead of crashing or staying on "Fetching…"', async () => {
-    vi.mocked(loadCachedList).mockResolvedValue(null)
-    vi.mocked(fetchInboxTasks).mockRejectedValue(new Error('Network error'))
+    vi.mocked(loadCachedList).mockResolvedValue(null);
+    vi.mocked(fetchInboxTasks).mockRejectedValue(new Error('Network error'));
 
-    await openInbox()
+    await openInbox();
 
     // After the fetch fails with no cache, tasks are empty and loading is false
-    expect(state.loading).toBe(false)
-    expect(state.lists.inbox).toEqual([])
+    expect(state.loading).toBe(false);
+    expect(state.lists.inbox).toEqual([]);
 
     // The last render is the empty-state full rebuild (single text container,
     // no list — there's no partial-list-update API, so the settled state
     // always arrives via a full rebuild). It should not show the loading
     // placeholder.
-    const lastRebuild = mockBridge.rebuildPageContainer.mock.calls.at(-1)![0] as any
-    expect(lastRebuild.textObject[0].content).toContain('Your inbox is empty!')
-    expect(lastRebuild.textObject[0].content).not.toContain('Fetching tasks...')
-  })
-})
+    const lastRebuild = mockBridge.rebuildPageContainer.mock.calls.at(
+      -1,
+    )?.[0] as RebuildPageContainer;
+    expect(lastRebuild.textObject?.[0]?.content).toContain('Your inbox is empty!');
+    expect(lastRebuild.textObject?.[0]?.content).not.toContain('Fetching tasks...');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 9 — failed fetch, warm open
@@ -160,15 +164,15 @@ describe('failed fetch on cold open', () => {
 
 describe('failed fetch on warm open', () => {
   it('keeps the cached tasks visible instead of blanking the screen', async () => {
-    vi.mocked(loadCachedList).mockResolvedValue(CACHED_INBOX)
-    vi.mocked(fetchInboxTasks).mockRejectedValue(new Error('Network error'))
+    vi.mocked(loadCachedList).mockResolvedValue(CACHED_INBOX);
+    vi.mocked(fetchInboxTasks).mockRejectedValue(new Error('Network error'));
 
-    await openInbox()
+    await openInbox();
 
     // Cached data must survive the fetch failure
-    expect(state.lists.inbox).toEqual(CACHED_INBOX)
-  })
-})
+    expect(state.lists.inbox).toEqual(CACHED_INBOX);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test 10 — successful fetch persists fresh data
@@ -176,16 +180,15 @@ describe('failed fetch on warm open', () => {
 
 describe('successful background fetch', () => {
   it('saves the fresh data so the next open gets it instantly', async () => {
-    vi.mocked(loadCachedList).mockResolvedValue(CACHED_INBOX)
-    vi.mocked(fetchInboxTasks).mockResolvedValue(FRESH_INBOX)
+    vi.mocked(loadCachedList).mockResolvedValue(CACHED_INBOX);
+    vi.mocked(fetchInboxTasks).mockResolvedValue(FRESH_INBOX);
 
-    await openInbox()
+    await openInbox();
 
     expect(vi.mocked(saveCachedList)).toHaveBeenCalledWith(
       'notionultimatebrain:inbox',
       FRESH_INBOX,
-    )
-    expect(state.lists.inbox).toEqual(FRESH_INBOX)
-  })
-})
-
+    );
+    expect(state.lists.inbox).toEqual(FRESH_INBOX);
+  });
+});

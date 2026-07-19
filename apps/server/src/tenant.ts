@@ -1,28 +1,28 @@
-import type { TenantConfig } from '@notion-ub/contracts'
+import type { TenantConfig } from '@notion-ub/contracts';
 
 export interface TenantDb {
-  tasks: string
-  notes: string
-  projects: string
-  tags: string
-  excludeProjectId?: string
+  tasks: string;
+  notes: string;
+  projects: string;
+  tags: string;
+  excludeProjectId?: string;
 }
 
 export interface Tenant {
-  token: string
-  db: TenantDb
+  token: string;
+  db: TenantDb;
   // IANA timezone of the requesting device; used to resolve relative date
   // keywords against the user's local calendar day. Absent → UTC.
-  timeZone?: string
+  timeZone?: string;
 }
 
 // Wire shape carried in the X-Notion-Config header: a base64 JSON blob,
 // field-for-field the shared TenantConfig — but every value starts out
 // unknown until isNonEmptyString below validates it.
-type TenantHeaderPayload = { [K in keyof TenantConfig]?: unknown }
+type TenantHeaderPayload = { [K in keyof TenantConfig]?: unknown };
 
 function isNonEmptyString(v: unknown): v is string {
-  return typeof v === 'string' && v.length > 0
+  return typeof v === 'string' && v.length > 0;
 }
 
 /**
@@ -31,17 +31,17 @@ function isNonEmptyString(v: unknown): v is string {
  * uniformly respond 401.
  */
 export function parseTenant(headerValue: string | undefined | string[]): Tenant | null {
-  if (typeof headerValue !== 'string' || !headerValue) return null
+  if (typeof headerValue !== 'string' || !headerValue) return null;
 
-  let payload: TenantHeaderPayload
+  let payload: TenantHeaderPayload;
   try {
-    const raw = Buffer.from(headerValue, 'base64').toString('utf-8')
-    payload = JSON.parse(raw)
+    const raw = Buffer.from(headerValue, 'base64').toString('utf-8');
+    payload = JSON.parse(raw);
   } catch {
-    return null
+    return null;
   }
 
-  const { token, tasksDb, notesDb, projectsDb, tagsDb, excludeProjectId, timeZone } = payload
+  const { token, tasksDb, notesDb, projectsDb, tagsDb, excludeProjectId, timeZone } = payload;
   if (
     !isNonEmptyString(token) ||
     !isNonEmptyString(tasksDb) ||
@@ -49,7 +49,7 @@ export function parseTenant(headerValue: string | undefined | string[]): Tenant 
     !isNonEmptyString(projectsDb) ||
     !isNonEmptyString(tagsDb)
   ) {
-    return null
+    return null;
   }
 
   return {
@@ -62,5 +62,5 @@ export function parseTenant(headerValue: string | undefined | string[]): Tenant 
       ...(isNonEmptyString(excludeProjectId) ? { excludeProjectId } : {}),
     },
     ...(isNonEmptyString(timeZone) ? { timeZone } : {}),
-  }
+  };
 }

@@ -1,6 +1,6 @@
-import { vi } from 'vitest'
-import { Text_ItemEvent, List_ItemEvent } from '@evenrealities/even_hub_sdk'
-import { state } from '../state'
+import { List_ItemEvent, Text_ItemEvent } from '@evenrealities/even_hub_sdk';
+import { vi } from 'vitest';
+import { state } from '../state';
 
 // ---------------------------------------------------------------------------
 // Mock bridge factory
@@ -15,7 +15,7 @@ export function makeMockBridge() {
     audioControl: vi.fn().mockResolvedValue(true),
     setLocalStorage: vi.fn().mockResolvedValue(true),
     getLocalStorage: vi.fn().mockResolvedValue(''),
-  }
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -23,20 +23,20 @@ export function makeMockBridge() {
 // ---------------------------------------------------------------------------
 
 export function resetState() {
-  state.screen = 'menu'
-  state.startupRendered = true   // skip createStartUpPageContainer path
-  state.lists = {}
-  state.recording = 'idle'
-  state.createdTaskName = ''
-  state.pendingTranscript = ''
-  state.loading = false
-  state.spinnerFrame = ''
-  state.errorMessage = ''
-  state.pendingAction = null
-  state.selectedTask = null
-  state.taskMetadata = null
-  state.actionToast = null
-  state.selectedProject = null
+  state.screen = 'menu';
+  state.startupRendered = true; // skip createStartUpPageContainer path
+  state.lists = {};
+  state.recording = 'idle';
+  state.createdTaskName = '';
+  state.pendingTranscript = '';
+  state.loading = false;
+  state.spinnerFrame = '';
+  state.errorMessage = '';
+  state.pendingAction = null;
+  state.selectedTask = null;
+  state.taskMetadata = null;
+  state.actionToast = null;
+  state.selectedProject = null;
 }
 
 // ---------------------------------------------------------------------------
@@ -47,7 +47,7 @@ export function resetState() {
 
 export async function flushPromises(depth = 5) {
   for (let i = 0; i < depth; i++) {
-    await Promise.resolve()
+    await Promise.resolve();
   }
 }
 
@@ -57,7 +57,7 @@ export async function flushPromises(depth = 5) {
 
 export function clickEvent() {
   // eventType 0 (CLICK_EVENT) is omitted by protobuf → undefined on textEvent
-  return { textEvent: new Text_ItemEvent({}) }
+  return { textEvent: new Text_ItemEvent({}) };
 }
 
 /**
@@ -66,7 +66,7 @@ export function clickEvent() {
  * as clickEvent() — eventType is left unset.
  */
 export function listClickEvent(index: number) {
-  return { listEvent: new List_ItemEvent({ currentSelectItemIndex: index }) }
+  return { listEvent: new List_ItemEvent({ currentSelectItemIndex: index }) };
 }
 
 /**
@@ -77,17 +77,17 @@ export function listClickEvent(index: number) {
  * helper to test the SDK's zero-omission quirk specifically.
  */
 export function listClickEventFirstItemOmittedIndex() {
-  return { listEvent: new List_ItemEvent({}) }
+  return { listEvent: new List_ItemEvent({}) };
 }
 
 export function scrollUpEvent() {
-  return { textEvent: new Text_ItemEvent({ eventType: 1 }) }   // SCROLL_TOP_EVENT
+  return { textEvent: new Text_ItemEvent({ eventType: 1 }) }; // SCROLL_TOP_EVENT
 }
 
 export function scrollDownEvent() {
-  return { textEvent: new Text_ItemEvent({ eventType: 2 }) }   // SCROLL_BOTTOM_EVENT
+  return { textEvent: new Text_ItemEvent({ eventType: 2 }) }; // SCROLL_BOTTOM_EVENT
 }
 
 export function doubleTapEvent() {
-  return { textEvent: new Text_ItemEvent({ eventType: 3 }) }   // DOUBLE_CLICK_EVENT
+  return { textEvent: new Text_ItemEvent({ eventType: 3 }) }; // DOUBLE_CLICK_EVENT
 }

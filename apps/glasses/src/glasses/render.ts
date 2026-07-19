@@ -1,28 +1,28 @@
 import {
   CreateStartUpPageContainer,
+  ListContainerProperty,
+  ListItemContainerProperty,
   RebuildPageContainer,
   TextContainerProperty,
   TextContainerUpgrade,
-  ListContainerProperty,
-  ListItemContainerProperty,
-} from '@evenrealities/even_hub_sdk'
-import { state, getBridge } from '../state'
-import type { ScreenName } from '../state'
-import { router } from './router'
+} from '@evenrealities/even_hub_sdk';
+import type { ScreenName } from '../state';
+import { getBridge, state } from '../state';
 import {
-  SCREEN_W,
-  SCREEN_H,
-  HEADER_H,
-  LIST_H,
-  CONTAINER_PADDING,
   CONTAINER_ID_HEADER,
   CONTAINER_ID_LIST,
+  CONTAINER_PADDING,
   HEADER_CONTAINER_NAME,
+  HEADER_H,
   LIST_CONTAINER_NAME,
-} from './constants'
+  LIST_H,
+  SCREEN_H,
+  SCREEN_W,
+} from './constants';
+import { router } from './router';
 
 function currentDisplay() {
-  return router.toDisplayData(state)
+  return router.toDisplayData(state);
 }
 
 // ---------------------------------------------------------------------------
@@ -30,20 +30,20 @@ function currentDisplay() {
 // ---------------------------------------------------------------------------
 
 async function rebuildPage(config: {
-  containerTotalNum: number
-  textObject?: TextContainerProperty[]
-  listObject?: ListContainerProperty[]
+  containerTotalNum: number;
+  textObject?: TextContainerProperty[];
+  listObject?: ListContainerProperty[];
 }): Promise<void> {
-  const b = getBridge()
-  if (!b) return
+  const b = getBridge();
+  if (!b) return;
 
   if (!state.startupRendered) {
-    await b.createStartUpPageContainer(new CreateStartUpPageContainer(config))
-    state.startupRendered = true
-    return
+    await b.createStartUpPageContainer(new CreateStartUpPageContainer(config));
+    state.startupRendered = true;
+    return;
   }
 
-  await b.rebuildPageContainer(new RebuildPageContainer(config))
+  await b.rebuildPageContainer(new RebuildPageContainer(config));
 }
 
 /**
@@ -67,12 +67,12 @@ function placeholderListContainer(): ListContainerProperty {
       itemCount: 1,
       isItemSelectBorderEn: 0,
     }),
-  })
+  });
 }
 
 /** Full container rebuild. Assumes `state.screen === screen` already. */
-export async function renderFull(screen: ScreenName): Promise<void> {
-  const display = currentDisplay()
+export async function renderFull(): Promise<void> {
+  const display = currentDisplay();
 
   if (display.mode === 'text') {
     await rebuildPage({
@@ -91,8 +91,8 @@ export async function renderFull(screen: ScreenName): Promise<void> {
         }),
       ],
       listObject: [placeholderListContainer()],
-    })
-    return
+    });
+    return;
   }
 
   // List mode: header (id=1, non-capturing) + native list (id=2, capturing).
@@ -127,7 +127,7 @@ export async function renderFull(screen: ScreenName): Promise<void> {
         }),
       }),
     ],
-  })
+  });
 }
 
 /**
@@ -136,12 +136,12 @@ export async function renderFull(screen: ScreenName): Promise<void> {
  * list items only ever change via a full renderFull() rebuild.
  */
 export async function renderUpdate(screen: ScreenName): Promise<void> {
-  if (state.screen !== screen) return
-  const b = getBridge()
-  if (!b) return
+  if (state.screen !== screen) return;
+  const b = getBridge();
+  if (!b) return;
 
-  const display = currentDisplay()
-  const content = display.mode === 'text' ? display.content : display.header
+  const display = currentDisplay();
+  const content = display.mode === 'text' ? display.content : display.header;
 
   await b.textContainerUpgrade(
     new TextContainerUpgrade({
@@ -149,5 +149,5 @@ export async function renderUpdate(screen: ScreenName): Promise<void> {
       containerName: HEADER_CONTAINER_NAME,
       content,
     }),
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import type { AppState } from '../../../state'
-import type { ScreenModule } from '../../types'
+import type { AppState } from '../../../state';
+import type { ScreenModule } from '../../types';
 
 function addTaskContent(state: AppState): string {
   switch (state.recording) {
@@ -13,7 +13,7 @@ function addTaskContent(state: AppState): string {
         'automatically on silence.',
         '',
         'Double-tap to go back.',
-      ].join('\n')
+      ].join('\n');
 
     case 'recording':
       return [
@@ -25,15 +25,10 @@ function addTaskContent(state: AppState): string {
         '',
         'Stops on silence.',
         'Tap to stop early.',
-      ].join('\n')
+      ].join('\n');
 
     case 'processing':
-      return [
-        'ADD TASK',
-        '',
-        'Processing audio...',
-        'Please wait.',
-      ].join('\n')
+      return ['ADD TASK', '', 'Processing audio...', 'Please wait.'].join('\n');
 
     case 'confirm':
       return [
@@ -45,7 +40,7 @@ function addTaskContent(state: AppState): string {
         'Tap to confirm.',
         'Double-tap to discard',
         '& re-record.',
-      ].join('\n')
+      ].join('\n');
 
     case 'done':
       return [
@@ -57,7 +52,7 @@ function addTaskContent(state: AppState): string {
         '',
         'Tap to add another.',
         'Double-tap to go back.',
-      ].join('\n')
+      ].join('\n');
 
     case 'error':
       return [
@@ -68,34 +63,34 @@ function addTaskContent(state: AppState): string {
         '',
         'Tap to try again.',
         'Double-tap to go back.',
-      ].join('\n')
+      ].join('\n');
   }
 }
 
 export const addTaskScreen: ScreenModule = {
   display(state) {
-    return { mode: 'text', content: addTaskContent(state) }
+    return { mode: 'text', content: addTaskContent(state) };
   },
 
   action(action, state, ctx) {
     if (action.type === 'GO_BACK') {
       if (state.recording === 'confirm') {
-        ctx.discardAddTask()
+        ctx.discardAddTask();
       } else {
         // Stop any active recording before going back
-        ctx.cancelRecordingAndGoBack()
+        ctx.cancelRecordingAndGoBack();
       }
-      return
+      return;
     }
 
     if (action.type === 'SELECT_HIGHLIGHTED') {
       if (state.recording === 'confirm') {
-        void ctx.confirmAddTask()
+        void ctx.confirmAddTask();
       } else {
-        ctx.startRecording()
+        ctx.startRecording();
       }
     }
 
     // HIGHLIGHT_MOVE: no scrollable content on this screen — intentionally no-op
   },
-}
+};

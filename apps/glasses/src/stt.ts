@@ -11,39 +11,51 @@
  * Audio format from glasses: S16LE, 16 kHz, mono → convert to Float32 before feeding.
  */
 
-import { createModel } from 'vosk-browser'
+import { createModel, type KaldiRecognizer, type Model } from 'vosk-browser';
+
+/**
+ * The narrow slice of vosk-browser's `result` worker event that this code (and
+ * its tests) read. The real event (ServerMessageResult) carries more, but
+ * vosk-browser doesn't re-export its type from the package root, so tests use
+ * this to build a faithful-enough fake — note the `event` discriminant, which
+ * the recognizer handler switches on.
+ */
+export interface VoskResultMessage {
+  event: 'result';
+  result: { text: string };
+}
 
 // ---------------------------------------------------------------------------
 // Timing constants (matches EvenChess controller.ts conventions)
 // ---------------------------------------------------------------------------
 
-const SAMPLE_RATE = 16000
-const SPEECH_AMPLITUDE = 0.012   // mean abs amplitude threshold to count as "speech"
-const SILENCE_MS = 1200          // silence after speech triggers auto-stop
-const MIN_LISTEN_MS = 500        // don't auto-stop before this many ms
-const MAX_LISTEN_MS = 15000      // hard cap regardless of VAD
-const ENDPOINT_POLL_MS = 150     // how often VAD is evaluated
-const RESULT_TIMEOUT_MS = 3000   // safety timeout if Vosk never fires the result event
+const SAMPLE_RATE = 16000;
+const SPEECH_AMPLITUDE = 0.012; // mean abs amplitude threshold to count as "speech"
+const SILENCE_MS = 1200; // silence after speech triggers auto-stop
+const MIN_LISTEN_MS = 500; // don't auto-stop before this many ms
+const MAX_LISTEN_MS = 15000; // hard cap regardless of VAD
+const ENDPOINT_POLL_MS = 150; // how often VAD is evaluated
+const RESULT_TIMEOUT_MS = 3000; // safety timeout if Vosk never fires the result event
 
 // ---------------------------------------------------------------------------
 // Module-level singletons (reused across recording sessions)
 // ---------------------------------------------------------------------------
 
-let modelPromise: Promise<any> | null = null
-let rec: any = null  // KaldiRecognizer instance
+let modelPromise: Promise<Model | null> | null = null;
+let rec: KaldiRecognizer | null = null;
 
 // Mutable per-session callbacks (updated by startListening each session)
-let sessionOnFinal: ((text: string) => void) | null = null
-let sessionOnStop: (() => void) | null = null
+let sessionOnFinal: ((text: string) => void) | null = null;
+let sessionOnStop: (() => void) | null = null;
 
 // VAD / session state
-let listening = false
-let heardSpeech = false
-let lastVoiceAt = 0
-let startedAt = 0
-let pollTimer: ReturnType<typeof setInterval> | null = null
-let maxTimer: ReturnType<typeof setTimeout> | null = null
-let resultTimer: ReturnType<typeof setTimeout> | null = null
+let listening = false;
+let heardSpeech = false;
+let lastVoiceAt = 0;
+let startedAt = 0;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let maxTimer: ReturnType<typeof setTimeout> | null = null;
+let resultTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ---------------------------------------------------------------------------
 // Audio conversion helpers (from EvenChess voice/pcm.ts)
@@ -54,26 +66,23 @@ let resultTimer: ReturnType<typeof setTimeout> | null = null
  * The SDK types audioPcm as Uint8Array, but JSON bridging can deliver number[].
  */
 function pcm16ToFloat32(pcm: Uint8Array | number[]): Float32Array {
-  const bytes =
-    pcm instanceof Uint8Array
-      ? pcm
-      : Uint8Array.from(pcm, (n) => n & 0xff)
+  const bytes = pcm instanceof Uint8Array ? pcm : Uint8Array.from(pcm, (n) => n & 0xff);
 
-  const samples = Math.floor(bytes.byteLength / 2)
-  const out = new Float32Array(samples)
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const samples = Math.floor(bytes.byteLength / 2);
+  const out = new Float32Array(samples);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   for (let i = 0; i < samples; i++) {
-    out[i] = view.getInt16(i * 2, true) / 32768
+    out[i] = view.getInt16(i * 2, true) / 32768;
   }
-  return out
+  return out;
 }
 
 /** Mean absolute amplitude (0–1) — naive speech/silence detector. */
 function meanAbsAmplitude(f32: Float32Array): number {
-  if (f32.length === 0) return 0
-  let sum = 0
-  for (let i = 0; i < f32.length; i++) sum += Math.abs(f32[i]!)
-  return sum / f32.length
+  if (f32.length === 0) return 0;
+  let sum = 0;
+  for (const sample of f32) sum += Math.abs(sample);
+  return sum / f32.length;
 }
 
 // ---------------------------------------------------------------------------
@@ -81,12 +90,21 @@ function meanAbsAmplitude(f32: Float32Array): number {
 // ---------------------------------------------------------------------------
 
 function clearSessionTimers(): void {
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
-  if (maxTimer) { clearTimeout(maxTimer); maxTimer = null }
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+  if (maxTimer) {
+    clearTimeout(maxTimer);
+    maxTimer = null;
+  }
 }
 
 function clearResultTimer(): void {
-  if (resultTimer) { clearTimeout(resultTimer); resultTimer = null }
+  if (resultTimer) {
+    clearTimeout(resultTimer);
+    resultTimer = null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -101,29 +119,29 @@ function clearResultTimer(): void {
  * `on('result')` handler in ensureRecognizer).
  */
 function endCapture(): void {
-  if (!listening) return
-  listening = false
-  clearSessionTimers()
+  if (!listening) return;
+  listening = false;
+  clearSessionTimers();
 
   // Notify the caller synchronously — close mic, update UI to "processing"
-  sessionOnStop?.()
-  sessionOnStop = null
+  sessionOnStop?.();
+  sessionOnStop = null;
 }
 
 function finalize(): void {
-  if (!listening) return
-  endCapture()
+  if (!listening) return;
+  endCapture();
 
   // Ask Vosk to flush; the 'result' event fires asynchronously via the Worker
-  rec?.retrieveFinalResult()
+  rec?.retrieveFinalResult();
 
   // Safety net: if Vosk never fires the result event, show an error
-  const savedOnFinal = sessionOnFinal
+  const savedOnFinal = sessionOnFinal;
   resultTimer = setTimeout(() => {
-    resultTimer = null
-    sessionOnFinal = null
-    savedOnFinal?.('')   // empty = no speech detected
-  }, RESULT_TIMEOUT_MS)
+    resultTimer = null;
+    sessionOnFinal = null;
+    savedOnFinal?.(''); // empty = no speech detected
+  }, RESULT_TIMEOUT_MS);
 }
 
 // ---------------------------------------------------------------------------
@@ -137,12 +155,12 @@ function finalize(): void {
  * @param modelUrl  URL of the .tar.gz model file (e.g. '/vosk/model.tar.gz')
  */
 export function preloadVoskModel(modelUrl: string): void {
-  if (modelPromise) return
+  if (modelPromise) return;
   modelPromise = createModel(modelUrl).catch(() => {
-    modelPromise = null   // allow a retry later
-    console.warn(`Voice model failed to load from ${modelUrl} — run npm run fetch:voice-model`)
-    return null
-  })
+    modelPromise = null; // allow a retry later
+    console.warn(`Voice model failed to load from ${modelUrl} — run npm run fetch:voice-model`);
+    return null;
+  });
 }
 
 /**
@@ -154,22 +172,23 @@ export function preloadVoskModel(modelUrl: string): void {
  * @param modelUrl  Same URL passed to preloadVoskModel — used if preload wasn't called.
  */
 export async function ensureRecognizer(modelUrl: string): Promise<boolean> {
-  if (rec) return true  // already initialized
+  if (rec) return true; // already initialized
 
   if (!modelPromise) {
-    modelPromise = createModel(modelUrl)
+    modelPromise = createModel(modelUrl);
   }
 
   try {
-    const model = await modelPromise
-    if (!model) return false
+    const model = await modelPromise;
+    if (!model) return false;
 
     // No grammar → open-domain (any words). Pass undefined to skip constraint.
-    rec = new model.KaldiRecognizer(SAMPLE_RATE)
+    rec = new model.KaldiRecognizer(SAMPLE_RATE);
 
     // Wire the result event once — calls through to the current session's callback
-    rec.on('result', (msg: any) => {
-      const text = ((msg?.result?.text ?? '') as string).trim()
+    // msg is contextually typed as vosk-browser's RecognizerMessage union.
+    rec.on('result', (msg) => {
+      const text = (msg.event === 'result' ? msg.result.text : '').trim();
 
       // If `listening` is still true, Vosk emitted this result on its own
       // (endpoint detected) BEFORE our VAD/manual stop ran. End the capture
@@ -178,17 +197,17 @@ export async function ensureRecognizer(modelUrl: string): Promise<boolean> {
       // to "processing" with no transcript left to move it off, leaving it
       // stuck. endCapture() is idempotent, so the normal path (finalize
       // already ran, listening=false) skips it here.
-      if (listening) endCapture()
+      if (listening) endCapture();
 
-      clearResultTimer()                // real result arrived — cancel safety timeout
-      const cb = sessionOnFinal
-      sessionOnFinal = null
-      cb?.(text)
-    })
+      clearResultTimer(); // real result arrived — cancel safety timeout
+      const cb = sessionOnFinal;
+      sessionOnFinal = null;
+      cb?.(text);
+    });
 
-    return true
+    return true;
   } catch {
-    return false
+    return false;
   }
 }
 
@@ -200,36 +219,29 @@ export async function ensureRecognizer(modelUrl: string): Promise<boolean> {
  * @param onStop   Called synchronously when the session ends (VAD or manual stop).
  *                 Use this to close the glasses mic and update recording state to 'processing'.
  */
-export function startListening(
-  onFinal: (text: string) => void,
-  onStop?: () => void,
-): void {
-  if (listening || !rec) return
+export function startListening(onFinal: (text: string) => void, onStop?: () => void): void {
+  if (listening || !rec) return;
 
-  sessionOnFinal = onFinal
-  sessionOnStop = onStop ?? null
-  listening = true
-  heardSpeech = false
-  startedAt = Date.now()
-  lastVoiceAt = startedAt
+  sessionOnFinal = onFinal;
+  sessionOnStop = onStop ?? null;
+  listening = true;
+  heardSpeech = false;
+  startedAt = Date.now();
+  lastVoiceAt = startedAt;
 
   // VAD poll: auto-stop after SILENCE_MS of quiet following detected speech
   pollTimer = setInterval(() => {
-    if (!listening) return
-    const now = Date.now()
-    if (
-      now - startedAt > MIN_LISTEN_MS &&
-      heardSpeech &&
-      now - lastVoiceAt > SILENCE_MS
-    ) {
-      finalize()
+    if (!listening) return;
+    const now = Date.now();
+    if (now - startedAt > MIN_LISTEN_MS && heardSpeech && now - lastVoiceAt > SILENCE_MS) {
+      finalize();
     }
-  }, ENDPOINT_POLL_MS)
+  }, ENDPOINT_POLL_MS);
 
   // Hard cap
   maxTimer = setTimeout(() => {
-    finalize()
-  }, MAX_LISTEN_MS)
+    finalize();
+  }, MAX_LISTEN_MS);
 }
 
 /**
@@ -239,13 +251,13 @@ export function startListening(
  * @param pcm  Raw bytes from audioEvent.audioPcm (S16LE, 16 kHz, mono)
  */
 export function feedAudio(pcm: Uint8Array | number[]): void {
-  if (!listening || !rec) return
-  const f32 = pcm16ToFloat32(pcm)
+  if (!listening || !rec) return;
+  const f32 = pcm16ToFloat32(pcm);
   if (meanAbsAmplitude(f32) >= SPEECH_AMPLITUDE) {
-    heardSpeech = true
-    lastVoiceAt = Date.now()
+    heardSpeech = true;
+    lastVoiceAt = Date.now();
   }
-  rec.acceptWaveformFloat(f32, SAMPLE_RATE)
+  rec.acceptWaveformFloat(f32, SAMPLE_RATE);
 }
 
 /**
@@ -253,10 +265,10 @@ export function feedAudio(pcm: Uint8Array | number[]): void {
  * Same code path as VAD auto-stop → calls finalize().
  */
 export function stopListening(): void {
-  finalize()
+  finalize();
 }
 
 /** Whether a recording session is currently active. */
 export function isListening(): boolean {
-  return listening
+  return listening;
 }

@@ -7,8 +7,12 @@ body {
   color: #eee;
 }
 
-h1 { color: #4ade80; }
-#status { color: #888; }
+h1 {
+  color: #4ade80;
+}
+#status {
+  color: #888;
+}
 button {
   background: #4ade80;
   color: #111;
@@ -18,9 +22,14 @@ button {
   cursor: pointer;
   font-size: 1rem;
 }
-button:disabled { opacity: 0.5; }
+button:disabled {
+  opacity: 0.5;
+}
 
-.actions { display: flex; gap: 0.5rem; }
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
 
 .settings-form {
   display: none;
@@ -32,8 +41,16 @@ button:disabled { opacity: 0.5; }
   border: 1px solid #333;
   border-radius: 8px;
 }
-.settings-form h2 { margin: 0 0 0.5rem; font-size: 1rem; color: #eee; }
-.settings-form label { font-size: 0.8rem; color: #aaa; margin-top: 0.5rem; }
+.settings-form h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: #eee;
+}
+.settings-form label {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-top: 0.5rem;
+}
 .settings-form input {
   background: #000;
   color: #eee;
@@ -43,7 +60,10 @@ button:disabled { opacity: 0.5; }
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85rem;
 }
-.settings-form button[type='submit'] { margin-top: 0.75rem; align-self: start; }
+.settings-form button[type="submit"] {
+  margin-top: 0.75rem;
+  align-self: start;
+}
 
 #log {
   margin-top: 1.5rem;
@@ -60,13 +80,30 @@ button:disabled { opacity: 0.5; }
   white-space: pre-wrap;
   word-break: break-word;
 }
-.log-line { white-space: pre-wrap; }
-.log-log, .log-info { color: #d4d4d4; }
-.log-debug { color: #888; }
-.log-warn { color: #fbbf24; }
-.log-error { color: #f87171; }
+.log-line {
+  white-space: pre-wrap;
+}
+.log-log,
+.log-info {
+  color: #d4d4d4;
+}
+.log-debug {
+  color: #888;
+}
+.log-warn {
+  color: #fbbf24;
+}
+.log-error {
+  color: #f87171;
+}
 
 /* API call lines — accent in cyan so they stand out from generic log lines */
-.log-line.log-api { color: #67e8f9; }
-.log-line.log-api.log-warn { color: #fbbf24; }
-.log-line.log-api.log-error { color: #f87171; }
+.log-line.log-api {
+  color: #67e8f9;
+}
+.log-line.log-api.log-warn {
+  color: #fbbf24;
+}
+.log-line.log-api.log-error {
+  color: #f87171;
+}

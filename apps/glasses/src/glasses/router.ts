@@ -1,45 +1,44 @@
-import type { AppState } from '../state'
-import type { GlassCtx } from './types'
-import type { ScreenModule, ScreenDisplay, AppGlassAction } from './types'
-import { menuScreen } from './screens/menu'
-import { tasksMenuScreen } from './screens/tasks/menu'
-import { notesMenuScreen } from './screens/notes/menu'
-import { projectsMenuScreen } from './screens/projects/menu'
-import { tagsMenuScreen } from './screens/tags/menu'
-import { overdueScreen } from './screens/tasks/overdue'
-import { todayScreen } from './screens/tasks/today'
-import { inboxScreen } from './screens/tasks/inbox'
-import { addTaskScreen } from './screens/tasks/add-task'
-import { markDoneConfirmScreen } from './screens/tasks/mark-done-confirm'
-import { markDoneToastScreen } from './screens/tasks/mark-done-toast'
-import { taskActionsScreen } from './screens/tasks/task-actions'
-import { taskMetadataScreen } from './screens/tasks/task-metadata'
-import { deleteConfirmScreen } from './screens/tasks/delete-confirm'
-import { deleteToastScreen } from './screens/tasks/delete-toast'
-import { next7DaysScreen } from './screens/tasks/next-7-days'
-import { tomorrowScreen } from './screens/tasks/tomorrow'
-import { notesInboxScreen } from './screens/notes/inbox'
-import { notesFavoritesScreen } from './screens/notes/favorites'
-import { notesByTagScreen } from './screens/notes/by-tag'
-import { notesListScreen } from './screens/notes/notes'
-import { meetingsScreen } from './screens/notes/meetings'
-import { notesByProjectScreen } from './screens/notes/by-project'
-import { clipsScreen } from './screens/notes/clips'
-import { voiceNotesScreen } from './screens/notes/voice'
-import { journalScreen } from './screens/notes/journal'
-import { allNotesScreen } from './screens/notes/all'
-import { activeScreen as projectsActiveScreen } from './screens/projects/active'
-import { plannedScreen } from './screens/projects/planned'
-import { boardScreen } from './screens/projects/board'
-import { archivedScreen } from './screens/projects/archived'
-import { projectDetailScreen } from './screens/projects/detail'
-import { projectTasksScreen } from './screens/projects/project-tasks'
-import { projectNotesScreen } from './screens/projects/project-notes'
-import { recentTagsScreen } from './screens/tags/recent'
-import { tagsFavoritesScreen } from './screens/tags/favorites'
-import { tagsAzScreen } from './screens/tags/a-z'
-import { tagsTypesScreen } from './screens/tags/types'
-import { FALLBACK_SCREEN } from './constants'
+import type { AppState } from '../state';
+import { FALLBACK_SCREEN } from './constants';
+import { menuScreen } from './screens/menu';
+import { allNotesScreen } from './screens/notes/all';
+import { notesByProjectScreen } from './screens/notes/by-project';
+import { notesByTagScreen } from './screens/notes/by-tag';
+import { clipsScreen } from './screens/notes/clips';
+import { notesFavoritesScreen } from './screens/notes/favorites';
+import { notesInboxScreen } from './screens/notes/inbox';
+import { journalScreen } from './screens/notes/journal';
+import { meetingsScreen } from './screens/notes/meetings';
+import { notesMenuScreen } from './screens/notes/menu';
+import { notesListScreen } from './screens/notes/notes';
+import { voiceNotesScreen } from './screens/notes/voice';
+import { activeScreen as projectsActiveScreen } from './screens/projects/active';
+import { archivedScreen } from './screens/projects/archived';
+import { boardScreen } from './screens/projects/board';
+import { projectDetailScreen } from './screens/projects/detail';
+import { projectsMenuScreen } from './screens/projects/menu';
+import { plannedScreen } from './screens/projects/planned';
+import { projectNotesScreen } from './screens/projects/project-notes';
+import { projectTasksScreen } from './screens/projects/project-tasks';
+import { tagsAzScreen } from './screens/tags/a-z';
+import { tagsFavoritesScreen } from './screens/tags/favorites';
+import { tagsMenuScreen } from './screens/tags/menu';
+import { recentTagsScreen } from './screens/tags/recent';
+import { tagsTypesScreen } from './screens/tags/types';
+import { addTaskScreen } from './screens/tasks/add-task';
+import { deleteConfirmScreen } from './screens/tasks/delete-confirm';
+import { deleteToastScreen } from './screens/tasks/delete-toast';
+import { inboxScreen } from './screens/tasks/inbox';
+import { markDoneConfirmScreen } from './screens/tasks/mark-done-confirm';
+import { markDoneToastScreen } from './screens/tasks/mark-done-toast';
+import { tasksMenuScreen } from './screens/tasks/menu';
+import { next7DaysScreen } from './screens/tasks/next-7-days';
+import { overdueScreen } from './screens/tasks/overdue';
+import { taskActionsScreen } from './screens/tasks/task-actions';
+import { taskMetadataScreen } from './screens/tasks/task-metadata';
+import { todayScreen } from './screens/tasks/today';
+import { tomorrowScreen } from './screens/tasks/tomorrow';
+import type { AppGlassAction, GlassCtx, ScreenDisplay, ScreenModule } from './types';
 
 const SCREENS: Record<string, ScreenModule> = {
   menu: menuScreen,
@@ -80,17 +79,22 @@ const SCREENS: Record<string, ScreenModule> = {
   'project-detail': projectDetailScreen,
   'project-tasks': projectTasksScreen,
   'project-notes': projectNotesScreen,
-}
+};
+
+// Resolved once so getScreen has a guaranteed-defined fallback without a
+// non-null assertion; menuScreen backstops it if FALLBACK_SCREEN ever changes
+// to a key not registered in SCREENS.
+const fallbackScreen: ScreenModule = SCREENS[FALLBACK_SCREEN] ?? menuScreen;
 
 function getScreen(name: string): ScreenModule {
-  return SCREENS[name] ?? SCREENS[FALLBACK_SCREEN]!
+  return SCREENS[name] ?? fallbackScreen;
 }
 
 export const router = {
   toDisplayData(snapshot: AppState): ScreenDisplay {
-    return getScreen(snapshot.screen).display(snapshot)
+    return getScreen(snapshot.screen).display(snapshot);
   },
   onGlassAction(action: AppGlassAction, snapshot: AppState, ctx: GlassCtx): void {
-    getScreen(snapshot.screen).action(action, snapshot, ctx)
+    getScreen(snapshot.screen).action(action, snapshot, ctx);
   },
-}
+};

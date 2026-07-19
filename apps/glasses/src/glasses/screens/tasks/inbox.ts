@@ -1,5 +1,5 @@
-import type { ScreenModule } from '../../types'
-import { makeListScreen } from '../shared'
+import type { ScreenModule } from '../../types';
+import { makeListScreen } from '../shared';
 
 export const inboxScreen: ScreenModule = makeListScreen({
   screen: 'inbox',
@@ -8,4 +8,4 @@ export const inboxScreen: ScreenModule = makeListScreen({
   emptyMessage: 'Your inbox is empty!',
   loadingMessage: 'Fetching tasks...',
   onSelect: 'task',
-})
+});
