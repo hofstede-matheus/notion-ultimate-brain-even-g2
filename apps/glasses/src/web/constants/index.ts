@@ -5,7 +5,7 @@
  * scattering them across modules.
  */
 
-import type { Level } from './types';
+export type Level = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
 /**
  * console method names that get mirrored into the on-screen log overlay.

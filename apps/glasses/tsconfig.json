@@ -1,7 +1,10 @@
 {
   "extends": "@notion-ub/typescript-config/dom.json",
   "compilerOptions": {
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "paths": {
+      "@web/*": ["./src/web/*"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

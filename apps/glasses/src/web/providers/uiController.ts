@@ -1,8 +1,9 @@
 /**
- * Reactive UI store bridging boot.ts's imperative shell/settings API (see
- * ./shell and ./settings) onto the React webview (see ./components/App).
- * boot.ts keeps driving the app through setStatus/showRetry/promptForConfig/
- * etc. — this store is just where those calls now land instead of the DOM.
+ * Imperative bridge boot.ts drives the UI through (status text, connect
+ * button, settings dialog) — a module-level external store so boot.ts can
+ * call these functions before or after React mounts. UiStateProvider
+ * subscribes to this store via useSyncExternalStore and republishes it
+ * through Context; see ./UiStateProvider and ../hooks/useUiState.
  */
 
 import type { TenantConfig } from '@notion-ub/contracts';
@@ -46,7 +47,7 @@ export function subscribe(listener: () => void): () => void {
 }
 
 // ---------------------------------------------------------------------------
-// shell.ts — connection status + connect/retry button
+// Connection status + connect/retry button (boot.ts's shell contract)
 // ---------------------------------------------------------------------------
 
 export function setStatus(msg: string): void {
@@ -77,7 +78,7 @@ export function triggerConnect(): void {
 }
 
 // ---------------------------------------------------------------------------
-// settings.ts — settings form visibility + submit resolution
+// Settings form visibility + submit resolution (boot.ts's settings contract)
 // ---------------------------------------------------------------------------
 
 let settingsHandler: (() => void) | null = null;
@@ -93,11 +94,11 @@ export function triggerSettings(): void {
 
 let pendingResolve: ((cfg: TenantConfig) => void) | null = null;
 
-export function openSettings(prefill: TenantConfig | null): void {
+function openSettings(prefill: TenantConfig | null): void {
   setState({ settingsOpen: true, settingsPrefill: prefill });
 }
 
-export function setPendingResolve(resolve: (cfg: TenantConfig) => void): void {
+function setPendingResolve(resolve: (cfg: TenantConfig) => void): void {
   pendingResolve = resolve;
 }
 
@@ -107,4 +108,16 @@ export function resolveSettings(cfg: TenantConfig): void {
   pendingResolve = null;
   setState({ settingsOpen: false });
   resolve?.(cfg);
+}
+
+/**
+ * Reveal the settings form pre-filled with `prefill`, and resolve once the
+ * user submits a valid config (token + all 4 DB fields non-empty). Invoked
+ * by ../boot.ts's `reconfigure()`.
+ */
+export function promptForConfig(prefill?: TenantConfig | null): Promise<TenantConfig> {
+  openSettings(prefill ?? null);
+  return new Promise((resolve) => {
+    setPendingResolve(resolve);
+  });
 }

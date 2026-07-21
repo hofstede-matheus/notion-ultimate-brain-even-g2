@@ -1,17 +1,20 @@
 import { waitForEvenAppBridge } from '@evenrealities/even_hub_sdk';
 import type { TenantConfig } from '@notion-ub/contracts';
+import {
+  disableConnect,
+  hideConnect,
+  onConnectClick,
+  onSettingsClick,
+  promptForConfig,
+  setStatus,
+  showRetry,
+} from '@web/providers/uiController';
+import { loadStoredConfig, saveStoredConfig } from '@web/services/config';
 import { VOSK_MODEL_URL } from './glasses/constants';
 import { startGlasses } from './glasses/runtime';
 import { setBridge } from './state';
 import { preloadVoskModel } from './stt';
 import { getDevEnvConfig, getTenantConfig, setTenantConfig } from './tenant-config';
-import {
-  loadStoredConfig,
-  onSettingsClick,
-  promptForConfig,
-  saveStoredConfig,
-} from './web/settings';
-import { disableConnect, hideConnect, onConnectClick, setStatus, showRetry } from './web/shell';
 
 // ---------------------------------------------------------------------------
 // App bootstrap — connect the Even Hub bridge, ensure a Notion tenant config

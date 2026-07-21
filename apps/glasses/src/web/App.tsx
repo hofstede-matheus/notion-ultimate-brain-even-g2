@@ -1,9 +1,9 @@
 import { IcMenuGear } from 'even-toolkit/web/icons/svg-icons';
 import { NavHeader } from 'even-toolkit/web/nav-header';
-import { useSyncExternalStore } from 'react';
-import * as store from '../store';
-import { SettingsForm } from './SettingsForm';
-import { StatusScreen } from './StatusScreen';
+import { useUiState } from './hooks/useUiState';
+import { triggerSettings } from './providers/uiController';
+import { SettingsForm } from './screens/SettingsForm/SettingsForm';
+import { StatusScreen } from './screens/StatusScreen';
 
 /**
  * Hand-rolled equivalent of even-toolkit's AppShell (fixed header + scrollable
@@ -12,7 +12,7 @@ import { StatusScreen } from './StatusScreen';
  * transitively pulls in the chart components' `recharts` dependency.
  */
 export function App() {
-  const ui = useSyncExternalStore(store.subscribe, store.getState);
+  const ui = useUiState();
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden">
@@ -20,7 +20,7 @@ export function App() {
         <NavHeader
           title="GlassTask"
           right={
-            <button type="button" onClick={() => store.triggerSettings()} aria-label="Settings">
+            <button type="button" onClick={() => triggerSettings()} aria-label="Settings">
               <IcMenuGear width={24} height={24} className="text-text" />
             </button>
           }

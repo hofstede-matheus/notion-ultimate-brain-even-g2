@@ -1,7 +1,7 @@
 import { Card } from 'even-toolkit/web/card';
-import { useEffect, useRef, useSyncExternalStore } from 'react';
-import { getLogEntries, subscribeLog } from '../logger';
-import type { LogEntry } from '../types';
+import { useEffect, useRef } from 'react';
+import { useLogEntries } from '../../../hooks/useLogEntries';
+import type { LogEntry } from '../../../providers/LogProvider';
 
 /** Level → text color token. Warn/error win over the generic "api" accent. */
 function colorFor(entry: LogEntry): string {
@@ -13,7 +13,7 @@ function colorFor(entry: LogEntry): string {
 }
 
 export function LogConsole() {
-  const entries = useSyncExternalStore(subscribeLog, getLogEntries);
+  const entries = useLogEntries();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally re-runs on every new log entry to auto-scroll, though the effect body doesn't read `entries` directly.

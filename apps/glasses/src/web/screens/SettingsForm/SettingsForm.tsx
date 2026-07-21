@@ -3,9 +3,10 @@ import { Button } from 'even-toolkit/web/button';
 import { Divider } from 'even-toolkit/web/divider';
 import { Input } from 'even-toolkit/web/input';
 import { Page } from 'even-toolkit/web/page';
-import { type FormEvent, useEffect, useState, useSyncExternalStore } from 'react';
-import * as store from '../store';
-import { LogConsole } from './LogConsole';
+import { type FormEvent, useEffect, useState } from 'react';
+import { useUiState } from '../../hooks/useUiState';
+import { resolveSettings } from '../../providers/uiController';
+import { LogConsole } from './components/LogConsole';
 
 type FieldKey = 'token' | 'tasksDb' | 'notesDb' | 'projectsDb' | 'tagsDb' | 'excludeProjectId';
 
@@ -36,12 +37,13 @@ function fieldValues(prefill: TenantConfig | null): Record<FieldKey, string> {
 }
 
 /**
- * The Notion tenant-config form — opened via ../store's settingsOpen flag
- * (see ../settings.ts's promptForConfig) and resolved on valid submit, which
- * is the same contract ../boot.ts's `reconfigure()` already relies on.
+ * The Notion tenant-config form — opened via ../../providers/uiController's
+ * settingsOpen flag (see promptForConfig) and resolved on valid submit,
+ * which is the same contract ../../../boot.ts's `reconfigure()` already
+ * relies on.
  */
 export function SettingsForm() {
-  const ui = useSyncExternalStore(store.subscribe, store.getState);
+  const ui = useUiState();
   const [values, setValues] = useState<Record<FieldKey, string>>(() =>
     fieldValues(ui.settingsPrefill),
   );
@@ -64,7 +66,7 @@ export function SettingsForm() {
     if (!token || !tasksDb || !notesDb || !projectsDb || !tagsDb) return;
 
     const excludeProjectId = values.excludeProjectId.trim() || undefined;
-    store.resolveSettings({ token, tasksDb, notesDb, projectsDb, tagsDb, excludeProjectId });
+    resolveSettings({ token, tasksDb, notesDb, projectsDb, tagsDb, excludeProjectId });
   }
 
   return (

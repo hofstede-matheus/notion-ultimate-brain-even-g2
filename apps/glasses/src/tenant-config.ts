@@ -1,7 +1,7 @@
 /**
  * In-memory holder for the current device's Notion tenant config (token +
  * database IDs), and the header encoding sent with every /api/* request.
- * Persistence across app restarts lives in web/settings.ts.
+ * Persistence across app restarts lives in web/services/config.ts.
  */
 
 import type { TenantConfig } from '@notion-ub/contracts';
