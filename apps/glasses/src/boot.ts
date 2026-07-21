@@ -6,6 +6,7 @@ import {
   onConnectClick,
   onSettingsClick,
   promptForConfig,
+  SettingsCancelledError,
   setStatus,
   showRetry,
 } from '@web/providers/uiController';
@@ -22,11 +23,20 @@ import { getDevEnvConfig, getTenantConfig, setTenantConfig } from './tenant-conf
 // voice model in the background
 // ---------------------------------------------------------------------------
 
-/** Prompts for config (pre-filled with `prefill`), persists it, and applies it. */
+/**
+ * Prompts for config (pre-filled with `prefill`), persists it, and applies it.
+ * When `prefill` is present the form is cancellable (a back button appears);
+ * backing out keeps the existing config untouched.
+ */
 async function reconfigure(prefill?: TenantConfig | null): Promise<void> {
-  const cfg = await promptForConfig(prefill);
-  await saveStoredConfig(cfg);
-  setTenantConfig(cfg);
+  try {
+    const cfg = await promptForConfig(prefill, prefill != null);
+    await saveStoredConfig(cfg);
+    setTenantConfig(cfg);
+  } catch (err) {
+    if (err instanceof SettingsCancelledError) return;
+    throw err;
+  }
 }
 
 export async function boot(): Promise<void> {

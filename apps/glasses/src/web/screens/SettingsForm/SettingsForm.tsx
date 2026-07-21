@@ -71,7 +71,6 @@ export function SettingsForm() {
 
   return (
     <Page>
-      <h2 className="text-[17px] tracking-[-0.17px] mb-3">Notion Settings</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         {FIELDS.map((field) => (
           <div key={field.key}>

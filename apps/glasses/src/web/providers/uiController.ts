@@ -14,12 +14,19 @@ interface ConnectState {
   label: string;
 }
 
+/** Direction of the last page navigation — drives the push/pop slide. */
+export type NavDirection = 'forward' | 'back';
+
 export interface UiState {
   status: string;
   connect: ConnectState;
   connected: boolean;
   settingsOpen: boolean;
   settingsPrefill: TenantConfig | null;
+  /** Whether the settings page can be dismissed with a back button. */
+  settingsCancellable: boolean;
+  /** Which way the current page transition should animate. */
+  navDirection: NavDirection;
 }
 
 let state: UiState = {
@@ -28,6 +35,8 @@ let state: UiState = {
   connected: false,
   settingsOpen: false,
   settingsPrefill: null,
+  settingsCancellable: false,
+  navDirection: 'forward',
 };
 
 const listeners = new Set<() => void>();
@@ -92,32 +101,57 @@ export function triggerSettings(): void {
   settingsHandler?.();
 }
 
-let pendingResolve: ((cfg: TenantConfig) => void) | null = null;
-
-function openSettings(prefill: TenantConfig | null): void {
-  setState({ settingsOpen: true, settingsPrefill: prefill });
+/** Rejection raised when the user backs out of settings without saving. */
+export class SettingsCancelledError extends Error {
+  constructor() {
+    super('Settings cancelled');
+    this.name = 'SettingsCancelledError';
+  }
 }
 
-function setPendingResolve(resolve: (cfg: TenantConfig) => void): void {
-  pendingResolve = resolve;
+let pendingResolve: ((cfg: TenantConfig) => void) | null = null;
+let pendingReject: ((reason: SettingsCancelledError) => void) | null = null;
+
+function openSettings(prefill: TenantConfig | null, cancellable: boolean): void {
+  setState({
+    settingsOpen: true,
+    settingsPrefill: prefill,
+    settingsCancellable: cancellable,
+    navDirection: 'forward',
+  });
 }
 
 /** Invoked by the React settings form on valid submit. */
 export function resolveSettings(cfg: TenantConfig): void {
   const resolve = pendingResolve;
   pendingResolve = null;
-  setState({ settingsOpen: false });
+  pendingReject = null;
+  setState({ settingsOpen: false, navDirection: 'back' });
   resolve?.(cfg);
+}
+
+/** Invoked by the React back button — dismiss settings without saving. */
+export function cancelSettings(): void {
+  const reject = pendingReject;
+  pendingResolve = null;
+  pendingReject = null;
+  setState({ settingsOpen: false, navDirection: 'back' });
+  reject?.(new SettingsCancelledError());
 }
 
 /**
  * Reveal the settings form pre-filled with `prefill`, and resolve once the
  * user submits a valid config (token + all 4 DB fields non-empty). Invoked
- * by ../boot.ts's `reconfigure()`.
+ * by ../boot.ts's `reconfigure()`. When `cancellable`, a back button is shown
+ * and backing out rejects with SettingsCancelledError.
  */
-export function promptForConfig(prefill?: TenantConfig | null): Promise<TenantConfig> {
-  openSettings(prefill ?? null);
-  return new Promise((resolve) => {
-    setPendingResolve(resolve);
+export function promptForConfig(
+  prefill?: TenantConfig | null,
+  cancellable = false,
+): Promise<TenantConfig> {
+  openSettings(prefill ?? null, cancellable);
+  return new Promise((resolve, reject) => {
+    pendingResolve = resolve;
+    pendingReject = reject;
   });
 }
