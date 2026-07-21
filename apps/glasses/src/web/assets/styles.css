@@ -4,9 +4,9 @@
 @import "even-toolkit/web/utilities.css";
 
 /* node-linker=hoisted (see repo .npmrc) — everything lives in the root
-   node_modules, not a per-package one, hence the ../../../../ climb from
-   apps/glasses/src/web/. */
-@source "../../../../node_modules/even-toolkit/dist";
+   node_modules, not a per-package one, hence the ../../../../../ climb from
+   apps/glasses/src/web/assets/. */
+@source "../../../../../node_modules/even-toolkit/dist";
 
 /* Registers the Even token set as Tailwind theme colors so utilities like
    bg-surface / text-text-dim / border-border (used throughout even-toolkit's
