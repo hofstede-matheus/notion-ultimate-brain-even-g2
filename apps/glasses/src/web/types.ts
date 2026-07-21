@@ -6,3 +6,11 @@
  */
 
 export type Level = 'log' | 'info' | 'warn' | 'error' | 'debug';
+
+/** One rendered log line, as subscribed to by ./components/LogConsole. */
+export interface LogEntry {
+  level: Level;
+  line: string;
+  /** True for request/response lines emitted by installFetchLogger. */
+  api: boolean;
+}

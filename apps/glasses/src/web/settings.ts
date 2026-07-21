@@ -1,25 +1,16 @@
 /**
- * DOM wiring + persistence for the Notion tenant-config settings form.
- * Mirrors the connect-button pattern in shell.ts and the bridge-storage
- * pattern in cache.ts, with a browser localStorage fallback for dev without
- * the Even Hub bridge.
+ * Persistence + boot.ts contract for the Notion tenant-config settings form.
+ * The form itself now lives in ./components/SettingsForm (React); this
+ * module just opens/closes it via ./store and resolves the returned Promise
+ * on submit — the same "resolve once the user submits a valid config"
+ * contract ../boot.ts already relies on.
  */
 
 import type { TenantConfig } from '@notion-ub/contracts';
 import { getBridge } from '../state';
+import * as store from './store';
 
 const CONFIG_KEY = 'notionultimatebrain:config';
-
-const formEl = document.getElementById('settings-form') as HTMLFormElement | null;
-const tokenInput = document.getElementById('settings-token') as HTMLInputElement | null;
-const tasksDbInput = document.getElementById('settings-tasks-db') as HTMLInputElement | null;
-const notesDbInput = document.getElementById('settings-notes-db') as HTMLInputElement | null;
-const projectsDbInput = document.getElementById('settings-projects-db') as HTMLInputElement | null;
-const tagsDbInput = document.getElementById('settings-tags-db') as HTMLInputElement | null;
-const excludeProjectIdInput = document.getElementById(
-  'settings-exclude-project-id',
-) as HTMLInputElement | null;
-const settingsBtn = document.getElementById('settingsBtn') as HTMLButtonElement | null;
 
 // ---------------------------------------------------------------------------
 // Persistence
@@ -52,55 +43,17 @@ export async function saveStoredConfig(cfg: TenantConfig): Promise<void> {
 // Form
 // ---------------------------------------------------------------------------
 
-function fillForm(cfg: TenantConfig | null): void {
-  if (tokenInput) tokenInput.value = cfg?.token ?? '';
-  if (tasksDbInput) tasksDbInput.value = cfg?.tasksDb ?? '';
-  if (notesDbInput) notesDbInput.value = cfg?.notesDb ?? '';
-  if (projectsDbInput) projectsDbInput.value = cfg?.projectsDb ?? '';
-  if (tagsDbInput) tagsDbInput.value = cfg?.tagsDb ?? '';
-  if (excludeProjectIdInput) excludeProjectIdInput.value = cfg?.excludeProjectId ?? '';
-}
-
-function readForm(): TenantConfig | null {
-  const token = tokenInput?.value.trim() ?? '';
-  const tasksDb = tasksDbInput?.value.trim() ?? '';
-  const notesDb = notesDbInput?.value.trim() ?? '';
-  const projectsDb = projectsDbInput?.value.trim() ?? '';
-  const tagsDb = tagsDbInput?.value.trim() ?? '';
-  const excludeProjectId = excludeProjectIdInput?.value.trim() || undefined;
-  if (!token || !tasksDb || !notesDb || !projectsDb || !tagsDb) return null;
-  return { token, tasksDb, notesDb, projectsDb, tagsDb, excludeProjectId };
-}
-
-function showSettings(): void {
-  if (formEl) formEl.style.display = 'grid';
-}
-
-function hideSettings(): void {
-  if (formEl) formEl.style.display = 'none';
-}
-
 /**
  * Reveal the settings form pre-filled with `prefill`, and resolve once the
  * user submits a valid config (token + all 4 DB fields non-empty).
  */
 export function promptForConfig(prefill?: TenantConfig | null): Promise<TenantConfig> {
-  fillForm(prefill ?? null);
-  showSettings();
-
+  store.openSettings(prefill ?? null);
   return new Promise((resolve) => {
-    const onSubmit = (e: SubmitEvent) => {
-      e.preventDefault();
-      const cfg = readForm();
-      if (!cfg) return; // native `required` attrs should prevent this; guard anyway
-      formEl?.removeEventListener('submit', onSubmit);
-      hideSettings();
-      resolve(cfg);
-    };
-    formEl?.addEventListener('submit', onSubmit);
+    store.setPendingResolve(resolve);
   });
 }
 
 export function onSettingsClick(handler: () => void): void {
-  settingsBtn?.addEventListener('click', handler);
+  store.onSettingsClick(handler);
 }

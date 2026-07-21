@@ -1,30 +1,27 @@
 /**
- * DOM wiring for the companion-app webview shell (status text + connect
- * button). Kept separate from the glasses display code under ../glasses/.
+ * boot.ts's connection-status shell API. Internals now write to ./store
+ * (read by the React webview) instead of the DOM directly — see ../boot.ts
+ * for the calling contract this preserves.
  */
 
-const statusEl = document.getElementById('status');
-const connectBtn = document.getElementById('connectBtn') as HTMLButtonElement | null;
+import * as store from './store';
 
 export function setStatus(msg: string): void {
-  if (statusEl) statusEl.textContent = msg;
+  store.setStatus(msg);
 }
 
 export function disableConnect(): void {
-  if (connectBtn) connectBtn.disabled = true;
+  store.disableConnect();
 }
 
 export function hideConnect(): void {
-  if (connectBtn) connectBtn.style.display = 'none';
+  store.hideConnect();
 }
 
 export function showRetry(): void {
-  if (connectBtn) {
-    connectBtn.disabled = false;
-    connectBtn.textContent = 'Retry';
-  }
+  store.showRetry();
 }
 
 export function onConnectClick(handler: () => void): void {
-  connectBtn?.addEventListener('click', handler);
+  store.onConnectClick(handler);
 }

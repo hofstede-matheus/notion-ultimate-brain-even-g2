@@ -1,5 +1,5 @@
 import { BODY_PREVIEW_BYTES, LOG_LEVELS, MAX_LOG_LINES } from './constants';
-import type { Level } from './types';
+import type { Level, LogEntry } from './types';
 
 function pad2(n: number): string {
   return n.toString().padStart(2, '0');
@@ -48,8 +48,24 @@ function formatArgs(args: unknown[]): string {
 }
 
 let installed = false;
-const buffer: string[] = [];
-let logEl: HTMLElement | null = null;
+let entries: LogEntry[] = [];
+const listeners = new Set<() => void>();
+
+/** Subscribe to log updates (React's `useSyncExternalStore`). */
+export function subscribeLog(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/**
+ * Current log snapshot. A new array reference is produced on every append
+ * (see appendLine) so `useSyncExternalStore` reliably detects changes —
+ * mutating one shared array in place would leave the reference unchanged
+ * and React would never re-render.
+ */
+export function getLogEntries(): LogEntry[] {
+  return entries;
+}
 
 /**
  * Best-effort forward a log line to the dev server so it appears in the same
@@ -88,31 +104,14 @@ async function previewBody(body: BodyInit | null | undefined): Promise<string | 
   }
 }
 
-function getLogEl(): HTMLElement | null {
-  if (logEl) return logEl;
-  logEl = document.getElementById('log');
-  return logEl;
-}
-
-function appendLine(level: Level, line: string, extraClass?: string): void {
-  buffer.push(line);
-  if (buffer.length > MAX_LOG_LINES) {
-    buffer.splice(0, buffer.length - MAX_LOG_LINES);
-  }
-
-  const el = getLogEl();
-  if (!el) return;
-
-  if (buffer.length === MAX_LOG_LINES) {
-    // prune DOM in lockstep with buffer
-    while (el.firstChild) el.removeChild(el.firstChild);
-  }
-
-  const div = document.createElement('div');
-  div.className = extraClass ? `log-line log-${level} ${extraClass}` : `log-line log-${level}`;
-  div.textContent = line;
-  el.appendChild(div);
-  el.scrollTop = el.scrollHeight;
+function appendLine(level: Level, line: string, api = false): void {
+  const next =
+    entries.length >= MAX_LOG_LINES
+      ? entries.slice(entries.length - MAX_LOG_LINES + 1)
+      : entries.slice();
+  next.push({ level, line, api });
+  entries = next;
+  for (const listener of listeners) listener();
 
   forwardToTerminal(level, line);
 }
@@ -177,7 +176,7 @@ function installFetchLogger(): void {
       const reqLine = reqBody
         ? `[${timestamp()}] [API →] ${method} ${url}  body=${reqBody}`
         : `[${timestamp()}] [API →] ${method} ${url}`;
-      appendLine('info', reqLine, 'log-api');
+      appendLine('info', reqLine, true);
     }
 
     try {
@@ -188,7 +187,7 @@ function installFetchLogger(): void {
         appendLine(
           level,
           `[${timestamp()}] [API ←] ${method} ${url}  ${res.status} ${res.statusText}  ${ms}ms`,
-          'log-api',
+          true,
         );
       }
       return res;
@@ -199,7 +198,7 @@ function installFetchLogger(): void {
         appendLine(
           'error',
           `[${timestamp()}] [API ✗] ${method} ${url}  failed after ${ms}ms — ${msg}`,
-          'log-api',
+          true,
         );
       }
       throw err;
