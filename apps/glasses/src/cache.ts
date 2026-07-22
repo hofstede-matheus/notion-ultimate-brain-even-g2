@@ -4,7 +4,7 @@ import { storageGet, storageSet } from 'even-toolkit/storage';
 // localStorage keys
 // ---------------------------------------------------------------------------
 
-/** Cache key for a generic list-view screen — see actions/navigation.ts's enterView(). */
+/** Cache key for a generic list-view screen — see _shared/navigation.ts's enterView(). */
 export function cacheKeyForScreen(screen: string): string {
   return `notionultimatebrain:${screen}`;
 }

@@ -1,7 +1,7 @@
 import { type EvenHubEvent, OsEventTypeList } from '@evenrealities/even_hub_sdk';
 import { getBridge, state } from '../../state';
 import * as stt from '../../stt';
-import { createGlassCtx } from '../actions';
+import { createGlassCtx } from '../glass-ctx';
 import { renderFull } from '../render';
 import { router } from '../router';
 import { isScrollThrottled, resolveEventType, toGlassAction } from './resolve';
