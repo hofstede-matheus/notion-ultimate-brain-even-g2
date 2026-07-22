@@ -9,7 +9,7 @@
 import type { EvenAppBridge } from '@evenrealities/even_hub_sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SCROLL_COOLDOWN_MS } from '../glasses/constants';
-import { onEvenHubEvent } from '../glasses/runtime';
+import { onEvenHubEvent } from '../glasses/events';
 import { setBridge, state } from '../state';
 import {
   clickEvent,

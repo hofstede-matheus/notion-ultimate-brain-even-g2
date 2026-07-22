@@ -24,7 +24,7 @@
  */
 
 import { cleanForG2 } from 'even-toolkit/text-clean';
-import { READER_CHARS_PER_LINE, READER_INDENT, READER_LINES_PER_PAGE } from './constants';
+import { READER_CHARS_PER_LINE, READER_INDENT, READER_LINES_PER_PAGE } from '../constants';
 
 /** Indent levels past this render flat — deeper nesting would leave no room for text. */
 const MAX_INDENT_LEVELS = 3;

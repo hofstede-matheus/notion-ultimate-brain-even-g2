@@ -5,7 +5,7 @@
 import type { EvenAppBridge, RebuildPageContainer } from '@evenrealities/even_hub_sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadCachedList, saveCachedList } from '../cache';
-import { onEvenHubEvent } from '../glasses/runtime';
+import { onEvenHubEvent } from '../glasses/events';
 import { setBridge, state } from '../state';
 import { flushPromises, listClickEvent, makeMockBridge, resetState } from './helpers';
 

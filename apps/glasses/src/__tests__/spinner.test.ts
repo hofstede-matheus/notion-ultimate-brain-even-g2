@@ -4,7 +4,7 @@
 
 import type { EvenAppBridge, TextContainerUpgrade } from '@evenrealities/even_hub_sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { onEvenHubEvent } from '../glasses/runtime';
+import { onEvenHubEvent } from '../glasses/events';
 import { type ListItem, setBridge, state } from '../state';
 import { doubleTapEvent, listClickEvent, makeMockBridge, resetState } from './helpers';
 

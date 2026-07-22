@@ -1,19 +1,12 @@
 import { type EvenHubEvent, OsEventTypeList } from '@evenrealities/even_hub_sdk';
-import { getBridge, state } from '../state';
-import * as stt from '../stt';
-import { SCROLL_COOLDOWN_MS } from './constants';
-import { createGlassCtx } from './context';
-import { renderFull } from './render';
-import { router } from './router';
-import type { AppGlassAction } from './types';
-
-const ctx = createGlassCtx();
+import { SCROLL_COOLDOWN_MS } from '../constants';
+import type { AppGlassAction } from '../types';
 
 // ---------------------------------------------------------------------------
 // Event type normalisation (SDK quirk: CLICK_EVENT=0 → undefined)
 // ---------------------------------------------------------------------------
 
-function resolveEventType(event: EvenHubEvent): OsEventTypeList | undefined {
+export function resolveEventType(event: EvenHubEvent): OsEventTypeList | undefined {
   const raw = event.listEvent?.eventType ?? event.textEvent?.eventType ?? event.sysEvent?.eventType;
 
   if (typeof raw === 'number') return raw as OsEventTypeList;
@@ -26,7 +19,7 @@ function resolveEventType(event: EvenHubEvent): OsEventTypeList | undefined {
   return undefined;
 }
 
-function toGlassAction(event: EvenHubEvent, eventType: OsEventTypeList): AppGlassAction | null {
+export function toGlassAction(event: EvenHubEvent, eventType: OsEventTypeList): AppGlassAction | null {
   switch (eventType) {
     case OsEventTypeList.CLICK_EVENT:
       // event.listEvent is only present for native-list containers
@@ -61,49 +54,9 @@ function toGlassAction(event: EvenHubEvent, eventType: OsEventTypeList): AppGlas
 
 let lastScrollAt = 0;
 
-function isScrollThrottled(): boolean {
+export function isScrollThrottled(): boolean {
   const now = Date.now();
   if (now - lastScrollAt < SCROLL_COOLDOWN_MS) return true;
   lastScrollAt = now;
   return false;
-}
-
-// ---------------------------------------------------------------------------
-// Main event dispatcher
-// ---------------------------------------------------------------------------
-
-export function onEvenHubEvent(event: EvenHubEvent): void {
-  // Route PCM audio frames to Vosk while a session is active.
-  if (event.audioEvent && event.audioEvent.audioPcm != null && stt.isListening()) {
-    stt.feedAudio(event.audioEvent.audioPcm);
-    return;
-  }
-
-  const eventType = resolveEventType(event);
-  if (eventType === undefined) return;
-
-  // Throttle scroll events
-  if (
-    eventType === OsEventTypeList.SCROLL_TOP_EVENT ||
-    eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT
-  ) {
-    if (isScrollThrottled()) return;
-  }
-
-  const action = toGlassAction(event, eventType);
-  if (!action) return;
-
-  router.onGlassAction(action, state, ctx);
-}
-
-/**
- * Start the glasses runtime: wires the SDK event listener and renders the
- * initial menu screen. Call once after the bridge is connected.
- */
-export async function startGlasses(): Promise<void> {
-  const b = getBridge();
-  if (!b) return;
-  b.onEvenHubEvent(onEvenHubEvent);
-  state.screen = 'menu';
-  await renderFull();
 }

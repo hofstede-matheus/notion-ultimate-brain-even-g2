@@ -11,7 +11,7 @@
  * containerID 2 is still sent as an inert 1x1 placeholder — the G2 firmware
  * fails to re-add a list container that was absent from the immediately
  * preceding rebuild, so it must never be dropped once created (see
- * render.ts's placeholderListContainer). Tests assert on header text + list
+ * render/containers.ts's placeholderListContainer). Tests assert on header text + list
  * item names.
  */
 

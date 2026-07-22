@@ -56,7 +56,7 @@ export interface AppState {
   // Fetched list data for every list-view screen (Today/Overdue/Inbox and
   // every Tasks/Notes/Projects/Tags view), keyed by screen name. Today and
   // Overdue are both filtered views over the same fetched array, stored
-  // under the 'today' key — see context.ts's DATA_KEY_OVERRIDES.
+  // under the 'today' key — see actions/navigation.ts's DATA_KEY_OVERRIDES.
   lists: Partial<Record<ScreenName, ListItem[]>>;
 
   // Confirm dialog for a mutating item action — kind is 'markDone' (tasks

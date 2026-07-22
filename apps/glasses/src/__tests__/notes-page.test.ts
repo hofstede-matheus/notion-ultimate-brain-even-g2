@@ -8,7 +8,7 @@
 import type { EvenAppBridge } from '@evenrealities/even_hub_sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SCREENS } from '../glasses/router';
-import { onEvenHubEvent } from '../glasses/runtime';
+import { onEvenHubEvent } from '../glasses/events';
 import type { ScreenName } from '../state';
 import { setBridge, state } from '../state';
 import {

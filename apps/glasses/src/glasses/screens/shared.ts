@@ -44,7 +44,7 @@ function todayDateStr(): string {
 /**
  * Today and Overdue are both filtered views over the one array fetched from
  * /api/tasks/today (due today or before) — stored under the 'today' key
- * (see context.ts's DATA_KEY_OVERRIDES).
+ * (see actions/navigation.ts's DATA_KEY_OVERRIDES).
  */
 function todayFetchedTasks(state: AppState): Task[] {
   return (state.lists.today ?? []) as Task[];
@@ -221,7 +221,7 @@ export interface ListScreenConfig {
   /**
    * Overrides the item source for both display and selection — used by
    * Today/Overdue, which are filtered views over the array fetched under a
-   * different screen key (see context.ts's DATA_KEY_OVERRIDES). Defaults to
+   * different screen key (see actions/navigation.ts's DATA_KEY_OVERRIDES). Defaults to
    * `state.lists[config.screen]`.
    */
   selectItems?: (state: AppState) => ListItem[];
@@ -239,7 +239,7 @@ export interface ListScreenConfig {
  * state.loading, an empty-state message when the list is empty, otherwise a
  * header + native list of item names. Reads from `config.selectItems(state)`
  * if given, else `state.lists[config.screen]` — both populated by
- * ctx.enterView() in context.ts. SELECT_HIGHLIGHTED just records the
+ * ctx.enterView() in actions/navigation.ts. SELECT_HIGHLIGHTED just records the
  * cursor — there's no detail screen yet (except the task-actions/
  * project-detail dispatch below).
  */

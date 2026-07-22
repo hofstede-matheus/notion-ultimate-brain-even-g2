@@ -5,7 +5,7 @@
 import type { EvenAppBridge, RebuildPageContainer } from '@evenrealities/even_hub_sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchInboxNotes } from '../api';
-import { onEvenHubEvent } from '../glasses/runtime';
+import { onEvenHubEvent } from '../glasses/events';
 import { ROOT_MENU_ITEMS } from '../glasses/screens/menu';
 import { setBridge, state } from '../state';
 import {
@@ -250,7 +250,7 @@ describe('entering the add-task screen from the tasks submenu', () => {
 // ---------------------------------------------------------------------------
 // Generic list-view wiring (ctx.enterView) — covers every Tasks/Notes/
 // Projects/Tags screen beyond Today/Inbox/Overdue, which share one fetch/
-// cache pipeline keyed off VIEW_FETCHERS in context.ts.
+// cache pipeline keyed off VIEW_FETCHERS in actions/navigation.ts.
 // ---------------------------------------------------------------------------
 
 describe('entering a generic notes view (Inbox) from the notes submenu', () => {

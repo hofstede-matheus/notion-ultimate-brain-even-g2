@@ -21,7 +21,7 @@ const HEADER_TITLE_BYTES = READER_CHARS_PER_LINE - 2 - 7;
  * carried in `state.pageContent` (its `title` and `returnTo`), so the screen
  * itself never has to know.
  *
- * `pages` arrives pre-split into screenfuls (see glasses/markdown-to-pages.ts), so
+ * `pages` arrives pre-split into screenfuls (see glasses/content/markdown-to-pages.ts), so
  * this only picks one and renders it — a tap or a downward swipe advances, an
  * upward swipe goes back, and a double-tap leaves.
  */

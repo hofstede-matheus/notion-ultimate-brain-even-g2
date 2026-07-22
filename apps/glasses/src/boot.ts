@@ -12,7 +12,7 @@ import {
 } from '@web/providers/uiController';
 import { loadStoredConfig, saveStoredConfig } from '@web/services/config';
 import { VOSK_MODEL_URL } from './glasses/constants';
-import { startGlasses } from './glasses/runtime';
+import { startGlasses } from './glasses/events';
 import { setBridge } from './state';
 import { preloadVoskModel } from './stt';
 import { getDevEnvConfig, getTenantConfig, setTenantConfig } from './tenant-config';

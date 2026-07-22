@@ -2,7 +2,7 @@
  * Notion markdown -> reader text.
  *
  * Every construct exercised here was confirmed against real markdown fetched
- * from this workspace (see the comments in glasses/markdown-to-pages.ts for exactly
+ * from this workspace (see the comments in glasses/content/markdown-to-pages.ts for exactly
  * which page each shape came from) — these tests pin that exact syntax, not
  * a guess at what Notion's export "should" look like.
  *
@@ -14,7 +14,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { READER_CHARS_PER_LINE, READER_LINES_PER_PAGE } from '../glasses/constants';
-import { markdownToLines, markdownToPages, paginateLines } from '../glasses/markdown-to-pages';
+import { markdownToLines, markdownToPages, paginateLines } from '../glasses/content/markdown-to-pages';
 
 describe('CommonMark passes through unchanged', () => {
   it('headings, bullets, numbered lists, to-dos, quotes and dividers already are the display syntax', () => {

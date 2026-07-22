@@ -92,7 +92,7 @@ export async function deletePage(id: string): Promise<void> {
 
 /**
  * A page's body as Notion's own enhanced markdown — untouched. Turning it
- * into display text is the reader's job (see glasses/markdown-to-pages.ts).
+ * into display text is the reader's job (see glasses/content/markdown-to-pages.ts).
  */
 export function fetchPageMarkdown(id: string): Promise<NotionPageMarkdown> {
   return request(`/api/pages/${id}/markdown`);
