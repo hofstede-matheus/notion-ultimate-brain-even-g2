@@ -13,8 +13,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { READER_CHARS_PER_LINE, READER_LINES_PER_PAGE } from '../../glasses/constants';
-import { markdownToLines, markdownToPages, paginateLines } from '../../glasses/content/markdown-to-pages';
+import { READER_CHARS_PER_LINE, READER_LINES_PER_PAGE } from '../../../glasses/constants';
+import { markdownToLines, markdownToPages, paginateLines } from '../../../glasses/content/markdown-to-pages';
 
 describe('CommonMark passes through unchanged', () => {
   it('headings, bullets, numbered lists, to-dos, quotes and dividers already are the display syntax', () => {
