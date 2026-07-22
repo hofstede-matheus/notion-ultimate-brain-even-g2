@@ -45,6 +45,5 @@ export function getDevEnvConfig(): TenantConfig | null {
     notesDb,
     projectsDb,
     tagsDb,
-    excludeProjectId: import.meta.env.VITE_NOTION_EXCLUDE_PROJECT_ID || undefined,
   };
 }

@@ -5,7 +5,6 @@ export interface TenantDb {
   notes: string;
   projects: string;
   tags: string;
-  excludeProjectId?: string;
 }
 
 export interface Tenant {
@@ -41,7 +40,7 @@ export function parseTenant(headerValue: string | undefined | string[]): Tenant 
     return null;
   }
 
-  const { token, tasksDb, notesDb, projectsDb, tagsDb, excludeProjectId, timeZone } = payload;
+  const { token, tasksDb, notesDb, projectsDb, tagsDb, timeZone } = payload;
   if (
     !isNonEmptyString(token) ||
     !isNonEmptyString(tasksDb) ||
@@ -59,7 +58,6 @@ export function parseTenant(headerValue: string | undefined | string[]): Tenant 
       notes: notesDb,
       projects: projectsDb,
       tags: tagsDb,
-      ...(isNonEmptyString(excludeProjectId) ? { excludeProjectId } : {}),
     },
     ...(isNonEmptyString(timeZone) ? { timeZone } : {}),
   };

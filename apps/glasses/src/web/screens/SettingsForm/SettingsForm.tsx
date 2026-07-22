@@ -8,7 +8,7 @@ import { useUiState } from '../../hooks/useUiState';
 import { resolveSettings } from '../../providers/uiController';
 import { LogConsole } from './components/LogConsole';
 
-type FieldKey = 'token' | 'tasksDb' | 'notesDb' | 'projectsDb' | 'tagsDb' | 'excludeProjectId';
+type FieldKey = 'token' | 'tasksDb' | 'notesDb' | 'projectsDb' | 'tagsDb';
 
 interface FieldDef {
   key: FieldKey;
@@ -22,7 +22,6 @@ const FIELDS: FieldDef[] = [
   { key: 'notesDb', label: 'Notes Database ID', required: true },
   { key: 'projectsDb', label: 'Projects Database ID', required: true },
   { key: 'tagsDb', label: 'Tags Database ID', required: true },
-  { key: 'excludeProjectId', label: 'Excluded Project ID (optional)', required: false },
 ];
 
 function fieldValues(prefill: TenantConfig | null): Record<FieldKey, string> {
@@ -32,7 +31,6 @@ function fieldValues(prefill: TenantConfig | null): Record<FieldKey, string> {
     notesDb: prefill?.notesDb ?? '',
     projectsDb: prefill?.projectsDb ?? '',
     tagsDb: prefill?.tagsDb ?? '',
-    excludeProjectId: prefill?.excludeProjectId ?? '',
   };
 }
 
@@ -65,8 +63,7 @@ export function SettingsForm() {
     const tagsDb = values.tagsDb.trim();
     if (!token || !tasksDb || !notesDb || !projectsDb || !tagsDb) return;
 
-    const excludeProjectId = values.excludeProjectId.trim() || undefined;
-    resolveSettings({ token, tasksDb, notesDb, projectsDb, tagsDb, excludeProjectId });
+    resolveSettings({ token, tasksDb, notesDb, projectsDb, tagsDb });
   }
 
   return (

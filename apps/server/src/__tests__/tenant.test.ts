@@ -14,7 +14,7 @@ const validPayload = {
 };
 
 describe('parseTenant', () => {
-  it('decodes a valid header into a Tenant without excludeProjectId', () => {
+  it('decodes a valid header into a Tenant', () => {
     const tenant = parseTenant(encode(validPayload));
     expect(tenant).toEqual({
       token: 'secret_token',
@@ -25,16 +25,6 @@ describe('parseTenant', () => {
         tags: 'tags-id',
       },
     });
-  });
-
-  it('includes excludeProjectId when it is a non-empty string', () => {
-    const tenant = parseTenant(encode({ ...validPayload, excludeProjectId: 'proj-x' }));
-    expect(tenant?.db.excludeProjectId).toBe('proj-x');
-  });
-
-  it('omits excludeProjectId when it is an empty string', () => {
-    const tenant = parseTenant(encode({ ...validPayload, excludeProjectId: '' }));
-    expect(tenant?.db).not.toHaveProperty('excludeProjectId');
   });
 
   it('returns null for a missing/undefined header', () => {

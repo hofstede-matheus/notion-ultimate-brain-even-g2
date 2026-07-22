@@ -20,14 +20,7 @@ import { pageTitle, pageToNote, pageToProject, pageToTag, pageToTask } from './m
 import { createNotionClient } from './notion-client';
 import type { TenantDb } from './tenant';
 import { parseTenant } from './tenant';
-import {
-  NOTE_VIEWS,
-  PROJECT_VIEWS,
-  resolveFilter,
-  TAG_VIEWS,
-  TASK_VIEWS,
-  type ViewConfig,
-} from './views';
+import { NOTE_VIEWS, PROJECT_VIEWS, TAG_VIEWS, TASK_VIEWS, type ViewConfig } from './views';
 
 export interface RouteContext {
   params: Record<string, string>;
@@ -120,7 +113,7 @@ export async function runRoute(
   });
 }
 
-type DbKey = keyof Omit<TenantDb, 'excludeProjectId'>;
+type DbKey = keyof TenantDb;
 
 // The public databases.query params/results are far more precisely typed than
 // the loose filter grammar (translateFilter) and page shape (NotionPage) this
@@ -139,10 +132,11 @@ function buildViewRoutes(
     method: 'GET',
     path: `/api/${domain}/${view.path}`,
     handler: authed(async (ctx) => {
-      const filter = resolveFilter(view, ctx.db);
       const response = await ctx.notion.databases.query({
         database_id: ctx.db[dbKey],
-        filter: (filter ? translateFilter(filter, ctx.timeZone) : undefined) as NotionQueryFilter,
+        filter: (view.filter
+          ? translateFilter(view.filter, ctx.timeZone)
+          : undefined) as NotionQueryFilter,
         sorts: view.sorts,
         page_size: 50,
       });

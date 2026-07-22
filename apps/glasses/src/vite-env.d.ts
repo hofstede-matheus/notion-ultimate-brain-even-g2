@@ -8,7 +8,6 @@ interface ImportMetaEnv {
   readonly VITE_NOTION_NOTES_DB?: string;
   readonly VITE_NOTION_PROJECTS_DB?: string;
   readonly VITE_NOTION_TAGS_DB?: string;
-  readonly VITE_NOTION_EXCLUDE_PROJECT_ID?: string;
 }
 
 interface ImportMeta {
