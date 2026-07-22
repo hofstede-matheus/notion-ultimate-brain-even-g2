@@ -530,8 +530,8 @@ async function confirmAddTask(): Promise<void> {
   if (!transcript) return;
   confirmingAddTask = true;
   try {
-    const result = await createTask(transcript);
-    state.createdTaskName = result.name;
+    await createTask(transcript);
+    state.createdTaskName = transcript;
     state.pendingTranscript = '';
     state.recording = 'done';
   } catch (e) {

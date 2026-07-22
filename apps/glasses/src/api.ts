@@ -18,19 +18,19 @@ import { getTenantHeader } from './tenant-config';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 
-/** fetch() wrapper that attaches the current tenant's Notion config header. */
-function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  return fetch(`${API_BASE}${path}`, {
+/**
+ * fetch() wrapper that attaches the current tenant's Notion config header,
+ * throws on non-2xx responses, and parses the JSON body — narrowed to
+ * `resultKey` when given (e.g. `{ tasks: [...] }` -> the `tasks` array).
+ */
+async function request<T>(path: string, init: RequestInit = {}, resultKey?: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: { ...init.headers, 'X-Notion-Config': getTenantHeader() },
   });
-}
-
-async function fetchList<T>(path: string, resultKey: string, label: string): Promise<T[]> {
-  const res = await apiFetch(path);
-  if (!res.ok) throw new Error(`Failed to fetch ${label}: ${res.status}`);
+  if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
   const data = await res.json();
-  return data[resultKey];
+  return resultKey ? data[resultKey] : data;
 }
 
 // ---------------------------------------------------------------------------
@@ -38,38 +38,31 @@ async function fetchList<T>(path: string, resultKey: string, label: string): Pro
 // ---------------------------------------------------------------------------
 
 export function fetchInboxTasks(): Promise<Task[]> {
-  return fetchList('/api/tasks/inbox', 'tasks', 'inbox tasks');
+  return request('/api/tasks/inbox', {}, 'tasks');
 }
 
 export function fetchTodayTasks(): Promise<Task[]> {
-  return fetchList('/api/tasks/today', 'tasks', 'today tasks');
+  return request('/api/tasks/today', {}, 'tasks');
 }
 
 export function fetchNext7DaysTasks(): Promise<Task[]> {
-  return fetchList('/api/tasks/next-7-days', 'tasks', 'next 7 days tasks');
+  return request('/api/tasks/next-7-days', {}, 'tasks');
 }
 
 export function fetchTomorrowTasks(): Promise<Task[]> {
-  return fetchList('/api/tasks/tomorrow', 'tasks', 'tomorrow tasks');
+  return request('/api/tasks/tomorrow', {}, 'tasks');
 }
 
-export async function createTask(name: string): Promise<{ id: string; name: string }> {
-  const res = await apiFetch('/api/tasks', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
-  });
-  if (!res.ok) throw new Error(`Failed to create task: ${res.status}`);
-  return res.json();
+export function createTask(name: string): Promise<{ id: string; name: string }> {
+  return request('/api/tasks', { method: 'POST', body: JSON.stringify({ name }) });
 }
 
 export async function markTaskDone(id: string): Promise<void> {
-  const res = await apiFetch(`/api/tasks/${id}/done`, { method: 'PATCH' });
-  if (!res.ok) throw new Error(`Failed to mark task done: ${res.status}`);
+  await request(`/api/tasks/${id}/done`, { method: 'PATCH' });
 }
 
 export function fetchTasksForProject(projectId: string): Promise<Task[]> {
-  return fetchList(`/api/tasks/for-project/${projectId}`, 'tasks', 'tasks for project');
+  return request(`/api/tasks/for-project/${projectId}`, {}, 'tasks');
 }
 
 // ---------------------------------------------------------------------------
@@ -88,26 +81,21 @@ export interface PageMetadata {
  * Project relation; only tasks carry Due — for anything else `due` just comes
  * back null, and it's up to the caller whether to show it.
  */
-export async function fetchPageMetadata(id: string): Promise<PageMetadata> {
-  const res = await apiFetch(`/api/pages/${id}/metadata`);
-  if (!res.ok) throw new Error(`Failed to fetch metadata: ${res.status}`);
-  return res.json();
+export function fetchPageMetadata(id: string): Promise<PageMetadata> {
+  return request(`/api/pages/${id}/metadata`);
 }
 
 /** Moves a page (task, note, or anything else) to the Notion Bin. */
 export async function deletePage(id: string): Promise<void> {
-  const res = await apiFetch(`/api/pages/${id}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error(`Failed to delete: ${res.status}`);
+  await request(`/api/pages/${id}`, { method: 'DELETE' });
 }
 
 /**
  * A page's body as Notion's own enhanced markdown — untouched. Turning it
  * into display text is the reader's job (see glasses/markdown-to-pages.ts).
  */
-export async function fetchPageMarkdown(id: string): Promise<NotionPageMarkdown> {
-  const res = await apiFetch(`/api/pages/${id}/markdown`);
-  if (!res.ok) throw new Error(`Failed to fetch page content: ${res.status}`);
-  return res.json();
+export function fetchPageMarkdown(id: string): Promise<NotionPageMarkdown> {
+  return request(`/api/pages/${id}/markdown`);
 }
 
 /**
@@ -115,10 +103,8 @@ export async function fetchPageMarkdown(id: string): Promise<NotionPageMarkdown>
  * markdown covers a page's body, and many Ultimate Brain tasks keep their
  * text in this property instead, with no body content at all.
  */
-export async function fetchPage(id: string): Promise<NotionPageObject> {
-  const res = await apiFetch(`/api/pages/${id}`);
-  if (!res.ok) throw new Error(`Failed to fetch page: ${res.status}`);
-  return res.json();
+export function fetchPage(id: string): Promise<NotionPageObject> {
+  return request(`/api/pages/${id}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -126,47 +112,47 @@ export async function fetchPage(id: string): Promise<NotionPageObject> {
 // ---------------------------------------------------------------------------
 
 export function fetchInboxNotes(): Promise<Note[]> {
-  return fetchList('/api/notes/inbox', 'notes', 'inbox notes');
+  return request('/api/notes/inbox', {}, 'notes');
 }
 
 export function fetchFavoriteNotes(): Promise<Note[]> {
-  return fetchList('/api/notes/favorites', 'notes', 'favorite notes');
+  return request('/api/notes/favorites', {}, 'notes');
 }
 
 export function fetchByTagNotes(): Promise<Note[]> {
-  return fetchList('/api/notes/by-tag', 'notes', 'notes by tag');
+  return request('/api/notes/by-tag', {}, 'notes');
 }
 
 export function fetchNotes(): Promise<Note[]> {
-  return fetchList('/api/notes/notes', 'notes', 'notes');
+  return request('/api/notes/notes', {}, 'notes');
 }
 
 export function fetchMeetingNotes(): Promise<Note[]> {
-  return fetchList('/api/notes/meetings', 'notes', 'meeting notes');
+  return request('/api/notes/meetings', {}, 'notes');
 }
 
 export function fetchByProjectNotes(): Promise<Note[]> {
-  return fetchList('/api/notes/by-project', 'notes', 'notes by project');
+  return request('/api/notes/by-project', {}, 'notes');
 }
 
 export function fetchClipsNotes(): Promise<Note[]> {
-  return fetchList('/api/notes/clips', 'notes', 'clip notes');
+  return request('/api/notes/clips', {}, 'notes');
 }
 
 export function fetchVoiceNotes(): Promise<Note[]> {
-  return fetchList('/api/notes/voice', 'notes', 'voice notes');
+  return request('/api/notes/voice', {}, 'notes');
 }
 
 export function fetchJournalNotes(): Promise<Note[]> {
-  return fetchList('/api/notes/journal', 'notes', 'journal notes');
+  return request('/api/notes/journal', {}, 'notes');
 }
 
 export function fetchAllNotes(): Promise<Note[]> {
-  return fetchList('/api/notes/all', 'notes', 'all notes');
+  return request('/api/notes/all', {}, 'notes');
 }
 
 export function fetchNotesForProject(projectId: string): Promise<Note[]> {
-  return fetchList(`/api/notes/for-project/${projectId}`, 'notes', 'notes for project');
+  return request(`/api/notes/for-project/${projectId}`, {}, 'notes');
 }
 
 // ---------------------------------------------------------------------------
@@ -174,19 +160,19 @@ export function fetchNotesForProject(projectId: string): Promise<Note[]> {
 // ---------------------------------------------------------------------------
 
 export function fetchActiveProjects(): Promise<Project[]> {
-  return fetchList('/api/projects/active', 'projects', 'active projects');
+  return request('/api/projects/active', {}, 'projects');
 }
 
 export function fetchPlannedProjects(): Promise<Project[]> {
-  return fetchList('/api/projects/planned', 'projects', 'planned projects');
+  return request('/api/projects/planned', {}, 'projects');
 }
 
 export function fetchBoardProjects(): Promise<Project[]> {
-  return fetchList('/api/projects/board', 'projects', 'board projects');
+  return request('/api/projects/board', {}, 'projects');
 }
 
 export function fetchArchivedProjects(): Promise<Project[]> {
-  return fetchList('/api/projects/archived', 'projects', 'archived projects');
+  return request('/api/projects/archived', {}, 'projects');
 }
 
 // ---------------------------------------------------------------------------
@@ -194,17 +180,17 @@ export function fetchArchivedProjects(): Promise<Project[]> {
 // ---------------------------------------------------------------------------
 
 export function fetchRecentTags(): Promise<Tag[]> {
-  return fetchList('/api/tags/recent', 'tags', 'recent tags');
+  return request('/api/tags/recent', {}, 'tags');
 }
 
 export function fetchFavoriteTags(): Promise<Tag[]> {
-  return fetchList('/api/tags/favorites', 'tags', 'favorite tags');
+  return request('/api/tags/favorites', {}, 'tags');
 }
 
 export function fetchAToZTags(): Promise<Tag[]> {
-  return fetchList('/api/tags/a-z', 'tags', 'A-Z tags');
+  return request('/api/tags/a-z', {}, 'tags');
 }
 
 export function fetchTypeTags(): Promise<Tag[]> {
-  return fetchList('/api/tags/types', 'tags', 'tag types');
+  return request('/api/tags/types', {}, 'tags');
 }
