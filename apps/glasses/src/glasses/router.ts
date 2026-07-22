@@ -10,6 +10,8 @@ import { notesInboxScreen } from './screens/notes/inbox';
 import { journalScreen } from './screens/notes/journal';
 import { meetingsScreen } from './screens/notes/meetings';
 import { notesMenuScreen } from './screens/notes/menu';
+import { noteActionsScreen } from './screens/notes/note-actions';
+import { noteMetadataScreen } from './screens/notes/note-metadata';
 import { notesListScreen } from './screens/notes/notes';
 import { voiceNotesScreen } from './screens/notes/voice';
 import { activeScreen as projectsActiveScreen } from './screens/projects/active';
@@ -20,6 +22,7 @@ import { projectsMenuScreen } from './screens/projects/menu';
 import { plannedScreen } from './screens/projects/planned';
 import { projectNotesScreen } from './screens/projects/project-notes';
 import { projectTasksScreen } from './screens/projects/project-tasks';
+import { pageContentScreen } from './screens/reader';
 import { tagsAzScreen } from './screens/tags/a-z';
 import { tagsFavoritesScreen } from './screens/tags/favorites';
 import { tagsMenuScreen } from './screens/tags/menu';
@@ -40,7 +43,12 @@ import { todayScreen } from './screens/tasks/today';
 import { tomorrowScreen } from './screens/tasks/tomorrow';
 import type { AppGlassAction, GlassCtx, ScreenDisplay, ScreenModule } from './types';
 
-const SCREENS: Record<string, ScreenModule> = {
+/**
+ * Every screen in the app. Exported so tests can enumerate them — that's what
+ * lets a newly added screen be caught by a coverage check instead of silently
+ * missing whatever registration it also needed.
+ */
+export const SCREENS: Record<string, ScreenModule> = {
   menu: menuScreen,
   'tasks-menu': tasksMenuScreen,
   'notes-menu': notesMenuScreen,
@@ -74,6 +82,9 @@ const SCREENS: Record<string, ScreenModule> = {
   'mark-done-toast': markDoneToastScreen,
   'task-actions': taskActionsScreen,
   'task-metadata': taskMetadataScreen,
+  'note-actions': noteActionsScreen,
+  'note-metadata': noteMetadataScreen,
+  'page-content': pageContentScreen,
   'delete-confirm': deleteConfirmScreen,
   'delete-toast': deleteToastScreen,
   'project-detail': projectDetailScreen,

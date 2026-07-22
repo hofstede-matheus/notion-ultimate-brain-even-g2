@@ -5,7 +5,7 @@ import { truncateToByteLimit } from '../shared';
 export const markDoneToastScreen: ScreenModule = {
   display(state) {
     const t = state.actionToast;
-    const name = t && t.kind === 'markDone' ? truncateToByteLimit(t.taskName) : '';
+    const name = t && t.kind === 'markDone' ? truncateToByteLimit(t.itemName) : '';
     return {
       mode: 'text',
       content: [

@@ -35,6 +35,9 @@ export type ScreenName =
   | 'mark-done-toast'
   | 'task-actions'
   | 'task-metadata'
+  | 'note-actions'
+  | 'note-metadata'
+  | 'page-content'
   | 'delete-confirm'
   | 'delete-toast'
   | 'project-detail'
@@ -56,12 +59,14 @@ export interface AppState {
   // under the 'today' key — see context.ts's DATA_KEY_OVERRIDES.
   lists: Partial<Record<ScreenName, ListItem[]>>;
 
-  // Task confirm dialog — kind is 'markDone' or 'delete'; returnTo is the list screen to
-  // navigate back to (Today/Overdue/Inbox or a generic Tasks screen).
+  // Confirm dialog for a mutating item action — kind is 'markDone' (tasks
+  // only) or 'delete' (tasks and notes); returnTo is the list screen to
+  // navigate back to. Generic over item id/name since "Delete" is shared by
+  // both the task and the note action menus.
   pendingAction: {
     kind: 'markDone' | 'delete';
-    taskId: string;
-    taskName: string;
+    itemId: string;
+    itemName: string;
     returnTo: ScreenName;
   } | null;
 
@@ -76,10 +81,37 @@ export interface AppState {
     error: string;
   } | null;
 
-  // Task action toast (mark-done or delete); shown after API call completes.
+  // The note the action menu / metadata / delete flow is operating on —
+  // mirrors selectedTask/taskMetadata, kept as its own pair rather than
+  // merged with the task versions since the two menus offer different
+  // actions and a note's metadata has no Due date to carry.
+  selectedNote: { noteId: string; noteName: string; returnTo: ScreenName } | null;
+
+  noteMetadata: {
+    loading: boolean;
+    project: string | null;
+    error: string;
+  } | null;
+
+  // Page reader data (fetched on demand). Any Notion page can be read — a
+  // task via its action menu, a note by tapping it — so the reader carries its
+  // own `title` and `returnTo` rather than reading them off whichever
+  // selection led here. The blocks arrive already parsed into `pages` (one
+  // screenful of display lines each, since the firmware can't be handed a
+  // whole document at once); `index` is the screenful currently shown.
+  pageContent: {
+    loading: boolean;
+    title: string;
+    returnTo: ScreenName;
+    pages: string[][];
+    index: number;
+    error: string;
+  } | null;
+
+  // Item action toast (mark-done or delete); shown after API call completes.
   actionToast: {
     kind: 'markDone' | 'delete';
-    taskName: string;
+    itemName: string;
     returnTo: ScreenName;
     untilMs: number;
   } | null;
@@ -107,6 +139,9 @@ export const state: AppState = {
   pendingAction: null,
   selectedTask: null,
   taskMetadata: null,
+  selectedNote: null,
+  noteMetadata: null,
+  pageContent: null,
   actionToast: null,
   selectedProject: null,
   recording: 'idle',

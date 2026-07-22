@@ -19,7 +19,7 @@ vi.mock('../api', () => ({
   fetchInboxTasks: vi.fn(),
   createTask: vi.fn(),
   markTaskDone: vi.fn(),
-  deleteTask: vi.fn(),
+  deletePage: vi.fn(),
   fetchNext7DaysTasks: vi.fn().mockResolvedValue([]),
   fetchTomorrowTasks: vi.fn().mockResolvedValue([]),
   fetchInboxNotes: vi.fn().mockResolvedValue([]),
@@ -42,6 +42,8 @@ vi.mock('../api', () => ({
   fetchTypeTags: vi.fn().mockResolvedValue([]),
   fetchTasksForProject: vi.fn().mockResolvedValue([]),
   fetchNotesForProject: vi.fn().mockResolvedValue([]),
+  fetchPageMarkdown: vi.fn().mockResolvedValue({ markdown: '', truncated: false }),
+  fetchPage: vi.fn().mockResolvedValue({ properties: {} }),
 }));
 
 vi.mock('../cache', () => ({

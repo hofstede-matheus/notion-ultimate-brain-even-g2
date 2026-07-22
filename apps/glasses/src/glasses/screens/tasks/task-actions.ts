@@ -1,9 +1,31 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils';
+import type { AppState } from '../../../state';
 import { MAX_ITEM_BYTES } from '../../constants';
-import type { ScreenModule } from '../../types';
+import type { GlassCtx, ScreenModule } from '../../types';
 import { truncateToByteLimit } from '../shared';
 
-const ACTIONS = ['Load metadata', 'Mark as done', 'Delete task'];
+type SelectedTask = NonNullable<AppState['selectedTask']>;
+
+/**
+ * The menu shown after tapping a task. Read actions first, destructive ones
+ * last; `run` is keyed off position in this array, so the labels and their
+ * effects can't drift apart as entries are added.
+ */
+const ACTIONS: Array<{ label: string; run: (task: SelectedTask, ctx: GlassCtx) => void }> = [
+  { label: 'Load metadata', run: (_task, ctx) => ctx.enterTaskMetadata() },
+  {
+    label: 'Open page',
+    run: (task, ctx) => ctx.openPage(task.taskId, task.taskName, 'task-actions'),
+  },
+  {
+    label: 'Mark as done',
+    run: (task, ctx) => ctx.openConfirm('markDone', task.taskId, task.taskName, task.returnTo),
+  },
+  {
+    label: 'Delete task',
+    run: (task, ctx) => ctx.openConfirm('delete', task.taskId, task.taskName, task.returnTo),
+  },
+];
 
 export const taskActionsScreen: ScreenModule = {
   display(state) {
@@ -12,7 +34,7 @@ export const taskActionsScreen: ScreenModule = {
     return {
       mode: 'list',
       header: buildHeaderLine(name, ''),
-      items: ACTIONS,
+      items: ACTIONS.map((action) => action.label),
     };
   },
 
@@ -26,11 +48,7 @@ export const taskActionsScreen: ScreenModule = {
 
     if (action.type === 'SELECT_HIGHLIGHTED') {
       if (typeof action.itemIndex === 'number' && selected) {
-        if (action.itemIndex === 0) ctx.enterTaskMetadata();
-        else if (action.itemIndex === 1)
-          ctx.openConfirm('markDone', selected.taskId, selected.taskName, selected.returnTo);
-        else if (action.itemIndex === 2)
-          ctx.openConfirm('delete', selected.taskId, selected.taskName, selected.returnTo);
+        ACTIONS[action.itemIndex]?.run(selected, ctx);
       }
       return;
     }

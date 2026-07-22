@@ -35,6 +35,9 @@ export function resetState() {
   state.pendingAction = null;
   state.selectedTask = null;
   state.taskMetadata = null;
+  state.selectedNote = null;
+  state.noteMetadata = null;
+  state.pageContent = null;
   state.actionToast = null;
   state.selectedProject = null;
 }

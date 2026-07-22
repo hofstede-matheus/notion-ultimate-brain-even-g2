@@ -2,7 +2,7 @@ import { buildHeaderLine } from 'even-toolkit/text-utils';
 import type { ScreenModule } from '../../types';
 import { truncateToByteLimit } from '../shared';
 
-const ITEMS = ['Tasks', 'Notes'];
+const ITEMS = ['Open page', 'Tasks', 'Notes'];
 
 export const projectDetailScreen: ScreenModule = {
   display(state) {
@@ -15,14 +15,18 @@ export const projectDetailScreen: ScreenModule = {
   },
 
   action(action, state, ctx) {
+    const selected = state.selectedProject;
+
     if (action.type === 'GO_BACK') {
-      ctx.navigate(state.selectedProject?.returnTo ?? 'projects-menu');
+      ctx.navigate(selected?.returnTo ?? 'projects-menu');
       return;
     }
 
     if (action.type === 'SELECT_HIGHLIGHTED') {
-      if (action.itemIndex === 0) ctx.enterView('project-tasks');
-      else if (action.itemIndex === 1) ctx.enterView('project-notes');
+      if (action.itemIndex === 0) {
+        if (selected) ctx.openPage(selected.id, selected.name, 'project-detail');
+      } else if (action.itemIndex === 1) ctx.enterView('project-tasks');
+      else if (action.itemIndex === 2) ctx.enterView('project-notes');
       return;
     }
 

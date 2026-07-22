@@ -17,6 +17,7 @@
 
 import type { EvenAppBridge, RebuildPageContainer } from '@evenrealities/even_hub_sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { READER_CHARS_PER_LINE, READER_LINES_PER_PAGE } from '../glasses/constants';
 import { renderFull } from '../glasses/render';
 import { setBridge, state } from '../state';
 import { makeMockBridge, resetState } from './helpers';
@@ -209,6 +210,56 @@ describe('overdue screen list', () => {
     await showScreen('overdue');
 
     expect(listItemNames()).toEqual(['Overdue one', 'Overdue two']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Page reader
+//
+// The reader pre-paginates because the firmware caps a text container's
+// content and gives no way to drive its internal scroll. That only works if
+// every rendered page fits the container exactly: one line too many and the
+// firmware re-arms its own scrolling, which swallows the swipes the reader
+// uses to turn pages. These tests pin that budget.
+// ---------------------------------------------------------------------------
+
+describe('page reader content', () => {
+  const page = Array.from({ length: READER_LINES_PER_PAGE }, (_, i) => `line ${i}`);
+
+  async function showReader(title: string, pages: string[][], index = 0): Promise<void> {
+    state.screen = 'page-content';
+    state.pageContent = { loading: false, title, returnTo: 'inbox', pages, index, error: '' };
+    await renderFull();
+  }
+
+  it('renders the current page under a header, within the ten lines the display fits', async () => {
+    await showReader('Buy milk', [page, page]);
+
+    const lines = headerText().split('\n');
+    expect(lines.length).toBeLessThanOrEqual(10);
+    expect(lines.slice(2)).toEqual(page);
+  });
+
+  it('shows the position in a multi-page document, but not in a single-page one', async () => {
+    await showReader('Buy milk', [page, page, page], 1);
+    expect(headerText().split('\n')[0]).toContain('2/3');
+
+    await showReader('Buy milk', [page]);
+    expect(headerText().split('\n')[0]).toBe('Buy milk  ');
+  });
+
+  it('keeps the header on one line by truncating a long title', async () => {
+    await showReader('A note with a really quite unreasonably long name', [page, page]);
+
+    const header = headerText().split('\n')[0] ?? '';
+    expect(header.length).toBeLessThanOrEqual(READER_CHARS_PER_LINE);
+    expect(header).toContain('…');
+  });
+
+  it('explains an empty page rather than rendering a blank screen', async () => {
+    await showReader('Buy milk', []);
+
+    expect(headerText()).toContain('This page is empty.');
   });
 });
 

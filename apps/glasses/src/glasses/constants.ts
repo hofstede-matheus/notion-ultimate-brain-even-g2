@@ -22,6 +22,36 @@ export const MAX_LIST_ITEMS = 20;
 export const MAX_ITEM_BYTES = 63;
 
 // ---------------------------------------------------------------------------
+// Page reader (task-page screen)
+// ---------------------------------------------------------------------------
+// A Notion page can't simply be dumped into a text container and scrolled by
+// the firmware: rebuildPageContainer caps `content` at 1000 characters — under
+// two screenfuls — and there is no API to read or set the firmware's scroll
+// offset, so there'd be no way to show progress. The reader pre-paginates
+// instead, and each page MUST fit the container with zero overflow: leftover
+// overflow re-arms the firmware's internal scroll, which then swallows swipes
+// until it hits a boundary and the page-turn gestures become erratic.
+
+/**
+ * Content lines per reader page. The container fits 10 lines (272px inner
+ * height at CONTAINER_PADDING, over a 27px line height); the header and the
+ * blank line under it take the other two.
+ */
+export const READER_LINES_PER_PAGE = 8;
+
+/**
+ * Word-wrap width in characters. The G2 font is proportional, so this is a
+ * budget rather than a measurement: at 42 characters even an all-caps line
+ * measures 547px against the 560px inner width, while ordinary prose lands
+ * near 400px. Wider settings (the toolkit's default of 46) overflow on
+ * uppercase text and cost a line to a silent extra wrap.
+ */
+export const READER_CHARS_PER_LINE = 42;
+
+/** Indent added per level of block nesting. */
+export const READER_INDENT = '  ';
+
+// ---------------------------------------------------------------------------
 // Display geometry (G2: 576×288 monochrome, even pixels)
 // ---------------------------------------------------------------------------
 

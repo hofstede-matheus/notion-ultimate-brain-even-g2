@@ -147,6 +147,9 @@ export function getListItems(state: AppState, screen: ScreenName): ListItem[] {
   return state.lists[screen] ?? [];
 }
 
+/** What tapping a row on a list screen does. */
+type SelectKind = 'task' | 'project' | 'note';
+
 /**
  * Screens whose list items are Project records. Used to route
  * SELECT_HIGHLIGHTED to openProjectDetail() — can't duck-type this off an
@@ -160,6 +163,45 @@ const PROJECT_LIST_SCREENS: ScreenName[] = [
   'projects-board',
   'projects-archived',
 ];
+
+/**
+ * Screens whose list items are Note records — tapping one opens the page
+ * reader. Listed explicitly for the same reason as PROJECT_LIST_SCREENS: a
+ * Note carries nothing a Tag doesn't, so shape alone can't tell them apart.
+ *
+ * Every notes list screen must appear here or its rows go dead; a test in
+ * menu.test.ts checks this against the router's registered screens.
+ */
+const NOTE_LIST_SCREENS: ScreenName[] = [
+  'notes-inbox',
+  'notes-favorites',
+  'notes-by-tag',
+  'notes-list',
+  'notes-meetings',
+  'notes-by-project',
+  'notes-clips',
+  'notes-voice',
+  'notes-journal',
+  'notes-all',
+  'project-notes',
+];
+
+/**
+ * What a tap on `screen` should open, when the screen's config doesn't say
+ * outright. Keyed on the screen rather than the item's shape: the records are
+ * too alike to tell apart by hand — a Task and a Project both carry `status`,
+ * a Note carries nothing a Tag doesn't — and the fields that would distinguish
+ * them are optional, so JSON drops them when they're unset. Tapping an undated
+ * task used to do nothing at all for exactly that reason.
+ *
+ * Screens absent from both lists (the Tags views) have no detail view yet, so
+ * their rows are deliberately inert.
+ */
+function selectKindFor(screen: ScreenName): SelectKind | undefined {
+  if (PROJECT_LIST_SCREENS.includes(screen)) return 'project';
+  if (NOTE_LIST_SCREENS.includes(screen)) return 'note';
+  return undefined;
+}
 
 export interface ListScreenConfig {
   /** This screen's own name — used to key state.lists (unless `selectItems` is given). */
@@ -184,11 +226,11 @@ export interface ListScreenConfig {
    */
   selectItems?: (state: AppState) => ListItem[];
   /**
-   * Explicit item kind for SELECT_HIGHLIGHTED dispatch, bypassing the
-   * dueDate/PROJECT_LIST_SCREENS heuristics below — used by Today/Overdue/
-   * Inbox, whose items are always Tasks by construction.
+   * Explicit item kind for SELECT_HIGHLIGHTED dispatch, bypassing
+   * selectKindFor's heuristics — used by Today/Overdue/Inbox, whose items are
+   * always Tasks by construction.
    */
-  onSelect?: 'task' | 'project';
+  onSelect?: SelectKind;
 }
 
 /**
@@ -253,17 +295,10 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
         if (typeof action.itemIndex === 'number') {
           const item = selectItems(state)[action.itemIndex];
           if (item) {
-            // Only Task records carry a dueDate — guards against triggering
-            // the action menu on the Notes/Projects/Tags screens sharing this factory.
-            const kind =
-              config.onSelect ??
-              ('dueDate' in item
-                ? 'task'
-                : PROJECT_LIST_SCREENS.includes(config.screen)
-                  ? 'project'
-                  : undefined);
+            const kind = config.onSelect ?? selectKindFor(config.screen);
             if (kind === 'task') ctx.openTaskActions(item.id, item.name, config.screen);
             else if (kind === 'project') ctx.openProjectDetail(item.id, item.name, config.screen);
+            else if (kind === 'note') ctx.openNoteActions(item.id, item.name, config.screen);
           }
         }
         return;

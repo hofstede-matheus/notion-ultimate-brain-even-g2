@@ -22,6 +22,9 @@ function fakeNotion() {
   return {
     databases: { query: vi.fn() },
     pages: { create: vi.fn(), update: vi.fn(), retrieve: vi.fn() },
+    // The generic escape hatch the markdown route uses — the SDK (installed
+    // at 2.3.0) has no typed method for that endpoint yet.
+    request: vi.fn(),
   };
 }
 
@@ -118,21 +121,32 @@ describe('PATCH /api/tasks/:id/done', () => {
   });
 });
 
-describe('DELETE /api/tasks/:id', () => {
-  it('moves the task to the trash', async () => {
+describe('DELETE /api/pages/:id', () => {
+  it('moves the page to the trash', async () => {
     const notion = fakeNotion();
     notion.pages.update.mockResolvedValue({ id: 't1' });
 
-    const res = await route('DELETE', '/api/tasks/:id').handler(
+    const res = await route('DELETE', '/api/pages/:id').handler(
       ctx(notion, { params: { id: 't1' } }),
     );
 
     expect(notion.pages.update).toHaveBeenCalledWith({ page_id: 't1', in_trash: true });
     expect(res).toEqual({ status: 200, body: { id: 't1' } });
   });
+
+  it('works for a note id exactly the same way — the route has no notion of "task"', async () => {
+    const notion = fakeNotion();
+    notion.pages.update.mockResolvedValue({ id: 'n1' });
+
+    const res = await route('DELETE', '/api/pages/:id').handler(
+      ctx(notion, { params: { id: 'n1' } }),
+    );
+
+    expect(res).toEqual({ status: 200, body: { id: 'n1' } });
+  });
 });
 
-describe('GET /api/tasks/:id/metadata', () => {
+describe('GET /api/pages/:id/metadata', () => {
   it('resolves the project relation name and due date', async () => {
     const notion = fakeNotion();
     notion.pages.retrieve
@@ -144,7 +158,7 @@ describe('GET /api/tasks/:id/metadata', () => {
       })
       .mockResolvedValueOnce(titlePage('p1', 'Website'));
 
-    const res = await route('GET', '/api/tasks/:id/metadata').handler(
+    const res = await route('GET', '/api/pages/:id/metadata').handler(
       ctx(notion, { params: { id: 't1' } }),
     );
 
@@ -158,12 +172,27 @@ describe('GET /api/tasks/:id/metadata', () => {
       properties: { Due: { date: { start: '2026-07-01' } }, Project: { relation: [] } },
     });
 
-    const res = await route('GET', '/api/tasks/:id/metadata').handler(
+    const res = await route('GET', '/api/pages/:id/metadata').handler(
       ctx(notion, { params: { id: 't1' } }),
     );
 
     expect(res).toEqual({ status: 200, body: { project: null, due: '2026-07-01' } });
     expect(notion.pages.retrieve).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves a project for a note the same way — Notes carry a Project relation too', async () => {
+    const notion = fakeNotion();
+    notion.pages.retrieve
+      .mockResolvedValueOnce({ properties: { Project: { relation: [{ id: 'p1' }] } } })
+      .mockResolvedValueOnce(titlePage('p1', 'Website'));
+
+    const res = await route('GET', '/api/pages/:id/metadata').handler(
+      ctx(notion, { params: { id: 'n1' } }),
+    );
+
+    // Notes have no Due property at all — reading it off the page object is
+    // just `undefined`, which the route already normalises to `due: null`.
+    expect(res).toEqual({ status: 200, body: { project: 'Website', due: null } });
   });
 });
 
@@ -183,6 +212,47 @@ describe('GET /api/tasks/for-project/:projectId', () => {
     )) as { status: number; body: { tasks: { id: string }[] } };
 
     expect(res.body.tasks.map((t) => t.id)).toEqual(['b', 'a', 'c']);
+  });
+});
+
+// These two are pure forwards — the glasses app turns the markdown into
+// display text, and reads the Description fallback — so the only thing to
+// assert is that nothing is transformed on the way through, in either
+// direction.
+describe('GET /api/pages/:id/markdown', () => {
+  it("hands back Notion's markdown response untouched", async () => {
+    const notion = fakeNotion();
+    const markdownResponse = {
+      object: 'page_markdown',
+      id: 'p1',
+      markdown: '# Heading\n- a bullet',
+      truncated: false,
+      unknown_block_ids: [],
+    };
+    notion.request.mockResolvedValue(markdownResponse);
+
+    const res = await route('GET', '/api/pages/:id/markdown').handler(
+      ctx(notion, { params: { id: 'p1' } }),
+    );
+
+    // Goes through the SDK's generic request() rather than a typed method —
+    // @notionhq/client (installed at 2.3.0) has no dedicated markdown method
+    // yet, and this is the same call its typed methods build on.
+    expect(notion.request).toHaveBeenCalledWith({ path: 'pages/p1/markdown', method: 'get' });
+    expect(res).toEqual({ status: 200, body: markdownResponse });
+  });
+});
+
+describe('GET /api/pages/:id', () => {
+  it("hands back Notion's page object untouched", async () => {
+    const notion = fakeNotion();
+    const page = { object: 'page', id: 'p1', properties: { Description: { rich_text: [] } } };
+    notion.pages.retrieve.mockResolvedValue(page);
+
+    const res = await route('GET', '/api/pages/:id').handler(ctx(notion, { params: { id: 'p1' } }));
+
+    expect(notion.pages.retrieve).toHaveBeenCalledWith({ page_id: 'p1' });
+    expect(res).toEqual({ status: 200, body: page });
   });
 });
 

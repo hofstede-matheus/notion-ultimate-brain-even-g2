@@ -1,3 +1,18 @@
+/**
+ * Every route in the app.
+ *
+ * Handlers stay as close to a pass-through as the endpoint allows: attach the
+ * tenant's token, call Notion, hand the response back. The app is free and
+ * this server is the only part that costs anything to run, so work that could
+ * happen on the device happens on the device — pagination loops, tree walks,
+ * parsing and formatting all belong in the glasses app. Before adding logic
+ * here, check whether the client could do it instead; it almost always can.
+ * See "Why the server stays a proxy" in the README.
+ *
+ * The one standing exception is the list-view mappers below, which trade a
+ * little work here for a much smaller payload over a phone-tethered link.
+ */
+
 import type { Client } from '@notionhq/client';
 import { translateFilter } from './filters';
 import type { NotionPage } from './mappers';
@@ -254,16 +269,20 @@ const markTaskDoneRoute: Route = {
 };
 
 // ---------------------------------------------------------------------------
-// GET /api/tasks/:id/metadata
-// Fetch a task's Project (resolved name) and Due date, on demand
+// GET /api/pages/:id/metadata
+// Fetch a page's Project (resolved name) and Due date, on demand. Generic
+// over tasks and notes: both databases carry a Project relation, only tasks
+// carry Due — reading a note's non-existent Due property just yields
+// undefined, which the query below already treats as "no date" (`due: null`).
+// The glasses app decides which fields to show for which kind of item.
 // ---------------------------------------------------------------------------
-const taskMetadataRoute: Route = {
+const pageMetadataRoute: Route = {
   method: 'GET',
-  path: '/api/tasks/:id/metadata',
+  path: '/api/pages/:id/metadata',
   handler: authed(async ({ params, notion }) => {
     const { id } = params;
     if (!id) {
-      return { status: 400, body: { error: 'Missing task id' } };
+      return { status: 400, body: { error: 'Missing page id' } };
     }
     const page = (await notion.pages.retrieve({ page_id: id })) as NotionPage;
     const due = page.properties?.Due?.date?.start ?? null;
@@ -282,22 +301,67 @@ const taskMetadataRoute: Route = {
 };
 
 // ---------------------------------------------------------------------------
-// DELETE /api/tasks/:id
-// Move a task to the Notion Bin
+// DELETE /api/pages/:id
+// Move a page to the Notion Bin. Generic over tasks and notes — `pages.update`
+// doesn't care which database a page belongs to, only the client decides
+// what "delete" means for the item it's showing.
 // ---------------------------------------------------------------------------
-const deleteTaskRoute: Route = {
+const deletePageRoute: Route = {
   method: 'DELETE',
-  path: '/api/tasks/:id',
+  path: '/api/pages/:id',
   handler: authed(async ({ params, notion }) => {
     const { id } = params;
     if (!id) {
-      return { status: 400, body: { error: 'Missing task id' } };
+      return { status: 400, body: { error: 'Missing page id' } };
     }
     const page = await notion.pages.update({
       page_id: id,
       in_trash: true,
     });
     return { status: 200, body: { id: page.id } };
+  }),
+};
+
+// ---------------------------------------------------------------------------
+// GET /api/pages/:id/markdown
+// GET /api/pages/:id
+//
+// Straight forwards of the two Notion endpoints the page reader needs. Both
+// hand back Notion's own response untouched — turning the markdown into
+// display text, and reading the Description-property fallback for a page
+// with no body at all, both happen in the glasses app (see its
+// page-loader.ts and glasses/markdown-to-pages.ts).
+//
+// The markdown endpoint isn't in the @notionhq/client SDK (installed at
+// 2.3.0) yet, so it goes through the client's own generic `request()` — the
+// same call the SDK's typed methods build on, so auth/retries/base-URL still
+// come from the shared per-tenant Client. Verified against this workspace: no
+// Notion-Version override is needed, so the rest of the API (created against
+// the SDK's pinned 2022-06-28) is unaffected.
+// ---------------------------------------------------------------------------
+const pageMarkdownRoute: Route = {
+  method: 'GET',
+  path: '/api/pages/:id/markdown',
+  handler: authed(async ({ params, notion }) => {
+    const { id } = params;
+    if (!id) {
+      return { status: 400, body: { error: 'Missing page id' } };
+    }
+    const response = await notion.request({ path: `pages/${id}/markdown`, method: 'get' });
+    return { status: 200, body: response };
+  }),
+};
+
+const pageRoute: Route = {
+  method: 'GET',
+  path: '/api/pages/:id',
+  handler: authed(async ({ params, notion }) => {
+    const { id } = params;
+    if (!id) {
+      return { status: 400, body: { error: 'Missing page id' } };
+    }
+    const page = await notion.pages.retrieve({ page_id: id });
+    return { status: 200, body: page };
   }),
 };
 
@@ -311,6 +375,8 @@ export const ROUTES: Route[] = [
   notesForProjectRoute,
   createTaskRoute,
   markTaskDoneRoute,
-  taskMetadataRoute,
-  deleteTaskRoute,
+  pageMetadataRoute,
+  deletePageRoute,
+  pageMarkdownRoute,
+  pageRoute,
 ];

@@ -2,10 +2,11 @@ import { buildHeaderLine } from 'even-toolkit/text-utils';
 import type { ScreenModule } from '../../types';
 import { truncateToByteLimit } from '../shared';
 
+// Shared by the task and note action menus.
 export const deleteToastScreen: ScreenModule = {
   display(state) {
     const t = state.actionToast;
-    const name = t && t.kind === 'delete' ? truncateToByteLimit(t.taskName) : '';
+    const name = t && t.kind === 'delete' ? truncateToByteLimit(t.itemName) : '';
     return {
       mode: 'text',
       content: [

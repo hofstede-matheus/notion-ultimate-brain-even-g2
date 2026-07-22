@@ -1,8 +1,9 @@
 # Notion Ultimate Brain — Even Realities G2
 
 A GTD task manager for [Even Realities G2](https://www.evenrealities.com/) smart glasses,
-backed by Notion. View today's tasks, process your inbox, browse notes/projects/tags, and
-capture new tasks by voice — all from the glasses.
+backed by Notion. View today's tasks, process your inbox, browse notes/projects/tags, read
+a page's contents a screenful at a time, and capture new tasks by voice — all from the
+glasses.
 
 The project is multi-tenant: each device holds its own Notion integration token and
 database IDs (entered in the app's Settings screen), sent with every request via the
@@ -36,6 +37,27 @@ packages/
 Turborepo wires up `build` / `dev` / `test` / `check-types` tasks across both apps and
 caches task output, so `pnpm <task>` at the root fans out to every workspace that defines
 it.
+
+### Why the server stays a proxy
+
+The app is free, and the server is the only part anyone pays to run. Every millisecond of
+Lambda time is a bill that grows with the number of devices, while the phone running the
+webview is already paid for and idle. So the rule is: **the server forwards, the client
+decides.**
+
+A handler should do no more than attach the tenant's token, call Notion, and hand the
+response back. Anything that could run on the device runs on the device — parsing,
+formatting, pagination for the display, caching. The page reader is the worked example:
+`GET /api/pages/:id/markdown` and `GET /api/pages/:id` are one Notion call each, and every
+decision about what the result means — turning Notion's own markdown export into display
+text, falling back to a page's Description property when its body is empty — lives in
+`apps/glasses/src/page-loader.ts` and `apps/glasses/src/glasses/markdown-to-pages.ts`.
+
+This also keeps the blast radius small — the backend holds no state and stores no
+credentials, so it can't leak what it never has. The one deliberate exception is the
+list-view mappers (`src/mappers.ts`), which shrink a large Notion page object down to the
+handful of fields a list row needs; that trades a little server work for a much smaller
+payload over a phone-tethered link.
 
 ## Prerequisites
 

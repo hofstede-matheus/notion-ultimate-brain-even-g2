@@ -44,8 +44,8 @@ export interface GlassCtx {
   discardAddTask(): void;
   openConfirm(
     action: 'markDone' | 'delete',
-    taskId: string,
-    taskName: string,
+    itemId: string,
+    itemName: string,
     returnTo: ScreenName,
   ): void;
   confirmAction(): Promise<void>;
@@ -53,6 +53,13 @@ export interface GlassCtx {
   dismissActionToast(): void;
   openTaskActions(taskId: string, taskName: string, returnTo: ScreenName): void;
   enterTaskMetadata(): void;
+  openNoteActions(noteId: string, noteName: string, returnTo: ScreenName): void;
+  /** A note's metadata is just its Project — Notes have no Due date. */
+  enterNoteMetadata(): void;
+  /** Reads any Notion page — a task or a note, from its action menu. `returnTo` is wherever a double-tap should land. */
+  openPage(pageId: string, title: string, returnTo: ScreenName): void;
+  /** Moves the page reader `delta` screenfuls, clamped to the document. */
+  turnPage(delta: number): void;
   openProjectDetail(projectId: string, projectName: string, returnTo: ScreenName): void;
 }
 

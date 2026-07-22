@@ -1,4 +1,11 @@
-import type { Note, Project, Tag, Task } from '@notion-ub/contracts';
+import type {
+  Note,
+  NotionPageMarkdown,
+  NotionPageObject,
+  Project,
+  Tag,
+  Task,
+} from '@notion-ub/contracts';
 import { getTenantHeader } from './tenant-config';
 
 /**
@@ -61,24 +68,57 @@ export async function markTaskDone(id: string): Promise<void> {
   if (!res.ok) throw new Error(`Failed to mark task done: ${res.status}`);
 }
 
-export interface TaskMetadata {
+export function fetchTasksForProject(projectId: string): Promise<Task[]> {
+  return fetchList(`/api/tasks/for-project/${projectId}`, 'tasks', 'tasks for project');
+}
+
+// ---------------------------------------------------------------------------
+// Pages — generic over tasks, notes and projects, so the reader, the
+// metadata screens, and delete all share these regardless of which kind of
+// item the user is looking at.
+// ---------------------------------------------------------------------------
+
+export interface PageMetadata {
   project: string | null;
   due: string | null;
 }
 
-export async function fetchTaskMetadata(id: string): Promise<TaskMetadata> {
-  const res = await apiFetch(`/api/tasks/${id}/metadata`);
-  if (!res.ok) throw new Error(`Failed to fetch task metadata: ${res.status}`);
+/**
+ * A page's Project (resolved name) and Due date. Every kind of page carries a
+ * Project relation; only tasks carry Due — for anything else `due` just comes
+ * back null, and it's up to the caller whether to show it.
+ */
+export async function fetchPageMetadata(id: string): Promise<PageMetadata> {
+  const res = await apiFetch(`/api/pages/${id}/metadata`);
+  if (!res.ok) throw new Error(`Failed to fetch metadata: ${res.status}`);
   return res.json();
 }
 
-export async function deleteTask(id: string): Promise<void> {
-  const res = await apiFetch(`/api/tasks/${id}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error(`Failed to delete task: ${res.status}`);
+/** Moves a page (task, note, or anything else) to the Notion Bin. */
+export async function deletePage(id: string): Promise<void> {
+  const res = await apiFetch(`/api/pages/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`Failed to delete: ${res.status}`);
 }
 
-export function fetchTasksForProject(projectId: string): Promise<Task[]> {
-  return fetchList(`/api/tasks/for-project/${projectId}`, 'tasks', 'tasks for project');
+/**
+ * A page's body as Notion's own enhanced markdown — untouched. Turning it
+ * into display text is the reader's job (see glasses/markdown-to-pages.ts).
+ */
+export async function fetchPageMarkdown(id: string): Promise<NotionPageMarkdown> {
+  const res = await apiFetch(`/api/pages/${id}/markdown`);
+  if (!res.ok) throw new Error(`Failed to fetch page content: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * A page object. The reader's only use for it is the Description property —
+ * markdown covers a page's body, and many Ultimate Brain tasks keep their
+ * text in this property instead, with no body content at all.
+ */
+export async function fetchPage(id: string): Promise<NotionPageObject> {
+  const res = await apiFetch(`/api/pages/${id}`);
+  if (!res.ok) throw new Error(`Failed to fetch page: ${res.status}`);
+  return res.json();
 }
 
 // ---------------------------------------------------------------------------

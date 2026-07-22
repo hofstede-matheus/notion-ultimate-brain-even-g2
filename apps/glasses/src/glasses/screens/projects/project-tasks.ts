@@ -6,6 +6,7 @@ import { makeListScreen } from '../shared';
 export const projectTasksScreen: ScreenModule = makeListScreen({
   screen: 'project-tasks',
   parent: 'project-detail',
+  onSelect: 'task',
   title: (state: AppState) => `${state.selectedProject?.name ?? 'PROJECT'} — TASKS`,
   emptyMessage: 'No tasks in this project.',
   formatLabel: (item) => `${(item as Task).status === 'Done' ? '[v] ' : '[ ] '}${item.name}`,

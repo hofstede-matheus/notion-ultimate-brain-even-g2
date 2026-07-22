@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx src/express/index.ts",
+    "dev": "tsx watch src/express/index.ts",
     "build": "esbuild src/lambda/handler.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist-lambda/index.js && echo '{\"type\":\"commonjs\"}' > dist-lambda/package.json",
     "check-types": "tsc --noEmit",
     "test": "vitest run",

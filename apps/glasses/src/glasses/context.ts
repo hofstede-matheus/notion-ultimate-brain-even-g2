@@ -1,7 +1,7 @@
 import { AudioInputSource } from '@evenrealities/even_hub_sdk';
 import {
   createTask,
-  deleteTask,
+  deletePage,
   fetchActiveProjects,
   fetchAllNotes,
   fetchArchivedProjects,
@@ -19,9 +19,9 @@ import {
   fetchNext7DaysTasks,
   fetchNotes,
   fetchNotesForProject,
+  fetchPageMetadata,
   fetchPlannedProjects,
   fetchRecentTags,
-  fetchTaskMetadata,
   fetchTasksForProject,
   fetchTodayTasks,
   fetchTomorrowTasks,
@@ -30,10 +30,12 @@ import {
   markTaskDone,
 } from '../api';
 import { cacheKeyForScreen, loadCachedList, saveCachedList } from '../cache';
+import { loadPageContent } from '../page-loader';
 import type { ListItem, ScreenName } from '../state';
 import { getBridge, state } from '../state';
 import * as stt from '../stt';
 import { SPINNER_FRAMES, SPINNER_INTERVAL_MS, VOSK_MODEL_URL } from './constants';
+import { markdownToPages } from './markdown-to-pages';
 import { renderFull, renderUpdate } from './render';
 import type { GlassCtx } from './types';
 
@@ -88,8 +90,18 @@ const DATA_KEY_OVERRIDES: Partial<Record<ScreenName, ScreenName>> = {
 
 let spinnerInterval: ReturnType<typeof setInterval> | null = null;
 
-function startSpinner(onTick: () => void): void {
+/**
+ * Which flow the running spinner belongs to. There's only one spinner, but
+ * several flows can be in flight at once — a list screen rendered from cache
+ * keeps refreshing in the background while the user taps through to something
+ * else — and each stops the spinner in its own `finally`. Without an owner the
+ * one that happens to finish first kills the spinner the other is still using.
+ */
+let spinnerOwner = 0;
+
+function startSpinner(onTick: () => void): number {
   stopSpinner(); // clear any previous interval first
+  const owner = ++spinnerOwner;
   let i = 0;
   state.spinnerFrame = SPINNER_FRAMES[0] ?? '';
   spinnerInterval = setInterval(() => {
@@ -97,9 +109,12 @@ function startSpinner(onTick: () => void): void {
     state.spinnerFrame = SPINNER_FRAMES[i] ?? '';
     onTick();
   }, SPINNER_INTERVAL_MS);
+  return owner;
 }
 
-function stopSpinner(): void {
+/** Stops the spinner, unless `owner` names a flow that no longer holds it. */
+function stopSpinner(owner?: number): void {
+  if (owner !== undefined && owner !== spinnerOwner) return;
   if (spinnerInterval !== null) {
     clearInterval(spinnerInterval);
     spinnerInterval = null;
@@ -170,7 +185,7 @@ async function enterView(screen: ScreenName): Promise<void> {
   navigate(screen);
 
   // 2. Spin while the fresh data loads in the background
-  startSpinner(() => {
+  const spinner = startSpinner(() => {
     void renderUpdate(screen);
   });
 
@@ -183,7 +198,7 @@ async function enterView(screen: ScreenName): Promise<void> {
     if (state.loading) state.lists[dataKey] = []; // no cache — show empty
     state.loading = false;
   } finally {
-    stopSpinner();
+    stopSpinner(spinner);
     // The fetched list may differ from what's on screen — there's no
     // partial-list-update API, so refresh via a full rebuild rather than
     // the header-only renderUpdate.
@@ -192,49 +207,44 @@ async function enterView(screen: ScreenName): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Task actions — confirm dialog + toast for mark-done and delete, unified flow
+// Item actions — confirm dialog + toast for mark-done and delete, unified
+// flow. Shared by tasks ("Mark as done", "Delete task") and notes ("Delete
+// note") — the state and API calls involved don't care which kind of page
+// they're acting on, so this is generic over item id/name rather than
+// task-specific.
 // ---------------------------------------------------------------------------
 
-interface TaskAction {
+interface ItemAction {
   kind: 'markDone' | 'delete';
   confirmScreenName: ScreenName;
   toastScreenName: ScreenName;
-  confirmTitle: string;
-  toastTitle: string;
-  toastVerb: string;
-  apiCall: (taskId: string) => Promise<void>;
+  apiCall: (itemId: string) => Promise<void>;
 }
 
-const TASK_ACTIONS: Record<'markDone' | 'delete', TaskAction> = {
+const ITEM_ACTIONS: Record<'markDone' | 'delete', ItemAction> = {
   markDone: {
     kind: 'markDone',
     confirmScreenName: 'mark-done-confirm',
     toastScreenName: 'mark-done-toast',
-    confirmTitle: 'MARK AS DONE?',
-    toastTitle: 'DONE',
-    toastVerb: 'Marked done',
     apiCall: markTaskDone,
   },
   delete: {
     kind: 'delete',
     confirmScreenName: 'delete-confirm',
     toastScreenName: 'delete-toast',
-    confirmTitle: 'DELETE TASK?',
-    toastTitle: 'DELETED',
-    toastVerb: 'Deleted',
-    apiCall: deleteTask,
+    apiCall: deletePage,
   },
 };
 
 let actionToastTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function openConfirm(
-  action: TaskAction,
-  taskId: string,
-  taskName: string,
+  action: ItemAction,
+  itemId: string,
+  itemName: string,
   returnTo: ScreenName,
 ): void {
-  state.pendingAction = { kind: action.kind, taskId, taskName, returnTo };
+  state.pendingAction = { kind: action.kind, itemId, itemName, returnTo };
   state.errorMessage = '';
   navigate(action.confirmScreenName);
 }
@@ -246,13 +256,13 @@ function dismissConfirm(): void {
 }
 
 /**
- * Removes a task from whichever list actually owns it — Today and Overdue
+ * Removes an item from whichever list actually owns it — Today and Overdue
  * are both filtered views over the same 'today' data key (see
  * DATA_KEY_OVERRIDES).
  */
-function removeTaskFromOwningList(taskId: string, returnTo: ScreenName): void {
+function removeItemFromOwningList(itemId: string, returnTo: ScreenName): void {
   const dataKey = DATA_KEY_OVERRIDES[returnTo] ?? returnTo;
-  const list = (state.lists[dataKey] ?? []).filter((item) => item.id !== taskId);
+  const list = (state.lists[dataKey] ?? []).filter((item) => item.id !== itemId);
   state.lists[dataKey] = list;
   void saveCachedList(cacheKeyForListView(dataKey), list);
 }
@@ -260,15 +270,15 @@ function removeTaskFromOwningList(taskId: string, returnTo: ScreenName): void {
 async function confirmAction(): Promise<void> {
   const pending = state.pendingAction;
   if (!pending) return;
-  const { kind, taskId, returnTo } = pending;
-  const action = TASK_ACTIONS[kind];
+  const { kind, itemId, returnTo } = pending;
+  const action = ITEM_ACTIONS[kind];
 
   try {
-    await action.apiCall(taskId);
-    removeTaskFromOwningList(taskId, returnTo);
+    await action.apiCall(itemId);
+    removeItemFromOwningList(itemId, returnTo);
 
     state.pendingAction = null;
-    state.actionToast = { kind, taskName: pending.taskName, returnTo, untilMs: Date.now() + 1500 };
+    state.actionToast = { kind, itemName: pending.itemName, returnTo, untilMs: Date.now() + 1500 };
     navigate(action.toastScreenName);
 
     if (actionToastTimeout !== null) clearTimeout(actionToastTimeout);
@@ -310,10 +320,10 @@ async function enterTaskMetadata(): Promise<void> {
   state.taskMetadata = { loading: true, project: null, due: null, error: '' };
   navigate('task-metadata');
 
-  startSpinner(() => void renderUpdate('task-metadata'));
+  const spinner = startSpinner(() => void renderUpdate('task-metadata'));
 
   try {
-    const { project, due } = await fetchTaskMetadata(selected.taskId);
+    const { project, due } = await fetchPageMetadata(selected.taskId);
     state.taskMetadata = { loading: false, project, due, error: '' };
   } catch (e) {
     state.taskMetadata = {
@@ -323,9 +333,109 @@ async function enterTaskMetadata(): Promise<void> {
       error: e instanceof Error ? e.message : 'Unknown error',
     };
   } finally {
-    stopSpinner();
+    stopSpinner(spinner);
     if (state.screen === 'task-metadata') void renderFull();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Note action menu — reached by tapping a note in any Notes list screen.
+// Offers Open page / Load metadata / Delete note. A note's metadata is just
+// its Project — Notes have no Due property, so note-metadata.ts (unlike
+// task-metadata.ts) never asks for one.
+// ---------------------------------------------------------------------------
+
+function openNoteActions(noteId: string, noteName: string, returnTo: ScreenName): void {
+  state.selectedNote = { noteId, noteName, returnTo };
+  navigate('note-actions');
+}
+
+async function enterNoteMetadata(): Promise<void> {
+  const selected = state.selectedNote;
+  if (!selected) return;
+
+  state.noteMetadata = { loading: true, project: null, error: '' };
+  navigate('note-metadata');
+
+  const spinner = startSpinner(() => void renderUpdate('note-metadata'));
+
+  try {
+    const { project } = await fetchPageMetadata(selected.noteId);
+    state.noteMetadata = { loading: false, project, error: '' };
+  } catch (e) {
+    state.noteMetadata = {
+      loading: false,
+      project: null,
+      error: e instanceof Error ? e.message : 'Unknown error',
+    };
+  } finally {
+    stopSpinner(spinner);
+    if (state.screen === 'note-metadata') void renderFull();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Page reader — reads any Notion page (see page-loader.ts) and parses its
+// markdown into screenfuls of text up front, since the firmware can't be
+// handed a whole document at once (see glasses/markdown-to-pages.ts). Reached from a
+// task's action menu and a note's action menu.
+// ---------------------------------------------------------------------------
+
+/** Shown as the reader's final page when Notion's own export cut the body short. */
+const TRUNCATED_NOTICE = ['Page truncated by Notion.'];
+
+/**
+ * Invalidates a read the user has moved on from. A big page's markdown fetch
+ * can still take a moment, so backing out and opening something else easily
+ * leaves the first one in flight — and every reader shares the one
+ * 'page-content' screen, so without this the abandoned read's result would
+ * land on top of whatever the user is actually looking at.
+ */
+let pageSession = 0;
+
+async function openPage(pageId: string, title: string, returnTo: ScreenName): Promise<void> {
+  const mySession = ++pageSession;
+  const base = { title, returnTo, pages: [] as string[][], index: 0, error: '' };
+
+  state.pageContent = { ...base, loading: true };
+  navigate('page-content');
+
+  const spinner = startSpinner(() => void renderUpdate('page-content'));
+
+  try {
+    const { markdown, truncated } = await loadPageContent(pageId);
+    if (mySession !== pageSession) return;
+    const pages = markdownToPages(markdown);
+    if (truncated) pages.push(TRUNCATED_NOTICE);
+    state.pageContent = { ...base, loading: false, pages };
+  } catch (e) {
+    if (mySession !== pageSession) return;
+    state.pageContent = {
+      ...base,
+      loading: false,
+      error: e instanceof Error ? e.message : 'Unknown error',
+    };
+  } finally {
+    // Still runs for the early returns above, hence the second check: a stale
+    // read must not stop the live one's spinner or repaint its screen.
+    if (mySession === pageSession) {
+      stopSpinner(spinner);
+      if (state.screen === 'page-content') void renderFull();
+    }
+  }
+}
+
+function turnPage(delta: number): void {
+  const content = state.pageContent;
+  if (!content || content.loading || content.error) return;
+
+  const next = content.index + delta;
+  if (next < 0 || next >= content.pages.length) return;
+
+  content.index = next;
+  // The layout is identical page to page, so an in-place content upgrade is
+  // enough — and avoids the full-rebuild flicker on every page turn.
+  void renderUpdate('page-content');
 }
 
 // ---------------------------------------------------------------------------
@@ -462,15 +572,19 @@ export function createGlassCtx(): GlassCtx {
     cancelRecordingAndGoBack,
     confirmAddTask,
     discardAddTask,
-    openConfirm: (kind, taskId, taskName, returnTo) => {
-      const action = TASK_ACTIONS[kind];
-      openConfirm(action, taskId, taskName, returnTo);
+    openConfirm: (kind, itemId, itemName, returnTo) => {
+      const action = ITEM_ACTIONS[kind];
+      openConfirm(action, itemId, itemName, returnTo);
     },
     confirmAction,
     dismissConfirm,
     dismissActionToast,
     openTaskActions,
     enterTaskMetadata: () => void enterTaskMetadata(),
+    openNoteActions,
+    enterNoteMetadata: () => void enterNoteMetadata(),
+    openPage: (pageId, title, returnTo) => void openPage(pageId, title, returnTo),
+    turnPage,
     openProjectDetail,
   };
 }
