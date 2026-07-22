@@ -34,6 +34,23 @@ describe('opening the delete confirm dialog from a note', () => {
     });
     expect(h.state.screen).toBe('delete-confirm');
   });
+
+  it('a long, multi-byte note name is truncated so the prefixed item stays within the native-list byte cap', () => {
+    const longName = 'Preparação do relatório financeiro trimestral para a diretoria executiva';
+    const h = mount();
+    h.state.screen = 'notes-inbox';
+    h.state.lists['notes-inbox'] = [{ id: 'n1', name: longName }];
+    h.dispatch(select(0));
+    h.dispatch(select(2)); // Delete note
+
+    const display = h.render();
+    expect(display.mode).toBe('list');
+    if (display.mode !== 'list') return;
+    const item = display.items[0];
+    expect(new TextEncoder().encode(item).length).toBeLessThanOrEqual(63);
+    expect(item.startsWith('Confirm: ')).toBe(true);
+    expect(item.endsWith('…')).toBe(true); // proves truncation actually engaged
+  });
 });
 
 describe('confirming delete', () => {

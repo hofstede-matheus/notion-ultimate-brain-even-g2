@@ -1,12 +1,12 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils';
 import { MAX_ITEM_BYTES } from '../../../constants';
 import type { ScreenModule } from '../../../types';
-import { truncateToByteLimit } from '../../_shared/screen-factories';
+import { truncatePrefixedToByteLimit, truncateToByteLimit } from '../../_shared/screen-factories';
 
 export const markDoneConfirmScreen: ScreenModule = {
   display(state) {
     const p = state.pendingAction;
-    const name = p && p.kind === 'markDone' ? truncateToByteLimit(p.itemName, MAX_ITEM_BYTES) : '';
+    const name = p && p.kind === 'markDone' ? p.itemName : '';
     const header = state.errorMessage
       ? buildHeaderLine(`FAILED: ${truncateToByteLimit(state.errorMessage, MAX_ITEM_BYTES)}`, '')
       : buildHeaderLine('MARK AS DONE?', state.spinnerFrame);
@@ -14,7 +14,7 @@ export const markDoneConfirmScreen: ScreenModule = {
     return {
       mode: 'list',
       header,
-      items: [`Confirm: ${name}`, 'Cancel'],
+      items: [truncatePrefixedToByteLimit('Confirm: ', name), 'Cancel'],
     };
   },
 

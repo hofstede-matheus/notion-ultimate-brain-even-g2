@@ -25,6 +25,21 @@ export function truncateToByteLimit(text: string, maxBytes: number = MAX_ITEM_BY
 }
 
 /**
+ * Truncates `text` so that `prefix + result` together fit within `maxBytes`
+ * UTF-8 bytes — for building list items like "Confirm: <name>" without the
+ * prefix pushing the combined string over the native-list cap.
+ */
+export function truncatePrefixedToByteLimit(
+  prefix: string,
+  text: string,
+  maxBytes: number = MAX_ITEM_BYTES,
+): string {
+  const prefixBytes = byteEncoder.encode(prefix).length;
+  const budget = Math.max(0, maxBytes - prefixBytes);
+  return prefix + truncateToByteLimit(text, budget);
+}
+
+/**
  * Generic factory for any list-style menu screen — header + native list
  * widget, click dispatches to `item.target` (no-op when undefined). Pass
  * `clickRouter` to override the default `ctx.navigate(target)` for screens
