@@ -1,3 +1,4 @@
+import { buildHeaderLine } from 'even-toolkit/text-utils';
 import type { AppState } from '../../../../state';
 import type { ScreenModule } from '../../../types';
 
@@ -40,6 +41,14 @@ function addTaskContent(state: AppState): string {
         'Tap to confirm.',
         'Double-tap to discard',
         '& re-record.',
+      ].join('\n');
+
+    case 'confirming':
+      return [
+        buildHeaderLine('ADD TASK', state.spinnerFrame),
+        '',
+        'Saving task...',
+        'Please wait.',
       ].join('\n');
 
     case 'done':

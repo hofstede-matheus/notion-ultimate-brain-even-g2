@@ -54,12 +54,16 @@ describe('confirming delete', () => {
     openConfirm(h);
 
     h.dispatch(select(0));
+
+    expect(h.state.spinnerFrame).not.toBe('');
+
     await h.settle();
 
     expect(deletePage).toHaveBeenCalledWith('t1');
     expect(h.state.lists.inbox).toEqual([]);
     expect(h.state.actionToast).toMatchObject({ kind: 'delete', itemName: 'Buy milk', returnTo: 'inbox' });
     expect(h.state.screen).toBe('delete-toast');
+    expect(h.state.spinnerFrame).toBe('');
   });
 
   it('on API failure, shows the error and stays on the confirm screen', async () => {

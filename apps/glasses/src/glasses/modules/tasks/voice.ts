@@ -4,7 +4,7 @@ import { getBridge, state } from '../../../state';
 import * as stt from '../../../stt';
 import { VOSK_MODEL_URL } from '../../constants';
 import { renderUpdate } from '../../render';
-import { navigate } from '../_shared/navigation';
+import { navigate, startSpinner, stopSpinner } from '../_shared/navigation';
 
 // ---------------------------------------------------------------------------
 // Add Task (Voice) — start/stop recording, transcribe, create the task
@@ -80,13 +80,12 @@ export async function startRecording(): Promise<void> {
   }
 }
 
-let confirmingAddTask = false;
-
 export async function confirmAddTask(): Promise<void> {
-  if (confirmingAddTask) return;
   const transcript = state.pendingTranscript;
   if (!transcript) return;
-  confirmingAddTask = true;
+  state.recording = 'confirming';
+  void renderUpdate('add-task');
+  const spinner = startSpinner(() => void renderUpdate('add-task'));
   try {
     const result = await createTask(transcript);
     state.createdTaskName = result.name;
@@ -97,7 +96,7 @@ export async function confirmAddTask(): Promise<void> {
     state.errorMessage = e instanceof Error ? e.message : 'Unknown error';
     state.recording = 'error';
   } finally {
-    confirmingAddTask = false;
+    stopSpinner(spinner);
   }
   void renderUpdate('add-task');
 }

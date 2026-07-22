@@ -3,7 +3,13 @@ import { saveCachedList } from '../../../cache';
 import type { ScreenName } from '../../../state';
 import { state } from '../../../state';
 import { renderUpdate } from '../../render';
-import { cacheKeyForListView, DATA_KEY_OVERRIDES, navigate } from './navigation';
+import {
+  cacheKeyForListView,
+  DATA_KEY_OVERRIDES,
+  navigate,
+  startSpinner,
+  stopSpinner,
+} from './navigation';
 
 // ---------------------------------------------------------------------------
 // Item actions — confirm dialog + toast for mark-done and delete, unified
@@ -72,6 +78,8 @@ export async function confirmAction(): Promise<void> {
   const { kind, itemId, returnTo } = pending;
   const action = ITEM_ACTIONS[kind];
 
+  const spinner = startSpinner(() => void renderUpdate(action.confirmScreenName));
+
   try {
     await action.apiCall(itemId);
     removeItemFromOwningList(itemId, returnTo);
@@ -89,6 +97,8 @@ export async function confirmAction(): Promise<void> {
   } catch (e) {
     state.errorMessage = e instanceof Error ? e.message : 'Unknown error';
     void renderUpdate(action.confirmScreenName);
+  } finally {
+    stopSpinner(spinner);
   }
 }
 

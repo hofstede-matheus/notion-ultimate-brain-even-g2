@@ -44,7 +44,14 @@ export type ScreenName =
   | 'project-tasks'
   | 'project-notes';
 
-export type RecordingState = 'idle' | 'recording' | 'processing' | 'confirm' | 'done' | 'error';
+export type RecordingState =
+  | 'idle'
+  | 'recording'
+  | 'processing'
+  | 'confirm'
+  | 'confirming'
+  | 'done'
+  | 'error';
 
 /** Anything a generic list screen can render — every domain record has a `name`. */
 export type ListItem = Task | Note | Project | Tag;

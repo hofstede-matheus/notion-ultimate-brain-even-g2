@@ -103,11 +103,16 @@ describe('confirming the transcribed task', () => {
     fakeStt.fireFinal('buy milk');
 
     h.dispatch(select()); // confirm tap
+
+    expect(h.state.recording).toBe('confirming');
+    expect(h.state.spinnerFrame).not.toBe('');
+
     await h.settle();
 
     expect(h.state.recording).toBe('done');
     expect(h.state.createdTaskName).toBe('buy milk');
     expect(h.state.pendingTranscript).toBe('');
+    expect(h.state.spinnerFrame).toBe('');
   });
 
   it('on API failure, goes to error and clears the transcript', async () => {

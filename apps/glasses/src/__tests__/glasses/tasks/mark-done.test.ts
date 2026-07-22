@@ -63,6 +63,9 @@ describe('confirming mark-done', () => {
     openConfirm(h);
 
     h.dispatch(select(0)); // Confirm
+
+    expect(h.state.spinnerFrame).not.toBe('');
+
     await h.settle();
 
     expect(markTaskDone).toHaveBeenCalledWith('t1');
@@ -71,6 +74,7 @@ describe('confirming mark-done', () => {
     expect(h.state.actionToast).toMatchObject({ kind: 'markDone', itemName: 'Buy milk', returnTo: 'inbox' });
     expect(h.state.screen).toBe('mark-done-toast');
     expect(h.render()).toMatchObject({ mode: 'text' });
+    expect(h.state.spinnerFrame).toBe('');
   });
 
   it('auto-returns to the list 1.5s after the toast', async () => {
