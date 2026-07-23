@@ -40,10 +40,13 @@ const LIST_FETCHERS = [
   'fetchRecentTags',
   'fetchFavoriteTags',
   'fetchAToZTags',
-  'fetchTypeTags',
+  'fetchAreaTags',
+  'fetchResourceTags',
+  'fetchEntityTags',
   'fetchProjectTasksTodo',
   'fetchProjectTasksDone',
   'fetchNotesForProject',
+  'fetchNotesForTag',
 ] as const;
 
 /** Every api.ts export as a vi.fn(), list fetchers defaulted to an empty single page. */

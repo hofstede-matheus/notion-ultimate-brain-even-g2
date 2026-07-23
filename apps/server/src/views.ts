@@ -314,6 +314,16 @@ export const PROJECT_VIEWS: ViewConfig[] = [
 // Tags views
 // ---------------------------------------------------------------------------
 
+/**
+ * Tags DB `Type` option literals — confirmed against this tenant's actual
+ * database (a `status`-kind property with exactly these three options, no
+ * others in use). Same trap as TASK_STATUS_TODO/DONE above: Notion's status
+ * filters need the real option name, not a group label.
+ */
+export const TAG_TYPE_AREA = 'Area';
+export const TAG_TYPE_RESOURCE = 'Resource';
+export const TAG_TYPE_ENTITY = 'Entity';
+
 export const TAG_VIEWS: ViewConfig[] = [
   {
     path: 'recent',
@@ -335,8 +345,33 @@ export const TAG_VIEWS: ViewConfig[] = [
     sorts: [{ property: 'Name', direction: 'ascending' }],
   },
   {
-    path: 'types',
-    filter: { property: 'Archived', checkbox: { equals: false } },
+    path: 'types/area',
+    filter: {
+      and: [
+        { property: 'Archived', checkbox: { equals: false } },
+        { property: 'Type', status: { equals: TAG_TYPE_AREA } },
+      ],
+    },
+    sorts: [{ property: 'Name', direction: 'ascending' }],
+  },
+  {
+    path: 'types/resource',
+    filter: {
+      and: [
+        { property: 'Archived', checkbox: { equals: false } },
+        { property: 'Type', status: { equals: TAG_TYPE_RESOURCE } },
+      ],
+    },
+    sorts: [{ property: 'Name', direction: 'ascending' }],
+  },
+  {
+    path: 'types/entity',
+    filter: {
+      and: [
+        { property: 'Archived', checkbox: { equals: false } },
+        { property: 'Type', status: { equals: TAG_TYPE_ENTITY } },
+      ],
+    },
     sorts: [{ property: 'Name', direction: 'ascending' }],
   },
 ];

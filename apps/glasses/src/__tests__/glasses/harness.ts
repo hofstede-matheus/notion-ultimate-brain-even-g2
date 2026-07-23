@@ -27,6 +27,7 @@ export function resetState(): void {
   state.pageContent = null;
   state.actionToast = null;
   state.selectedProject = null;
+  state.selectedTag = null;
   state.recording = 'idle';
   state.createdTaskName = '';
   state.pendingTranscript = '';

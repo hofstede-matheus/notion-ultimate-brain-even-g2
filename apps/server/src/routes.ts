@@ -260,6 +260,35 @@ const notesForProjectRoute: Route = {
 };
 
 // ---------------------------------------------------------------------------
+// GET /api/notes/for-tag/:tagId
+// Non-archived notes whose Tag relation contains tagId.
+// ---------------------------------------------------------------------------
+const notesForTagRoute: Route = {
+  method: 'GET',
+  path: '/api/notes/for-tag/:tagId',
+  handler: authed(async ({ params, notion, db, cursor }) => {
+    const { tagId } = params;
+    const response = await notion.databases.query({
+      database_id: db.notes,
+      filter: {
+        and: [
+          { property: 'Archived', checkbox: { equals: false } },
+          { property: 'Tag', relation: { contains: tagId } },
+        ],
+      },
+      sorts: [{ property: 'Updated', direction: 'descending' }],
+      start_cursor: cursor,
+      page_size: 100,
+    });
+    const notes = (response.results as unknown as NotionPage[]).map(pageToNote);
+    return {
+      status: 200,
+      body: { notes, hasMore: response.has_more, nextCursor: response.next_cursor },
+    };
+  }),
+};
+
+// ---------------------------------------------------------------------------
 // POST /api/tasks
 // Create a new task in the Notion Tasks database
 // Body: { name: string }
@@ -411,6 +440,7 @@ export const ROUTES: Route[] = [
   ...buildViewRoutes('tags', 'tags', TAG_VIEWS, 'tags', pageToTag),
   tasksForProjectRoute,
   notesForProjectRoute,
+  notesForTagRoute,
   createTaskRoute,
   markTaskDoneRoute,
   pageMetadataRoute,

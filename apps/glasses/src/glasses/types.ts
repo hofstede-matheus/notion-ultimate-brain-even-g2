@@ -63,6 +63,8 @@ export interface GlassCtx {
   /** Moves the page reader `delta` screenfuls, clamped to the document. */
   turnPage(delta: number): void;
   openProjectDetail(projectId: string, projectName: string, returnTo: ScreenName): void;
+  /** Tag drill-down: stashes the tag and enters its notes list. */
+  openTagNotes(tagId: string, tagName: string, returnTo: ScreenName): void;
 }
 
 /** A single entry in a menu screen — `target` undefined means the row is a no-op stub. */

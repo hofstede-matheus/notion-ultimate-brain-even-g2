@@ -33,7 +33,11 @@ export type ScreenName =
   | 'tags-recent'
   | 'tags-favorites'
   | 'tags-a-z'
-  | 'tags-types'
+  | 'tag-types-menu'
+  | 'tags-types-area'
+  | 'tags-types-resource'
+  | 'tags-types-entity'
+  | 'tag-notes'
   | 'mark-done-confirm'
   | 'mark-done-toast'
   | 'task-actions'
@@ -140,6 +144,11 @@ export interface AppState {
   // navigate back to (Active/Planned/Board/Archived).
   selectedProject: { id: string; name: string; returnTo: ScreenName } | null;
 
+  // The tag the tag-notes list screen is currently scoped to — returnTo is
+  // whichever tags list screen the tap came from (Recent/Fav./A-Z/one of the
+  // Types leaves), since a tag can be reached from any of them.
+  selectedTag: { id: string; name: string; returnTo: ScreenName } | null;
+
   // Voice recording
   recording: RecordingState;
   createdTaskName: string;
@@ -164,6 +173,7 @@ export const state: AppState = {
   pageContent: null,
   actionToast: null,
   selectedProject: null,
+  selectedTag: null,
   recording: 'idle',
   createdTaskName: '',
   pendingTranscript: '',

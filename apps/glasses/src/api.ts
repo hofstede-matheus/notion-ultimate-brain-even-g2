@@ -242,6 +242,18 @@ export function fetchAToZTags(cursor?: string): Promise<PagedResult<Tag>> {
   return requestPage('/api/tags/a-z', 'tags', cursor);
 }
 
-export function fetchTypeTags(cursor?: string): Promise<PagedResult<Tag>> {
-  return requestPage('/api/tags/types', 'tags', cursor);
+export function fetchAreaTags(cursor?: string): Promise<PagedResult<Tag>> {
+  return requestPage('/api/tags/types/area', 'tags', cursor);
+}
+
+export function fetchResourceTags(cursor?: string): Promise<PagedResult<Tag>> {
+  return requestPage('/api/tags/types/resource', 'tags', cursor);
+}
+
+export function fetchEntityTags(cursor?: string): Promise<PagedResult<Tag>> {
+  return requestPage('/api/tags/types/entity', 'tags', cursor);
+}
+
+export function fetchNotesForTag(tagId: string, cursor?: string): Promise<PagedResult<Note>> {
+  return requestPage(`/api/notes/for-tag/${tagId}`, 'notes', cursor);
 }

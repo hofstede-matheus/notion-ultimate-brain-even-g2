@@ -166,7 +166,7 @@ function paginateItems<T>(items: T[], pageIndex: number): PageSlice<T> {
 }
 
 /** What tapping a row on a list screen does. */
-type SelectKind = 'task' | 'project' | 'note';
+type SelectKind = 'task' | 'project' | 'note' | 'tag';
 
 /**
  * Screens whose list items are Project records. Used to route
@@ -208,27 +208,43 @@ const NOTE_LIST_SCREENS: ScreenName[] = [
 ];
 
 /**
+ * Screens whose list items are Tag records — tapping one opens that tag's
+ * notes (openTagNotes). Listed explicitly for the same shape-ambiguity
+ * reason as PROJECT_LIST_SCREENS/NOTE_LIST_SCREENS.
+ */
+const TAG_LIST_SCREENS: ScreenName[] = [
+  'tags-recent',
+  'tags-favorites',
+  'tags-a-z',
+  'tags-types-area',
+  'tags-types-resource',
+  'tags-types-entity',
+];
+
+/**
  * What a tap on `screen` should open, when the screen's config doesn't say
  * outright. Keyed on the screen rather than the item's shape: the records are
  * too alike to tell apart by hand — a Task and a Project both carry `status`,
  * a Note carries nothing a Tag doesn't — and the fields that would distinguish
  * them are optional, so JSON drops them when they're unset. Tapping an undated
  * task used to do nothing at all for exactly that reason.
- *
- * Screens absent from both lists (the Tags views) have no detail view yet, so
- * their rows are deliberately inert.
  */
 function selectKindFor(screen: ScreenName): SelectKind | undefined {
   if (PROJECT_LIST_SCREENS.includes(screen)) return 'project';
   if (NOTE_LIST_SCREENS.includes(screen)) return 'note';
+  if (TAG_LIST_SCREENS.includes(screen)) return 'tag';
   return undefined;
 }
 
 export interface ListScreenConfig {
   /** This screen's own name — used to key state.lists (unless `selectItems` is given). */
   screen: ScreenName;
-  /** Screen to return to on GO_BACK (the owning domain's submenu). */
-  parent: ScreenName;
+  /**
+   * Screen to return to on GO_BACK (the owning domain's submenu). Can depend
+   * on state (e.g. tag-notes returns to whichever tags list screen the tap
+   * came from, stashed on state.selectedTag.returnTo).
+   */
+  parent: ScreenName | ((state: AppState) => ScreenName);
   /** Header title, e.g. "NEXT 7 DAYS". Can depend on state (e.g. the selected project's name). */
   title: string | ((state: AppState) => string);
   /** Shown (alongside "Double-tap to go back.") when the list is empty. */
@@ -324,7 +340,8 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
     action(action, state, ctx) {
       if (action.type === 'GO_BACK') {
         ctx.stopSpinner();
-        ctx.navigate(config.parent);
+        const parent = typeof config.parent === 'function' ? config.parent(state) : config.parent;
+        ctx.navigate(parent);
         return;
       }
 
@@ -354,6 +371,7 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
             if (kind === 'task') ctx.openTaskActions(item.id, item.name, config.screen);
             else if (kind === 'project') ctx.openProjectDetail(item.id, item.name, config.screen);
             else if (kind === 'note') ctx.openNoteActions(item.id, item.name, config.screen);
+            else if (kind === 'tag') ctx.openTagNotes(item.id, item.name, config.screen);
           }
         }
         return;

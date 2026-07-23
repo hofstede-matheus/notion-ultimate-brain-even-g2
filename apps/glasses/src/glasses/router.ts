@@ -23,8 +23,8 @@ import { projectDetailScreen } from './modules/projects/screens/detail';
 import { doingScreen } from './modules/projects/screens/doing';
 import { doneScreen } from './modules/projects/screens/done';
 import { projectsMenuScreen } from './modules/projects/screens/menu';
-import { ongoingScreen } from './modules/projects/screens/ongoing';
 import { onHoldScreen } from './modules/projects/screens/on-hold';
+import { ongoingScreen } from './modules/projects/screens/ongoing';
 import { plannedScreen } from './modules/projects/screens/planned';
 import { projectNotesScreen } from './modules/projects/screens/project-notes';
 import { projectTasksDoneScreen } from './modules/projects/screens/project-tasks-done';
@@ -33,8 +33,12 @@ import { projectTasksTodoScreen } from './modules/projects/screens/project-tasks
 import { tagsAzScreen } from './modules/tags/screens/a-z';
 import { tagsFavoritesScreen } from './modules/tags/screens/favorites';
 import { tagsMenuScreen } from './modules/tags/screens/menu';
+import { tagNotesScreen } from './modules/tags/screens/notes';
 import { recentTagsScreen } from './modules/tags/screens/recent';
-import { tagsTypesScreen } from './modules/tags/screens/types';
+import { tagTypesMenuScreen } from './modules/tags/screens/type-menu';
+import { tagsTypesAreaScreen } from './modules/tags/screens/types-area';
+import { tagsTypesEntityScreen } from './modules/tags/screens/types-entity';
+import { tagsTypesResourceScreen } from './modules/tags/screens/types-resource';
 import { addTaskScreen } from './modules/tasks/screens/add-task';
 import { inboxScreen } from './modules/tasks/screens/inbox';
 import { markDoneConfirmScreen } from './modules/tasks/screens/mark-done-confirm';
@@ -85,7 +89,11 @@ export const SCREENS: Record<string, ScreenModule> = {
   'tags-recent': recentTagsScreen,
   'tags-favorites': tagsFavoritesScreen,
   'tags-a-z': tagsAzScreen,
-  'tags-types': tagsTypesScreen,
+  'tag-types-menu': tagTypesMenuScreen,
+  'tags-types-area': tagsTypesAreaScreen,
+  'tags-types-resource': tagsTypesResourceScreen,
+  'tags-types-entity': tagsTypesEntityScreen,
+  'tag-notes': tagNotesScreen,
   'mark-done-confirm': markDoneConfirmScreen,
   'mark-done-toast': markDoneToastScreen,
   'task-actions': taskActionsScreen,

@@ -1,9 +1,3 @@
-/**
- * Tags has no detail view — every tags list screen renders its fetched
- * items but a tap is inert (tags aren't in PROJECT_LIST_SCREENS or
- * NOTE_LIST_SCREENS, and there's no onSelect override).
- */
-
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
@@ -38,14 +32,16 @@ describe('a tags list screen', () => {
     if (display.mode === 'text') expect(display.content).toContain('No tags.');
   });
 
-  it('tapping a tag row is a no-op — no selectedTask/Note/Project is set', () => {
+  it('tapping a tag row stashes it and opens its notes list', async () => {
     const h = mount();
     h.state.screen = 'tags-a-z';
     h.state.lists['tags-a-z'] = [TAG];
 
     h.dispatch(select(0));
+    await h.settle();
 
-    expect(h.state.screen).toBe('tags-a-z');
+    expect(h.state.screen).toBe('tag-notes');
+    expect(h.state.selectedTag).toEqual({ id: 'g1', name: 'urgent', returnTo: 'tags-a-z' });
     expect(h.state.selectedTask).toBeNull();
     expect(h.state.selectedNote).toBeNull();
     expect(h.state.selectedProject).toBeNull();

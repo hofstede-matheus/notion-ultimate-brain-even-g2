@@ -277,6 +277,34 @@ describe('GET /api/tasks/for-project/:projectId/:status', () => {
   });
 });
 
+describe('GET /api/notes/for-tag/:tagId', () => {
+  it('filters non-archived notes by the Tag relation, server-side', async () => {
+    const notion = fakeNotion();
+    notion.databases.query.mockResolvedValue({
+      results: [titlePage('n1', 'Design notes')],
+      has_more: false,
+      next_cursor: null,
+    });
+
+    const res = (await route('GET', '/api/notes/for-tag/:tagId').handler(
+      ctx(notion, { params: { tagId: 'g1' } }),
+    )) as { status: number; body: { notes: { id: string }[] } };
+
+    expect(notion.databases.query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        database_id: 'notes-db',
+        filter: {
+          and: [
+            { property: 'Archived', checkbox: { equals: false } },
+            { property: 'Tag', relation: { contains: 'g1' } },
+          ],
+        },
+      }),
+    );
+    expect(res.body.notes.map((n) => n.id)).toEqual(['n1']);
+  });
+});
+
 describe('GET /api/projects/* status filters', () => {
   it('doing filters to the Doing status option', async () => {
     const notion = fakeNotion();

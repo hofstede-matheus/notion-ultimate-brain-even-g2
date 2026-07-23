@@ -15,6 +15,7 @@ import {
 import { openPage, turnPage } from './modules/_shared/page-reader';
 import { enterNoteMetadata, openNoteActions } from './modules/notes/actions';
 import { openProjectDetail } from './modules/projects/actions';
+import { openTagNotes } from './modules/tags/actions';
 import { enterTaskMetadata, openTaskActions } from './modules/tasks/actions';
 import {
   cancelRecordingAndGoBack,
@@ -56,5 +57,6 @@ export function createGlassCtx(): GlassCtx {
     openPage: (pageId, title, returnTo) => void openPage(pageId, title, returnTo),
     turnPage,
     openProjectDetail,
+    openTagNotes,
   };
 }

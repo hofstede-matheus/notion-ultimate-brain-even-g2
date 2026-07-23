@@ -1,6 +1,7 @@
 import {
   fetchAllNotes,
   fetchArchivedProjects,
+  fetchAreaTags,
   fetchAToZTags,
   fetchBoardProjects,
   fetchByProjectNotes,
@@ -8,6 +9,7 @@ import {
   fetchClipsNotes,
   fetchDoingProjects,
   fetchDoneProjects,
+  fetchEntityTags,
   fetchFavoriteNotes,
   fetchFavoriteTags,
   fetchInboxNotes,
@@ -17,15 +19,16 @@ import {
   fetchNext7DaysTasks,
   fetchNotes,
   fetchNotesForProject,
+  fetchNotesForTag,
   fetchOngoingProjects,
   fetchOnHoldProjects,
   fetchPlannedProjects,
   fetchProjectTasksDone,
   fetchProjectTasksTodo,
   fetchRecentTags,
+  fetchResourceTags,
   fetchTodayTasks,
   fetchTomorrowTasks,
-  fetchTypeTags,
   fetchVoiceNotes,
   type PagedResult,
 } from '../../../api';
@@ -71,7 +74,9 @@ const VIEW_FETCHERS: Partial<
   'tags-recent': fetchRecentTags,
   'tags-favorites': fetchFavoriteTags,
   'tags-a-z': fetchAToZTags,
-  'tags-types': fetchTypeTags,
+  'tags-types-area': fetchAreaTags,
+  'tags-types-resource': fetchResourceTags,
+  'tags-types-entity': fetchEntityTags,
   'project-tasks-todo': (cursor) =>
     state.selectedProject
       ? fetchProjectTasksTodo(state.selectedProject.id, cursor)
@@ -83,6 +88,10 @@ const VIEW_FETCHERS: Partial<
   'project-notes': (cursor) =>
     state.selectedProject
       ? fetchNotesForProject(state.selectedProject.id, cursor)
+      : Promise.resolve(EMPTY_PAGE),
+  'tag-notes': (cursor) =>
+    state.selectedTag
+      ? fetchNotesForTag(state.selectedTag.id, cursor)
       : Promise.resolve(EMPTY_PAGE),
 };
 
@@ -178,6 +187,9 @@ export function cacheKeyForListView(screen: ScreenName): string {
     screen === 'project-notes'
   ) {
     return `${cacheKeyForScreen(screen)}:${state.selectedProject?.id ?? 'none'}`;
+  }
+  if (screen === 'tag-notes') {
+    return `${cacheKeyForScreen(screen)}:${state.selectedTag?.id ?? 'none'}`;
   }
   return cacheKeyForScreen(screen);
 }
