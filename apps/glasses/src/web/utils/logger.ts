@@ -53,11 +53,7 @@ function installFetchLogger(): void {
     const url =
       typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
 
-    // Exclude /api/logs itself: forwardToTerminal() posts every appended line
-    // there, and appendLine() forwards every line it renders (including
-    // these API-traffic lines) — without this exclusion, logging a /api/logs
-    // request creates an infinite self-amplifying loop.
-    const isApi = url.includes('/api/') && !url.includes('/api/logs');
+    const isApi = url.includes('/api/');
     const started = performance.now();
     const reqBody = init?.body ? await previewBody(init.body as BodyInit) : null;
 

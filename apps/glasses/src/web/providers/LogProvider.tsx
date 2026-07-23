@@ -1,6 +1,5 @@
 import { createContext, type ReactNode, useSyncExternalStore } from 'react';
 import { type Level, MAX_LOG_LINES } from '../constants';
-import { forwardToTerminal } from '../services/logs';
 
 /** One rendered log line, as subscribed to by ../screens/SettingsForm/components/LogConsole. */
 export interface LogEntry {
@@ -38,8 +37,6 @@ export function appendLine(level: Level, line: string, api = false): void {
   next.push({ level, line, api });
   entries = next;
   for (const listener of listeners) listener();
-
-  forwardToTerminal(level, line);
 }
 
 export const LogContext = createContext<LogEntry[] | null>(null);

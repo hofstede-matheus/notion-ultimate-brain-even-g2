@@ -60,15 +60,13 @@ export interface AuthedContext extends RouteContext {
 export interface Route {
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   path: string; // Express-style, e.g. '/api/tasks/:id/done'
-  // Routes that don't touch Notion (e.g. /api/logs) skip the tenant gate.
-  public?: boolean;
   handler: (ctx: RouteContext) => Promise<RouteResult>;
 }
 
 /**
  * Wraps a handler that needs a resolved tenant. `runRoute` already 401s a
- * non-public route with no tenant before the handler runs, so reaching here
- * without `notion`/`db` is an invariant violation — we throw (caught by the S1
+ * request with no tenant before the handler runs, so reaching here without
+ * `notion`/`db` is an invariant violation — we throw (caught by the S1
  * boundary as a 500) rather than let a non-null assertion paper over it.
  */
 function authed(
@@ -99,9 +97,9 @@ export async function invokeRoute(route: Route, ctx: RouteContext): Promise<Rout
 
 /**
  * Shared dispatch for both entry points: parses the tenant header, 401s a
- * non-public route with no valid tenant, builds the handler ctx, and runs it
- * through the S1 error boundary. Express and Lambda keep only their
- * transport-specific glue (param/body extraction, response serialization).
+ * request with no valid tenant, builds the handler ctx, and runs it through
+ * the S1 error boundary. Express and Lambda keep only their transport-specific
+ * glue (param/body extraction, response serialization).
  */
 export async function runRoute(
   route: Route,
@@ -118,7 +116,7 @@ export async function runRoute(
   },
 ): Promise<RouteResult> {
   const tenant = parseTenant(tenantHeader);
-  if (!route.public && !tenant) {
+  if (!tenant) {
     return { status: 401, body: { error: 'Missing or invalid Notion configuration' } };
   }
   return invokeRoute(route, {
@@ -171,27 +169,6 @@ function buildViewRoutes(
     }),
   }));
 }
-
-// ---------------------------------------------------------------------------
-// POST /api/logs
-// Browser-side console messages forwarded from the webview so they show up
-// in the same terminal as the server logs when running `npm run dev:all`.
-// Body: { level: string, line: string }
-// ---------------------------------------------------------------------------
-const logsRoute: Route = {
-  method: 'POST',
-  path: '/api/logs',
-  public: true,
-  handler: async ({ body }) => {
-    const { level, line } = (body as { level?: unknown; line?: unknown }) ?? {};
-    if (typeof line !== 'string') {
-      return { status: 400, body: { error: 'Missing "line" in request body' } };
-    }
-    const tag = (typeof level === 'string' && level.trim()) || 'log';
-    console.log(`[browser:${tag}] ${line}`);
-    return { status: 200, body: { ok: true } };
-  },
-};
 
 // ---------------------------------------------------------------------------
 // GET /api/tasks/for-project/:projectId/:status
@@ -433,7 +410,6 @@ const pageRoute: Route = {
 };
 
 export const ROUTES: Route[] = [
-  logsRoute,
   ...buildViewRoutes('tasks', 'tasks', TASK_VIEWS, 'tasks', pageToTask),
   ...buildViewRoutes('notes', 'notes', NOTE_VIEWS, 'notes', pageToNote),
   ...buildViewRoutes('projects', 'projects', PROJECT_VIEWS, 'projects', pageToProject),

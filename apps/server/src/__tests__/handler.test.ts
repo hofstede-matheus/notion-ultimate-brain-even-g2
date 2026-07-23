@@ -3,8 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock the Notion client factory so an authorized request never touches the
 // network — the fake query resolves empty so the view handler returns [].
 const query = vi.fn().mockResolvedValue({ results: [] });
+const create = vi.fn().mockResolvedValue({ id: 'page1' });
 vi.mock('../notion-client', () => ({
-  createNotionClient: vi.fn(() => ({ databases: { query } })),
+  createNotionClient: vi.fn(() => ({ databases: { query }, pages: { create } })),
 }));
 
 import { handler, type LambdaFunctionUrlEvent } from '../lambda/handler';
@@ -49,7 +50,7 @@ describe('lambda handler', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it('returns 401 for a non-public route without a tenant header', async () => {
+  it('returns 401 for a route without a tenant header', async () => {
     const res = await handler(event());
     expect(res.statusCode).toBe(401);
     expect(JSON.parse(res.body)).toEqual({ error: 'Missing or invalid Notion configuration' });
@@ -67,29 +68,18 @@ describe('lambda handler', () => {
     expect(createNotionClient).toHaveBeenCalledWith('secret');
   });
 
-  it('allows a public route (logs) with no tenant', async () => {
-    const res = await handler(
-      event({
-        requestContext: { http: { method: 'POST' } },
-        rawPath: '/api/logs',
-        body: JSON.stringify({ line: 'hello' }),
-      }),
-    );
-    expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.body)).toEqual({ ok: true });
-  });
-
   it('decodes a base64-encoded body', async () => {
     const res = await handler(
       event({
         requestContext: { http: { method: 'POST' } },
-        rawPath: '/api/logs',
-        body: Buffer.from(JSON.stringify({ line: 'b64' })).toString('base64'),
+        rawPath: '/api/tasks',
+        headers: { 'x-notion-config': tenantHeader() },
+        body: Buffer.from(JSON.stringify({ name: 'b64' })).toString('base64'),
         isBase64Encoded: true,
       }),
     );
     // A 200 proves the body was decoded (an undecoded body would 400 on the
-    // missing "line").
+    // missing "name").
     expect(res.statusCode).toBe(200);
   });
 
@@ -97,7 +87,8 @@ describe('lambda handler', () => {
     const res = await handler(
       event({
         requestContext: { http: { method: 'POST' } },
-        rawPath: '/api/logs',
+        rawPath: '/api/tasks',
+        headers: { 'x-notion-config': tenantHeader() },
         body: 'not json',
       }),
     );

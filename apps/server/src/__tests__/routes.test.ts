@@ -419,18 +419,3 @@ describe('GET /api/pages/:id', () => {
     expect(res).toEqual({ status: 200, body: page });
   });
 });
-
-describe('POST /api/logs (public)', () => {
-  it('rejects a body without a line', async () => {
-    const res = await route('POST', '/api/logs').handler({ params: {}, body: {} });
-    expect(res.status).toBe(400);
-  });
-
-  it('accepts a valid log line', async () => {
-    const res = await route('POST', '/api/logs').handler({
-      params: {},
-      body: { level: 'warn', line: 'hi' },
-    });
-    expect(res).toEqual({ status: 200, body: { ok: true } });
-  });
-});
