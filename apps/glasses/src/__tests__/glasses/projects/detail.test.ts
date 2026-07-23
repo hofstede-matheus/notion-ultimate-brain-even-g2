@@ -1,7 +1,7 @@
 /**
- * Tapping a project opens its drill-down menu (Open page / Tasks / Notes),
- * which reads/writes state.selectedProject and drills into the
- * project-scoped task/note lists via the generic enterView() pipeline.
+ * Tapping a project opens its drill-down menu (Tasks / Notes), which
+ * reads/writes state.selectedProject and drills into the project-scoped
+ * task/note lists via the generic enterView() pipeline.
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -12,7 +12,6 @@ vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import {
   fetchNotesForProject,
-  fetchPageMarkdown,
   fetchProjectTasksDone,
   fetchProjectTasksTodo,
 } from '../../../api';
@@ -34,7 +33,7 @@ describe('tapping a project on a list screen', () => {
       returnTo: 'projects-doing',
     });
     expect(h.state.screen).toBe('project-detail');
-    expect(h.render()).toMatchObject({ mode: 'list', items: ['Open page', 'Tasks', 'Notes'] });
+    expect(h.render()).toMatchObject({ mode: 'list', items: ['Tasks', 'Notes'] });
   });
 
   it('GO_BACK returns to the list the project was opened from', () => {
@@ -56,7 +55,7 @@ describe('drilling into a project', () => {
     h.state.lists['projects-doing'] = [PROJECT];
     h.dispatch(select(0)); // -> project-detail, selectedProject set
 
-    h.dispatch(select(1)); // Tasks
+    h.dispatch(select(0)); // Tasks
 
     expect(h.state.screen).toBe('project-tasks-menu');
     expect(fetchProjectTasksTodo).not.toHaveBeenCalled();
@@ -74,7 +73,7 @@ describe('drilling into a project', () => {
     h.state.screen = 'projects-doing';
     h.state.lists['projects-doing'] = [PROJECT];
     h.dispatch(select(0)); // -> project-detail, selectedProject set
-    h.dispatch(select(1)); // -> project-tasks-menu
+    h.dispatch(select(0)); // -> project-tasks-menu
 
     h.dispatch(select(0)); // To Do
     await h.settle();
@@ -98,7 +97,7 @@ describe('drilling into a project', () => {
     h.state.screen = 'projects-doing';
     h.state.lists['projects-doing'] = [PROJECT];
     h.dispatch(select(0));
-    h.dispatch(select(1)); // -> project-tasks-menu
+    h.dispatch(select(0)); // -> project-tasks-menu
 
     h.dispatch(select(1)); // Done
     await h.settle();
@@ -123,30 +122,12 @@ describe('drilling into a project', () => {
     h.state.lists['projects-doing'] = [PROJECT];
     h.dispatch(select(0));
 
-    h.dispatch(select(2)); // Notes
+    h.dispatch(select(1)); // Notes
     await h.settle();
 
     expect(fetchNotesForProject).toHaveBeenCalledWith('p1', undefined);
     expect(h.state.screen).toBe('project-notes');
     expect(h.state.lists['project-notes']).toEqual([{ id: 'n1', name: 'Design notes' }]);
-  });
-
-  it('Open page reads the project itself', async () => {
-    vi.mocked(fetchPageMarkdown).mockResolvedValue({
-      markdown: '# Kitchen Remodel',
-      truncated: false,
-    });
-    const h = mount();
-    h.state.screen = 'projects-doing';
-    h.state.lists['projects-doing'] = [PROJECT];
-    h.dispatch(select(0));
-
-    h.dispatch(select(0)); // Open page
-    await h.settle();
-
-    expect(h.state.screen).toBe('page-content');
-    expect(h.state.pageContent?.title).toBe('Kitchen Remodel');
-    expect(h.state.pageContent?.returnTo).toBe('project-detail');
   });
 });
 
