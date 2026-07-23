@@ -10,11 +10,7 @@ vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
-import {
-  fetchNotesForProject,
-  fetchProjectTasksDone,
-  fetchProjectTasksTodo,
-} from '../../../api';
+import { fetchNotesForProject, fetchProjectTasksDone, fetchProjectTasksTodo } from '../../../api';
 import { back, mount, select } from '../harness';
 
 const PROJECT = { id: 'p1', name: 'Kitchen Remodel' };

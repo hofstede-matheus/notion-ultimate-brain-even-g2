@@ -60,7 +60,7 @@ describe('a submenu', () => {
     expect(h.state.screen).toBe('today');
   });
 
-  it("Add Task is a plain navigate, since it has no list fetcher", () => {
+  it('Add Task is a plain navigate, since it has no list fetcher', () => {
     const h = mount();
     h.state.screen = 'tasks-menu';
 

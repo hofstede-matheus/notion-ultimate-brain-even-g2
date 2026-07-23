@@ -7,7 +7,11 @@ import { navigate } from '../_shared/navigation';
 // screen. Stashes the project and opens the Tasks/Notes menu.
 // ---------------------------------------------------------------------------
 
-export function openProjectDetail(projectId: string, projectName: string, returnTo: ScreenName): void {
+export function openProjectDetail(
+  projectId: string,
+  projectName: string,
+  returnTo: ScreenName,
+): void {
   state.selectedProject = { id: projectId, name: projectName, returnTo };
   navigate('project-detail');
 }

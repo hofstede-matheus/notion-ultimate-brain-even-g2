@@ -22,7 +22,11 @@ describe('openPage', () => {
     await h.settle();
 
     expect(h.state.screen).toBe('page-content');
-    expect(h.state.pageContent).toMatchObject({ loading: false, title: 'My Task', returnTo: 'task-actions' });
+    expect(h.state.pageContent).toMatchObject({
+      loading: false,
+      title: 'My Task',
+      returnTo: 'task-actions',
+    });
     expect(h.state.pageContent?.pages).toEqual([['Hello world']]);
   });
 

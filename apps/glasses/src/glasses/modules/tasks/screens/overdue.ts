@@ -1,6 +1,6 @@
 import type { ScreenModule } from '../../../types';
-import { getOverdueFlatTasks } from '../helpers';
 import { makeListScreen } from '../../_shared/screen-factories';
+import { getOverdueFlatTasks } from '../helpers';
 
 export const overdueScreen: ScreenModule = makeListScreen({
   screen: 'overdue',

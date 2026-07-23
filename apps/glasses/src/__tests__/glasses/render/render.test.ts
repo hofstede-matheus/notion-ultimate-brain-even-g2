@@ -39,7 +39,10 @@ describe('router.toDisplayData — pure, no bridge involved', () => {
     // @ts-expect-error deliberately invalid — exercising the fallback path
     h.state.screen = 'not-a-real-screen';
 
-    expect(router.toDisplayData(h.state)).toMatchObject({ mode: 'list', items: ['Tasks', 'Notes', 'Projects', 'Tags'] });
+    expect(router.toDisplayData(h.state)).toMatchObject({
+      mode: 'list',
+      items: ['Tasks', 'Notes', 'Projects', 'Tags'],
+    });
   });
 });
 

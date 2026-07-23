@@ -78,7 +78,11 @@ describe('confirming delete', () => {
 
     expect(deletePage).toHaveBeenCalledWith('t1');
     expect(h.state.lists.inbox).toEqual([]);
-    expect(h.state.actionToast).toMatchObject({ kind: 'delete', itemName: 'Buy milk', returnTo: 'inbox' });
+    expect(h.state.actionToast).toMatchObject({
+      kind: 'delete',
+      itemName: 'Buy milk',
+      returnTo: 'inbox',
+    });
     expect(h.state.screen).toBe('delete-toast');
     expect(h.state.spinnerFrame).toBe('');
   });

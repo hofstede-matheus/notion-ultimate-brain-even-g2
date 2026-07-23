@@ -1,6 +1,6 @@
 import type { ScreenModule } from '../../../types';
-import { getTodayFlatTasks } from '../helpers';
 import { makeListScreen } from '../../_shared/screen-factories';
+import { getTodayFlatTasks } from '../helpers';
 
 export const todayScreen: ScreenModule = makeListScreen({
   screen: 'today',

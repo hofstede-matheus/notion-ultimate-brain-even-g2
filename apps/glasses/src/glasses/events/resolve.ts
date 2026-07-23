@@ -19,7 +19,10 @@ export function resolveEventType(event: EvenHubEvent): OsEventTypeList | undefin
   return undefined;
 }
 
-export function toGlassAction(event: EvenHubEvent, eventType: OsEventTypeList): AppGlassAction | null {
+export function toGlassAction(
+  event: EvenHubEvent,
+  eventType: OsEventTypeList,
+): AppGlassAction | null {
   switch (eventType) {
     case OsEventTypeList.CLICK_EVENT:
       // event.listEvent is only present for native-list containers

@@ -88,7 +88,11 @@ describe('confirming mark-done', () => {
     expect(markTaskDone).toHaveBeenCalledWith('t1');
     expect(h.state.lists.inbox).toEqual([]);
     expect(h.state.pendingAction).toBeNull();
-    expect(h.state.actionToast).toMatchObject({ kind: 'markDone', itemName: 'Buy milk', returnTo: 'inbox' });
+    expect(h.state.actionToast).toMatchObject({
+      kind: 'markDone',
+      itemName: 'Buy milk',
+      returnTo: 'inbox',
+    });
     expect(h.state.screen).toBe('mark-done-toast');
     expect(h.render()).toMatchObject({ mode: 'text' });
     expect(h.state.spinnerFrame).toBe('');

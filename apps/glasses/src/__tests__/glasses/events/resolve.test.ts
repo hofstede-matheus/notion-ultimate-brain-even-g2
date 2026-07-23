@@ -4,7 +4,7 @@
  * functions take no ctx/state.
  */
 
-import { OsEventTypeList, type EvenHubEvent } from '@evenrealities/even_hub_sdk';
+import { type EvenHubEvent, OsEventTypeList } from '@evenrealities/even_hub_sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveEventType, toGlassAction } from '../../../glasses/events/resolve';
 
@@ -14,9 +14,11 @@ function ev(partial: Partial<EvenHubEvent>): EvenHubEvent {
 
 describe('resolveEventType', () => {
   it('returns the raw event type when present', () => {
-    expect(resolveEventType(ev({ textEvent: { eventType: OsEventTypeList.DOUBLE_CLICK_EVENT } } as never))).toBe(
-      OsEventTypeList.DOUBLE_CLICK_EVENT,
-    );
+    expect(
+      resolveEventType(
+        ev({ textEvent: { eventType: OsEventTypeList.DOUBLE_CLICK_EVENT } } as never),
+      ),
+    ).toBe(OsEventTypeList.DOUBLE_CLICK_EVENT);
   });
 
   it('defaults a listEvent with no eventType to CLICK_EVENT (proto3 drops 0)', () => {
@@ -34,7 +36,9 @@ describe('resolveEventType', () => {
 
 describe('toGlassAction', () => {
   it('CLICK on a list event carries the selected index and name', () => {
-    const event = ev({ listEvent: { currentSelectItemIndex: 2, currentSelectItemName: 'Inbox' } } as never);
+    const event = ev({
+      listEvent: { currentSelectItemIndex: 2, currentSelectItemName: 'Inbox' },
+    } as never);
     expect(toGlassAction(event, OsEventTypeList.CLICK_EVENT)).toEqual({
       type: 'SELECT_HIGHLIGHTED',
       itemIndex: 2,

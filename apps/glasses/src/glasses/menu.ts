@@ -1,5 +1,5 @@
-import type { MenuDef, ScreenModule } from './types';
 import { makeMenuScreen } from './modules/_shared/screen-factories';
+import type { MenuDef, ScreenModule } from './types';
 
 export const ROOT_MENU_ITEMS = ['Tasks', 'Notes', 'Projects', 'Tags'];
 
