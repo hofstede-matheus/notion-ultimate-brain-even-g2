@@ -12,19 +12,22 @@ database IDs (entered in the app's Settings screen), sent with every request via
 ## Monorepo architecture
 
 This is a [Turborepo](https://turborepo.dev) + [pnpm workspaces](https://pnpm.io/workspaces)
-monorepo with two apps and one shared config package:
+monorepo with two apps and two shared packages:
 
 ```
 apps/
   glasses/    @notion-ub/glasses — the G2 webview app (Vite + TypeScript)
   server/     @notion-ub/server — the Notion API backend (Express locally, AWS Lambda in prod)
 packages/
+  contracts/          @notion-ub/contracts — shared record/DTO types (Task, Note, Project, Tag,
+                      TenantConfig, Notion page shapes) used by both apps
   typescript-config/  @notion-ub/typescript-config — shared tsconfig base + variants
 ```
 
-- **`apps/glasses`** — renders on the glasses via the Even Realities SDK
-  (`@evenrealities/even_hub_sdk`), plus a browser-only settings shell. Built with Vite and
-  packaged into a `.ehpk` bundle with the [Even Hub CLI](https://www.npmjs.com/package/@evenrealities/evenhub-cli).
+- **`apps/glasses`** — two front ends in one Vite build. `src/glasses/` renders on the
+  glasses via the Even Realities SDK (`@evenrealities/even_hub_sdk`); `src/web/` is a React
+  19 + Tailwind v4 phone webview (status + Settings screens) that holds the tenant config.
+  Packaged into a `.ehpk` bundle with the [Even Hub CLI](https://www.npmjs.com/package/@evenrealities/evenhub-cli).
   Offline voice capture uses [Vosk](https://alphacephei.com/vosk/) (`vosk-browser`).
 - **`apps/server`** — a thin, framework-agnostic route layer (`src/routes.ts`) with two
   entry points that share the same handlers: `src/express/index.ts` for local dev, and
@@ -51,7 +54,7 @@ formatting, pagination for the display, caching. The page reader is the worked e
 `GET /api/pages/:id/markdown` and `GET /api/pages/:id` are one Notion call each, and every
 decision about what the result means — turning Notion's own markdown export into display
 text, falling back to a page's Description property when its body is empty — lives in
-`apps/glasses/src/page-loader.ts` and `apps/glasses/src/glasses/markdown-to-pages.ts`.
+`apps/glasses/src/page-loader.ts` and `apps/glasses/src/glasses/content/markdown-to-pages.ts`.
 
 This also keeps the blast radius small — the backend holds no state and stores no
 credentials, so it can't leak what it never has. The one deliberate exception is the
