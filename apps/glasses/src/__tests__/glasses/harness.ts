@@ -11,13 +11,14 @@ import { createGlassCtx } from '../../glasses/glass-ctx';
 import { router } from '../../glasses/router';
 import type { AppGlassAction } from '../../glasses/types';
 import { setBridge, state } from '../../state';
-import { makeMockBridge, type MockBridge } from './fakes';
+import { type MockBridge, makeMockBridge } from './fakes';
 
 /** Resets the shared state singleton to a known baseline before each test. */
 export function resetState(): void {
   state.screen = 'menu';
   state.startupRendered = true;
   state.lists = {};
+  state.listPages = {};
   state.pendingAction = null;
   state.selectedTask = null;
   state.taskMetadata = null;

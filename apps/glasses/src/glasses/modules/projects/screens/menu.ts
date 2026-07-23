@@ -6,14 +6,16 @@ const projectsMenuDef: MenuDef = {
   title: 'PROJECTS',
   parent: 'menu',
   items: [
-    { label: 'Active', target: 'projects-active' },
+    { label: 'Doing', target: 'projects-doing' },
+    { label: 'Ongoing', target: 'projects-ongoing' },
     { label: 'Planned', target: 'projects-planned' },
-    { label: 'Board', target: 'projects-board' },
+    { label: 'On Hold', target: 'projects-on-hold' },
+    { label: 'Done', target: 'projects-done' },
     { label: 'Archived', target: 'projects-archived' },
   ],
 };
 
-/** Route a projects-submenu target screen through the correct ctx entry point. */
+/** All items are fetched list screens — route through enterView(). */
 function open(target: ScreenName, ctx: GlassCtx): void {
   ctx.enterView(target);
 }

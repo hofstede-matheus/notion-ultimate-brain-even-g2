@@ -1,9 +1,20 @@
-import type { GlassCtx } from './types';
+import {
+  confirmAction,
+  dismissActionToast,
+  dismissConfirm,
+  ITEM_ACTIONS,
+  openConfirm,
+} from './modules/_shared/item-actions';
+import {
+  enterView,
+  navigate,
+  shutdown,
+  stopSpinner,
+  turnListPage,
+} from './modules/_shared/navigation';
+import { openPage, turnPage } from './modules/_shared/page-reader';
 import { enterNoteMetadata, openNoteActions } from './modules/notes/actions';
 import { openProjectDetail } from './modules/projects/actions';
-import { ITEM_ACTIONS, confirmAction, dismissActionToast, dismissConfirm, openConfirm } from './modules/_shared/item-actions';
-import { enterView, navigate, shutdown, stopSpinner } from './modules/_shared/navigation';
-import { openPage, turnPage } from './modules/_shared/page-reader';
 import { enterTaskMetadata, openTaskActions } from './modules/tasks/actions';
 import {
   cancelRecordingAndGoBack,
@@ -11,6 +22,7 @@ import {
   discardAddTask,
   startRecording,
 } from './modules/tasks/voice';
+import type { GlassCtx } from './types';
 
 // ---------------------------------------------------------------------------
 // Public context — side-effect surface handed to screen action() handlers.
@@ -25,6 +37,7 @@ export function createGlassCtx(): GlassCtx {
     shutdown,
     stopSpinner,
     enterView: (screen) => void enterView(screen),
+    turnListPage,
     startRecording: () => void startRecording(),
     cancelRecordingAndGoBack,
     confirmAddTask,

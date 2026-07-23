@@ -23,8 +23,11 @@ export type ScreenName =
   | 'notes-voice'
   | 'notes-journal'
   | 'notes-all'
-  | 'projects-active'
+  | 'projects-doing'
+  | 'projects-ongoing'
   | 'projects-planned'
+  | 'projects-on-hold'
+  | 'projects-done'
   | 'projects-board'
   | 'projects-archived'
   | 'tags-recent'
@@ -41,7 +44,9 @@ export type ScreenName =
   | 'delete-confirm'
   | 'delete-toast'
   | 'project-detail'
-  | 'project-tasks'
+  | 'project-tasks-menu'
+  | 'project-tasks-todo'
+  | 'project-tasks-done'
   | 'project-notes';
 
 export type RecordingState =
@@ -64,7 +69,14 @@ export interface AppState {
   // every Tasks/Notes/Projects/Tags view), keyed by screen name. Today and
   // Overdue are both filtered views over the same fetched array, stored
   // under the 'today' key — see _shared/navigation.ts's DATA_KEY_OVERRIDES.
+  // Holds the *complete* fetched list — the 20-item native display cap is
+  // applied at render time, not here (see screen-factories.ts's paginateItems).
   lists: Partial<Record<ScreenName, ListItem[]>>;
+
+  // Current 0-based display page per list screen (each screen's list is
+  // shown MAX_LIST_ITEMS at a time — see screen-factories.ts). Reset to 0
+  // whenever a screen is freshly entered via enterView().
+  listPages: Partial<Record<ScreenName, number>>;
 
   // Confirm dialog for a mutating item action — kind is 'markDone' (tasks
   // only) or 'delete' (tasks and notes); returnTo is the list screen to
@@ -143,6 +155,7 @@ export const state: AppState = {
   screen: 'menu',
   startupRendered: false,
   lists: {},
+  listPages: {},
   pendingAction: null,
   selectedTask: null,
   taskMetadata: null,

@@ -1,6 +1,9 @@
 import type { AppState } from '../state';
 import { FALLBACK_SCREEN } from './constants';
 import { menuScreen } from './menu';
+import { deleteConfirmScreen } from './modules/_shared/delete-confirm';
+import { deleteToastScreen } from './modules/_shared/delete-toast';
+import { pageContentScreen } from './modules/_shared/page-content-screen';
 import { allNotesScreen } from './modules/notes/screens/all';
 import { notesByProjectScreen } from './modules/notes/screens/by-project';
 import { notesByTagScreen } from './modules/notes/screens/by-tag';
@@ -14,17 +17,19 @@ import { noteActionsScreen } from './modules/notes/screens/note-actions';
 import { noteMetadataScreen } from './modules/notes/screens/note-metadata';
 import { notesListScreen } from './modules/notes/screens/notes';
 import { voiceNotesScreen } from './modules/notes/screens/voice';
-import { activeScreen as projectsActiveScreen } from './modules/projects/screens/active';
 import { archivedScreen } from './modules/projects/screens/archived';
 import { boardScreen } from './modules/projects/screens/board';
 import { projectDetailScreen } from './modules/projects/screens/detail';
+import { doingScreen } from './modules/projects/screens/doing';
+import { doneScreen } from './modules/projects/screens/done';
 import { projectsMenuScreen } from './modules/projects/screens/menu';
+import { ongoingScreen } from './modules/projects/screens/ongoing';
+import { onHoldScreen } from './modules/projects/screens/on-hold';
 import { plannedScreen } from './modules/projects/screens/planned';
 import { projectNotesScreen } from './modules/projects/screens/project-notes';
-import { projectTasksScreen } from './modules/projects/screens/project-tasks';
-import { deleteConfirmScreen } from './modules/_shared/delete-confirm';
-import { deleteToastScreen } from './modules/_shared/delete-toast';
-import { pageContentScreen } from './modules/_shared/page-content-screen';
+import { projectTasksDoneScreen } from './modules/projects/screens/project-tasks-done';
+import { projectTasksMenuScreen } from './modules/projects/screens/project-tasks-menu';
+import { projectTasksTodoScreen } from './modules/projects/screens/project-tasks-todo';
 import { tagsAzScreen } from './modules/tags/screens/a-z';
 import { tagsFavoritesScreen } from './modules/tags/screens/favorites';
 import { tagsMenuScreen } from './modules/tags/screens/menu';
@@ -70,8 +75,11 @@ export const SCREENS: Record<string, ScreenModule> = {
   'notes-voice': voiceNotesScreen,
   'notes-journal': journalScreen,
   'notes-all': allNotesScreen,
-  'projects-active': projectsActiveScreen,
+  'projects-doing': doingScreen,
+  'projects-ongoing': ongoingScreen,
   'projects-planned': plannedScreen,
+  'projects-on-hold': onHoldScreen,
+  'projects-done': doneScreen,
   'projects-board': boardScreen,
   'projects-archived': archivedScreen,
   'tags-recent': recentTagsScreen,
@@ -88,7 +96,9 @@ export const SCREENS: Record<string, ScreenModule> = {
   'delete-confirm': deleteConfirmScreen,
   'delete-toast': deleteToastScreen,
   'project-detail': projectDetailScreen,
-  'project-tasks': projectTasksScreen,
+  'project-tasks-menu': projectTasksMenuScreen,
+  'project-tasks-todo': projectTasksTodoScreen,
+  'project-tasks-done': projectTasksDoneScreen,
   'project-notes': projectNotesScreen,
 };
 

@@ -1,5 +1,4 @@
 import {
-  fetchActiveProjects,
   fetchAllNotes,
   fetchArchivedProjects,
   fetchAToZTags,
@@ -7,6 +6,8 @@ import {
   fetchByProjectNotes,
   fetchByTagNotes,
   fetchClipsNotes,
+  fetchDoingProjects,
+  fetchDoneProjects,
   fetchFavoriteNotes,
   fetchFavoriteTags,
   fetchInboxNotes,
@@ -16,19 +17,26 @@ import {
   fetchNext7DaysTasks,
   fetchNotes,
   fetchNotesForProject,
+  fetchOngoingProjects,
+  fetchOnHoldProjects,
   fetchPlannedProjects,
+  fetchProjectTasksDone,
+  fetchProjectTasksTodo,
   fetchRecentTags,
-  fetchTasksForProject,
   fetchTodayTasks,
   fetchTomorrowTasks,
   fetchTypeTags,
   fetchVoiceNotes,
+  type PagedResult,
 } from '../../../api';
 import { cacheKeyForScreen, loadCachedList, saveCachedList } from '../../../cache';
 import type { ListItem, ScreenName } from '../../../state';
 import { getBridge, state } from '../../../state';
 import { SPINNER_FRAMES, SPINNER_INTERVAL_MS } from '../../constants';
 import { renderFull, renderUpdate } from '../../render';
+import { fetchAllPages } from './pagination';
+
+const EMPTY_PAGE: PagedResult<never> = { items: [], hasMore: false, nextCursor: null };
 
 // ---------------------------------------------------------------------------
 // Generic list views — every Tasks/Notes/Projects/Tags screen, including
@@ -36,7 +44,9 @@ import { renderFull, renderUpdate } from '../../render';
 // cache-then-fetch pipeline (below) is shared by all of them.
 // ---------------------------------------------------------------------------
 
-const VIEW_FETCHERS: Partial<Record<ScreenName, () => Promise<ListItem[]>>> = {
+const VIEW_FETCHERS: Partial<
+  Record<ScreenName, (cursor?: string) => Promise<PagedResult<ListItem>>>
+> = {
   today: fetchTodayTasks,
   inbox: fetchInboxTasks,
   'tasks-next-7-days': fetchNext7DaysTasks,
@@ -51,18 +61,29 @@ const VIEW_FETCHERS: Partial<Record<ScreenName, () => Promise<ListItem[]>>> = {
   'notes-voice': fetchVoiceNotes,
   'notes-journal': fetchJournalNotes,
   'notes-all': fetchAllNotes,
-  'projects-active': fetchActiveProjects,
+  'projects-doing': fetchDoingProjects,
+  'projects-ongoing': fetchOngoingProjects,
   'projects-planned': fetchPlannedProjects,
+  'projects-on-hold': fetchOnHoldProjects,
+  'projects-done': fetchDoneProjects,
   'projects-board': fetchBoardProjects,
   'projects-archived': fetchArchivedProjects,
   'tags-recent': fetchRecentTags,
   'tags-favorites': fetchFavoriteTags,
   'tags-a-z': fetchAToZTags,
   'tags-types': fetchTypeTags,
-  'project-tasks': () =>
-    state.selectedProject ? fetchTasksForProject(state.selectedProject.id) : Promise.resolve([]),
-  'project-notes': () =>
-    state.selectedProject ? fetchNotesForProject(state.selectedProject.id) : Promise.resolve([]),
+  'project-tasks-todo': (cursor) =>
+    state.selectedProject
+      ? fetchProjectTasksTodo(state.selectedProject.id, cursor)
+      : Promise.resolve(EMPTY_PAGE),
+  'project-tasks-done': (cursor) =>
+    state.selectedProject
+      ? fetchProjectTasksDone(state.selectedProject.id, cursor)
+      : Promise.resolve(EMPTY_PAGE),
+  'project-notes': (cursor) =>
+    state.selectedProject
+      ? fetchNotesForProject(state.selectedProject.id, cursor)
+      : Promise.resolve(EMPTY_PAGE),
 };
 
 /**
@@ -151,7 +172,11 @@ export function shutdown(): void {
  * removeItemFromOwningList, which needs the same key to update the cache.
  */
 export function cacheKeyForListView(screen: ScreenName): string {
-  if (screen === 'project-tasks' || screen === 'project-notes') {
+  if (
+    screen === 'project-tasks-todo' ||
+    screen === 'project-tasks-done' ||
+    screen === 'project-notes'
+  ) {
     return `${cacheKeyForScreen(screen)}:${state.selectedProject?.id ?? 'none'}`;
   }
   return cacheKeyForScreen(screen);
@@ -169,6 +194,9 @@ export async function enterView(screen: ScreenName): Promise<void> {
   const fetchFn = VIEW_FETCHERS[dataKey];
   if (!fetchFn) return;
 
+  // A fresh entry into a list screen always starts on its first page.
+  state.listPages[screen] = 0;
+
   // 1. Show cached data immediately (or a "Fetching…" placeholder if cold)
   const cacheKey = cacheKeyForListView(dataKey);
   const cached = await loadCachedList<ListItem>(cacheKey);
@@ -180,13 +208,15 @@ export async function enterView(screen: ScreenName): Promise<void> {
   }
   navigate(screen);
 
-  // 2. Spin while the fresh data loads in the background
+  // 2. Spin while the fresh data loads in the background — fetchAllPages
+  // follows Notion's cursor across as many requests as it takes, so the
+  // list here is never capped at a single page_size like it used to be.
   const spinner = startSpinner(() => {
     void renderUpdate(screen);
   });
 
   try {
-    const fresh = await fetchFn();
+    const fresh = await fetchAllPages(fetchFn);
     state.lists[dataKey] = fresh;
     state.loading = false;
     void saveCachedList(cacheKey, fresh);
@@ -200,4 +230,20 @@ export async function enterView(screen: ScreenName): Promise<void> {
     // the header-only renderUpdate.
     if (state.screen === screen) void renderFull();
   }
+}
+
+/**
+ * Turns a list screen's display page by `delta`, clamped to
+ * `[0, totalPages - 1]`. `totalPages` is supplied by the caller
+ * (screen-factories.ts's makeListScreen, the only thing that knows the
+ * item count) rather than recomputed here. A full rebuild is required —
+ * unlike the page reader's turnPage, there's no cheaper header-only update
+ * for a native list widget (see render/index.ts).
+ */
+export function turnListPage(screen: ScreenName, delta: number, totalPages: number): void {
+  const current = state.listPages[screen] ?? 0;
+  const next = Math.min(Math.max(current + delta, 0), Math.max(totalPages - 1, 0));
+  if (next === current) return;
+  state.listPages[screen] = next;
+  void renderFull();
 }

@@ -25,7 +25,7 @@ export const projectDetailScreen: ScreenModule = {
     if (action.type === 'SELECT_HIGHLIGHTED') {
       if (action.itemIndex === 0) {
         if (selected) ctx.openPage(selected.id, selected.name, 'project-detail');
-      } else if (action.itemIndex === 1) ctx.enterView('project-tasks');
+      } else if (action.itemIndex === 1) ctx.navigate('project-tasks-menu');
       else if (action.itemIndex === 2) ctx.enterView('project-notes');
       return;
     }

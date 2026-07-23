@@ -106,6 +106,65 @@ export function getListItems(state: AppState, screen: ScreenName): ListItem[] {
   return state.lists[screen] ?? [];
 }
 
+/** Label for the tappable row that steps back a page. */
+export const PREV_PAGE_LABEL = '◂ Prev';
+/** Label for the tappable row that steps forward a page. */
+export const NEXT_PAGE_LABEL = '▸ More';
+
+/**
+ * Real items per page once a list needs paging at all — two of the native
+ * widget's 20 rows are reserved for the Prev/More affordance rows below.
+ * Lists that fit in a single page (the common case) use the full
+ * MAX_LIST_ITEMS with no reserved rows — see the items.length check below.
+ */
+const PAGED_PAGE_SIZE = MAX_LIST_ITEMS - 2;
+
+interface PageSlice<T> {
+  pageItems: T[];
+  start: number;
+  totalPages: number;
+  clampedPage: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+}
+
+/**
+ * Slices a fully-fetched list into a page the native list widget can render
+ * (it has a hard 20-item cap — see constants.ts). `pageIndex` is clamped in
+ * case the list shrank (e.g. an item was deleted) out from under a page the
+ * user had paged into.
+ *
+ * Turning a page needs an explicit, guaranteed-reliable gesture — a native
+ * list's SCROLL_TOP/BOTTOM boundary events turned out not to fire
+ * consistently in practice for a maxed-out (itemCount 20) list, so rather
+ * than depend on that, a page with more to show reserves a row for a
+ * tappable Prev/More control (SELECT_HIGHLIGHTED, the same proven mechanism
+ * every other row in the app already uses).
+ */
+function paginateItems<T>(items: T[], pageIndex: number): PageSlice<T> {
+  if (items.length <= MAX_LIST_ITEMS) {
+    return {
+      pageItems: items,
+      start: 0,
+      totalPages: 1,
+      clampedPage: 0,
+      hasPrev: false,
+      hasNext: false,
+    };
+  }
+  const totalPages = Math.ceil(items.length / PAGED_PAGE_SIZE);
+  const clampedPage = Math.min(Math.max(pageIndex, 0), totalPages - 1);
+  const start = clampedPage * PAGED_PAGE_SIZE;
+  return {
+    pageItems: items.slice(start, start + PAGED_PAGE_SIZE),
+    start,
+    totalPages,
+    clampedPage,
+    hasPrev: clampedPage > 0,
+    hasNext: clampedPage < totalPages - 1,
+  };
+}
+
 /** What tapping a row on a list screen does. */
 type SelectKind = 'task' | 'project' | 'note';
 
@@ -117,8 +176,11 @@ type SelectKind = 'task' | 'project' | 'note';
  * would otherwise be indistinguishable by shape alone.
  */
 const PROJECT_LIST_SCREENS: ScreenName[] = [
-  'projects-active',
+  'projects-doing',
+  'projects-ongoing',
   'projects-planned',
+  'projects-on-hold',
+  'projects-done',
   'projects-board',
   'projects-archived',
 ];
@@ -196,11 +258,17 @@ export interface ListScreenConfig {
  * Generic factory for a fetched-list screen (every Tasks/Notes/Projects/Tags
  * view, including Today/Overdue/Inbox). Renders a loading placeholder while
  * state.loading, an empty-state message when the list is empty, otherwise a
- * header + native list of item names. Reads from `config.selectItems(state)`
- * if given, else `state.lists[config.screen]` — both populated by
- * ctx.enterView() in _shared/navigation.ts. SELECT_HIGHLIGHTED just records the
- * cursor — there's no detail screen yet (except the task-actions/
- * project-detail dispatch below).
+ * header + native list of item names, paged MAX_LIST_ITEMS at a time (the
+ * fetched list itself is complete — see _shared/pagination.ts's
+ * fetchAllPages — the cap here is only the native widget's own display
+ * limit). Reads from `config.selectItems(state)` if given, else
+ * `state.lists[config.screen]` — both populated by ctx.enterView() in
+ * _shared/navigation.ts.
+ *
+ * A page beyond the first shows a tappable "◂ Prev"/"▸ More" row (see
+ * paginateItems) to turn the page — swiping past the current page's
+ * top/bottom row (HIGHLIGHT_MOVE) does the same thing when the firmware
+ * happens to deliver that gesture, but isn't relied on as the only way in.
  */
 export function makeListScreen(config: ListScreenConfig): ScreenModule {
   const emptyMessage = config.emptyMessage ?? 'No items.';
@@ -235,11 +303,21 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
         };
       }
 
+      const { pageItems, totalPages, clampedPage, hasPrev, hasNext } = paginateItems(
+        items,
+        state.listPages[config.screen] ?? 0,
+      );
       const headerTitle = countInHeader ? `${title} (${items.length})` : title;
-      const header = buildHeaderLine(headerTitle, state.spinnerFrame);
-      const listItems = items
-        .slice(0, MAX_LIST_ITEMS)
-        .map((i) => truncateToByteLimit(formatLabel(i)));
+      // The spinner (background refresh) and the page indicator share the
+      // header's second slot — a live spinner tick always takes priority,
+      // matching the page reader's own header layout.
+      const indicator =
+        state.spinnerFrame || (totalPages > 1 ? `${clampedPage + 1}/${totalPages}` : '');
+      const header = buildHeaderLine(headerTitle, indicator);
+      const listItems: string[] = [];
+      if (hasPrev) listItems.push(PREV_PAGE_LABEL);
+      listItems.push(...pageItems.map((i) => truncateToByteLimit(formatLabel(i))));
+      if (hasNext) listItems.push(NEXT_PAGE_LABEL);
       return { mode: 'list', header, items: listItems };
     },
 
@@ -250,9 +328,27 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
         return;
       }
 
+      const items = selectItems(state);
+      const { start, totalPages, hasPrev, hasNext, pageItems } = paginateItems(
+        items,
+        state.listPages[config.screen] ?? 0,
+      );
+
       if (action.type === 'SELECT_HIGHLIGHTED') {
         if (typeof action.itemIndex === 'number') {
-          const item = selectItems(state)[action.itemIndex];
+          let idx = action.itemIndex;
+          if (hasPrev) {
+            if (idx === 0) {
+              ctx.turnListPage(config.screen, -1, totalPages);
+              return;
+            }
+            idx -= 1;
+          }
+          if (hasNext && idx === pageItems.length) {
+            ctx.turnListPage(config.screen, 1, totalPages);
+            return;
+          }
+          const item = items[start + idx];
           if (item) {
             const kind = config.onSelect ?? selectKindFor(config.screen);
             if (kind === 'task') ctx.openTaskActions(item.id, item.name, config.screen);
@@ -263,7 +359,10 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
         return;
       }
 
-      // HIGHLIGHT_MOVE: the native list widget owns scroll/highlight — no-op
+      // HIGHLIGHT_MOVE: swiping past the current page's top/bottom row turns
+      // the page when the firmware delivers the gesture. A no-op when
+      // there's only one page (the common case).
+      ctx.turnListPage(config.screen, action.direction === 'down' ? 1 : -1, totalPages);
     },
   };
 }

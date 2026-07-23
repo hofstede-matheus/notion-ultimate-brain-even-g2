@@ -70,6 +70,47 @@ describe('a submenu', () => {
   });
 });
 
+describe('projects list screens', () => {
+  it('the projects menu lists all status filters', () => {
+    const h = mount();
+    h.state.screen = 'projects-menu';
+
+    expect(h.render()).toMatchObject({
+      mode: 'list',
+      items: ['Doing', 'Ongoing', 'Planned', 'On Hold', 'Done', 'Archived'],
+    });
+  });
+
+  it('each status filter enters the cache-then-fetch pipeline', async () => {
+    const h = mount();
+    h.state.screen = 'projects-menu';
+
+    h.dispatch(select(0)); // Doing
+    await h.settle();
+    expect(h.state.screen).toBe('projects-doing');
+
+    h.state.screen = 'projects-menu';
+    h.dispatch(select(1)); // Ongoing
+    await h.settle();
+    expect(h.state.screen).toBe('projects-ongoing');
+
+    h.state.screen = 'projects-menu';
+    h.dispatch(select(2)); // Planned
+    await h.settle();
+    expect(h.state.screen).toBe('projects-planned');
+
+    h.state.screen = 'projects-menu';
+    h.dispatch(select(3)); // On Hold
+    await h.settle();
+    expect(h.state.screen).toBe('projects-on-hold');
+
+    h.state.screen = 'projects-menu';
+    h.dispatch(select(4)); // Done
+    await h.settle();
+    expect(h.state.screen).toBe('projects-done');
+  });
+});
+
 afterEach(() => {
   vi.clearAllMocks();
 });

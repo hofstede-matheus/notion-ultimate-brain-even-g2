@@ -54,17 +54,39 @@ describe('view routes', () => {
     const notion = fakeNotion();
     notion.databases.query.mockResolvedValue({
       results: [titlePage('t1', 'Task 1', { Status: { status: { name: 'Todo' } } })],
+      has_more: false,
+      next_cursor: null,
     });
 
     const res = await route('GET', '/api/tasks/inbox').handler(ctx(notion));
 
     expect(notion.databases.query).toHaveBeenCalledWith(
-      expect.objectContaining({ database_id: 'tasks-db', page_size: 50 }),
+      expect.objectContaining({ database_id: 'tasks-db', page_size: 100, start_cursor: undefined }),
     );
     expect(res).toEqual({
       status: 200,
-      body: { tasks: [{ id: 't1', name: 'Task 1', dueDate: undefined, status: 'Todo' }] },
+      body: {
+        tasks: [{ id: 't1', name: 'Task 1', dueDate: undefined, status: 'Todo' }],
+        hasMore: false,
+        nextCursor: null,
+      },
     });
+  });
+
+  it('forwards a cursor to resume a query, and surfaces the next one', async () => {
+    const notion = fakeNotion();
+    notion.databases.query.mockResolvedValue({
+      results: [titlePage('t2', 'Task 2')],
+      has_more: true,
+      next_cursor: 'cursor-2',
+    });
+
+    const res = await route('GET', '/api/tasks/inbox').handler(ctx(notion, { cursor: 'cursor-1' }));
+
+    expect(notion.databases.query).toHaveBeenCalledWith(
+      expect.objectContaining({ start_cursor: 'cursor-1' }),
+    );
+    expect(res).toMatchObject({ body: { hasMore: true, nextCursor: 'cursor-2' } });
   });
 
   it('returns 500 with the error message when the query rejects', async () => {
@@ -196,22 +218,136 @@ describe('GET /api/pages/:id/metadata', () => {
   });
 });
 
-describe('GET /api/tasks/for-project/:projectId', () => {
-  it('orders not-Done tasks before Done tasks', async () => {
+describe('GET /api/tasks/for-project/:projectId/:status', () => {
+  it('filters to the To Do status option, server-side', async () => {
     const notion = fakeNotion();
     notion.databases.query.mockResolvedValue({
-      results: [
-        titlePage('a', 'A', { Status: { status: { name: 'Done' } } }),
-        titlePage('b', 'B', { Status: { status: { name: 'Todo' } } }),
-        titlePage('c', 'C', { Status: { status: { name: 'Done' } } }),
-      ],
+      results: [titlePage('b', 'B', { Status: { status: { name: 'To Do' } } })],
     });
 
-    const res = (await route('GET', '/api/tasks/for-project/:projectId').handler(
-      ctx(notion, { params: { projectId: 'p1' } }),
+    const res = (await route('GET', '/api/tasks/for-project/:projectId/:status').handler(
+      ctx(notion, { params: { projectId: 'p1', status: 'todo' } }),
     )) as { status: number; body: { tasks: { id: string }[] } };
 
-    expect(res.body.tasks.map((t) => t.id)).toEqual(['b', 'a', 'c']);
+    expect(notion.databases.query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filter: {
+          and: [
+            { property: 'Project', relation: { contains: 'p1' } },
+            { property: 'Status', status: { equals: 'To Do' } },
+          ],
+        },
+      }),
+    );
+    expect(res.body.tasks.map((t) => t.id)).toEqual(['b']);
+  });
+
+  it('filters to the Done status option, server-side', async () => {
+    const notion = fakeNotion();
+    notion.databases.query.mockResolvedValue({
+      results: [titlePage('a', 'A', { Status: { status: { name: 'Done' } } })],
+    });
+
+    const res = (await route('GET', '/api/tasks/for-project/:projectId/:status').handler(
+      ctx(notion, { params: { projectId: 'p1', status: 'done' } }),
+    )) as { status: number; body: { tasks: { id: string }[] } };
+
+    expect(notion.databases.query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filter: {
+          and: [
+            { property: 'Project', relation: { contains: 'p1' } },
+            { property: 'Status', status: { equals: 'Done' } },
+          ],
+        },
+      }),
+    );
+    expect(res.body.tasks.map((t) => t.id)).toEqual(['a']);
+  });
+
+  it('400s on an unrecognized status segment', async () => {
+    const notion = fakeNotion();
+
+    const res = await route('GET', '/api/tasks/for-project/:projectId/:status').handler(
+      ctx(notion, { params: { projectId: 'p1', status: 'bogus' } }),
+    );
+
+    expect(res.status).toBe(400);
+    expect(notion.databases.query).not.toHaveBeenCalled();
+  });
+});
+
+describe('GET /api/projects/* status filters', () => {
+  it('doing filters to the Doing status option', async () => {
+    const notion = fakeNotion();
+    notion.databases.query.mockResolvedValue({ results: [titlePage('p1', 'Kitchen')] });
+
+    await route('GET', '/api/projects/doing').handler(ctx(notion));
+
+    expect(notion.databases.query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filter: {
+          and: [
+            { property: 'Archived', checkbox: { equals: false } },
+            { property: 'Status', status: { equals: 'Doing' } },
+          ],
+        },
+      }),
+    );
+  });
+
+  it('ongoing filters to the Ongoing status option', async () => {
+    const notion = fakeNotion();
+    notion.databases.query.mockResolvedValue({ results: [titlePage('p2', 'Garage')] });
+
+    await route('GET', '/api/projects/ongoing').handler(ctx(notion));
+
+    expect(notion.databases.query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filter: {
+          and: [
+            { property: 'Archived', checkbox: { equals: false } },
+            { property: 'Status', status: { equals: 'Ongoing' } },
+          ],
+        },
+      }),
+    );
+  });
+
+  it('on-hold filters to the On Hold status option', async () => {
+    const notion = fakeNotion();
+    notion.databases.query.mockResolvedValue({ results: [titlePage('p3', 'Backyard')] });
+
+    await route('GET', '/api/projects/on-hold').handler(ctx(notion));
+
+    expect(notion.databases.query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filter: {
+          and: [
+            { property: 'Archived', checkbox: { equals: false } },
+            { property: 'Status', status: { equals: 'On Hold' } },
+          ],
+        },
+      }),
+    );
+  });
+
+  it('done filters to the Done status option', async () => {
+    const notion = fakeNotion();
+    notion.databases.query.mockResolvedValue({ results: [titlePage('p4', 'Deck')] });
+
+    await route('GET', '/api/projects/done').handler(ctx(notion));
+
+    expect(notion.databases.query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filter: {
+          and: [
+            { property: 'Archived', checkbox: { equals: false } },
+            { property: 'Status', status: { equals: 'Done' } },
+          ],
+        },
+      }),
+    );
   });
 });
 

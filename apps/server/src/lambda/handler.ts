@@ -7,6 +7,7 @@ export interface LambdaFunctionUrlEvent {
   requestContext: { http: { method: string } };
   rawPath: string;
   headers?: Record<string, string>;
+  queryStringParameters?: Record<string, string>;
   body?: string | null;
   isBase64Encoded?: boolean;
 }
@@ -47,6 +48,7 @@ export async function handler(event: LambdaFunctionUrlEvent): Promise<LambdaFunc
     body: parseBody(event),
     // Function URL lowercases incoming header names.
     tenantHeader: event.headers?.['x-notion-config'],
+    cursor: event.queryStringParameters?.cursor,
   });
 
   return {

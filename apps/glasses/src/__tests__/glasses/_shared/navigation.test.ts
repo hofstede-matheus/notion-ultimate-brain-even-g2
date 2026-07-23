@@ -100,7 +100,11 @@ describe('failed fetch on warm open', () => {
 describe('successful background fetch', () => {
   it('saves the fresh data under the list-view cache key', async () => {
     seedCache(CACHED);
-    vi.mocked(fetchInboxTasks).mockResolvedValue(FRESH);
+    vi.mocked(fetchInboxTasks).mockResolvedValue({
+      items: FRESH,
+      hasMore: false,
+      nextCursor: null,
+    });
     const h = mount();
     h.state.screen = 'tasks-menu';
 
@@ -112,7 +116,11 @@ describe('successful background fetch', () => {
   });
 
   it('stops the spinner once the fetch settles', async () => {
-    vi.mocked(fetchInboxTasks).mockResolvedValue(FRESH);
+    vi.mocked(fetchInboxTasks).mockResolvedValue({
+      items: FRESH,
+      hasMore: false,
+      nextCursor: null,
+    });
     const h = mount();
     h.state.screen = 'tasks-menu';
 

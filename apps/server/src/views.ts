@@ -37,6 +37,16 @@ export interface ViewConfig {
 // Tasks views
 // ---------------------------------------------------------------------------
 
+/**
+ * Tasks DB `Status` option literals — confirmed against this tenant's actual
+ * database. Notion's status filters need the real option name, not a group
+ * label (see PROJECT_VIEWS's `active` view below for the same trap on the
+ * Projects side): a task's Status is one of several "To Do"-group and
+ * "In Progress"-group options in general, but this tenant only uses these two.
+ */
+export const TASK_STATUS_TODO = 'To Do';
+export const TASK_STATUS_DONE = 'Done';
+
 export const TASK_VIEWS: ViewConfig[] = [
   {
     path: 'inbox',
@@ -236,18 +246,21 @@ export const NOTE_VIEWS: ViewConfig[] = [
 
 export const PROJECT_VIEWS: ViewConfig[] = [
   {
-    path: 'active',
+    path: 'doing',
     filter: {
       and: [
         { property: 'Archived', checkbox: { equals: false } },
-        // "In progress" is a status *group* label, not a real option — the
-        // Projects DB's actual options in that group are "Doing"/"Ongoing".
-        {
-          or: [
-            { property: 'Status', status: { equals: 'Doing' } },
-            { property: 'Status', status: { equals: 'Ongoing' } },
-          ],
-        },
+        { property: 'Status', status: { equals: 'Doing' } },
+      ],
+    },
+    sorts: [{ property: 'Meta', direction: 'ascending' }],
+  },
+  {
+    path: 'ongoing',
+    filter: {
+      and: [
+        { property: 'Archived', checkbox: { equals: false } },
+        { property: 'Status', status: { equals: 'Ongoing' } },
       ],
     },
     sorts: [{ property: 'Meta', direction: 'ascending' }],
@@ -258,6 +271,26 @@ export const PROJECT_VIEWS: ViewConfig[] = [
       and: [
         { property: 'Archived', checkbox: { equals: false } },
         { property: 'Status', status: { equals: 'Planned' } },
+      ],
+    },
+    sorts: [{ property: 'Meta', direction: 'ascending' }],
+  },
+  {
+    path: 'on-hold',
+    filter: {
+      and: [
+        { property: 'Archived', checkbox: { equals: false } },
+        { property: 'Status', status: { equals: 'On Hold' } },
+      ],
+    },
+    sorts: [{ property: 'Meta', direction: 'ascending' }],
+  },
+  {
+    path: 'done',
+    filter: {
+      and: [
+        { property: 'Archived', checkbox: { equals: false } },
+        { property: 'Status', status: { equals: 'Done' } },
       ],
     },
     sorts: [{ property: 'Meta', direction: 'ascending' }],

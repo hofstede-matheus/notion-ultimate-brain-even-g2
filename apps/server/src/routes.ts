@@ -20,7 +20,15 @@ import { pageTitle, pageToNote, pageToProject, pageToTag, pageToTask } from './m
 import { createNotionClient } from './notion-client';
 import type { TenantDb } from './tenant';
 import { parseTenant } from './tenant';
-import { NOTE_VIEWS, PROJECT_VIEWS, TAG_VIEWS, TASK_VIEWS, type ViewConfig } from './views';
+import {
+  NOTE_VIEWS,
+  PROJECT_VIEWS,
+  TAG_VIEWS,
+  TASK_STATUS_DONE,
+  TASK_STATUS_TODO,
+  TASK_VIEWS,
+  type ViewConfig,
+} from './views';
 
 export interface RouteContext {
   params: Record<string, string>;
@@ -31,6 +39,9 @@ export interface RouteContext {
   db?: TenantDb;
   // IANA timezone of the requesting device; drives relative-date resolution.
   timeZone?: string;
+  // Notion's opaque pagination cursor (?cursor=... query param), when the
+  // caller is resuming a list-view query past its first page.
+  cursor?: string;
 }
 
 export interface RouteResult {
@@ -98,7 +109,13 @@ export async function runRoute(
     params,
     body,
     tenantHeader,
-  }: { params: Record<string, string>; body: unknown; tenantHeader: string | string[] | undefined },
+    cursor,
+  }: {
+    params: Record<string, string>;
+    body: unknown;
+    tenantHeader: string | string[] | undefined;
+    cursor?: string;
+  },
 ): Promise<RouteResult> {
   const tenant = parseTenant(tenantHeader);
   if (!route.public && !tenant) {
@@ -110,6 +127,7 @@ export async function runRoute(
     notion: tenant ? createNotionClient(tenant.token) : undefined,
     db: tenant?.db,
     timeZone: tenant?.timeZone,
+    cursor,
   });
 }
 
@@ -138,10 +156,18 @@ function buildViewRoutes(
           ? translateFilter(view.filter, ctx.timeZone)
           : undefined) as NotionQueryFilter,
         sorts: view.sorts,
-        page_size: 50,
+        start_cursor: ctx.cursor,
+        page_size: 100,
       });
       const pages = response.results as unknown as NotionPage[];
-      return { status: 200, body: { [resultKey]: pages.map(toResult) } };
+      return {
+        status: 200,
+        body: {
+          [resultKey]: pages.map(toResult),
+          hasMore: response.has_more,
+          nextCursor: response.next_cursor,
+        },
+      };
     }),
   }));
 }
@@ -168,25 +194,39 @@ const logsRoute: Route = {
 };
 
 // ---------------------------------------------------------------------------
-// GET /api/tasks/for-project/:projectId
-// All tasks (any status) whose Project relation contains projectId,
-// not-Done first then Done last.
+// GET /api/tasks/for-project/:projectId/:status
+// Tasks whose Project relation contains projectId, filtered to a single
+// Status option — `status` is 'todo' (TASK_STATUS_TODO) or 'done'
+// (TASK_STATUS_DONE). Filtering server-side, rather than fetching everything
+// and splitting in JS, keeps a project with many Done tasks from crowding
+// open tasks out of the page_size cap.
 // ---------------------------------------------------------------------------
 const tasksForProjectRoute: Route = {
   method: 'GET',
-  path: '/api/tasks/for-project/:projectId',
-  handler: authed(async ({ params, notion, db }) => {
-    const { projectId } = params;
+  path: '/api/tasks/for-project/:projectId/:status',
+  handler: authed(async ({ params, notion, db, cursor }) => {
+    const { projectId, status } = params;
+    if (status !== 'todo' && status !== 'done') {
+      return { status: 400, body: { error: 'Invalid status — expected "todo" or "done"' } };
+    }
+    const statusName = status === 'todo' ? TASK_STATUS_TODO : TASK_STATUS_DONE;
     const response = await notion.databases.query({
       database_id: db.tasks,
-      filter: { property: 'Project', relation: { contains: projectId } },
+      filter: {
+        and: [
+          { property: 'Project', relation: { contains: projectId } },
+          { property: 'Status', status: { equals: statusName } },
+        ],
+      },
       sorts: [{ property: 'Due', direction: 'ascending' }],
-      page_size: 50,
+      start_cursor: cursor,
+      page_size: 100,
     });
     const tasks = (response.results as unknown as NotionPage[]).map(pageToTask);
-    const notDone = tasks.filter((t) => t.status !== 'Done');
-    const done = tasks.filter((t) => t.status === 'Done');
-    return { status: 200, body: { tasks: [...notDone, ...done] } };
+    return {
+      status: 200,
+      body: { tasks, hasMore: response.has_more, nextCursor: response.next_cursor },
+    };
   }),
 };
 
@@ -197,7 +237,7 @@ const tasksForProjectRoute: Route = {
 const notesForProjectRoute: Route = {
   method: 'GET',
   path: '/api/notes/for-project/:projectId',
-  handler: authed(async ({ params, notion, db }) => {
+  handler: authed(async ({ params, notion, db, cursor }) => {
     const { projectId } = params;
     const response = await notion.databases.query({
       database_id: db.notes,
@@ -208,10 +248,14 @@ const notesForProjectRoute: Route = {
         ],
       },
       sorts: [{ property: 'Updated', direction: 'descending' }],
-      page_size: 50,
+      start_cursor: cursor,
+      page_size: 100,
     });
     const notes = (response.results as unknown as NotionPage[]).map(pageToNote);
-    return { status: 200, body: { notes } };
+    return {
+      status: 200,
+      body: { notes, hasMore: response.has_more, nextCursor: response.next_cursor },
+    };
   }),
 };
 

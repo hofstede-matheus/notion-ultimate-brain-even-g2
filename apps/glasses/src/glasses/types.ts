@@ -56,6 +56,8 @@ export interface GlassCtx {
   openNoteActions(noteId: string, noteName: string, returnTo: ScreenName): void;
   /** A note's metadata is just its Project — Notes have no Due date. */
   enterNoteMetadata(): void;
+  /** Turns a list screen `delta` pages, clamped to `[0, totalPages - 1]`. */
+  turnListPage(screen: ScreenName, delta: number, totalPages: number): void;
   /** Reads any Notion page — a task or a note, from its action menu. `returnTo` is wherever a double-tap should land. */
   openPage(pageId: string, title: string, returnTo: ScreenName): void;
   /** Moves the page reader `delta` screenfuls, clamped to the document. */

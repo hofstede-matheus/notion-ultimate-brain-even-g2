@@ -15,6 +15,7 @@ for (const route of ROUTES) {
       params: req.params,
       body: req.body,
       tenantHeader: req.headers['x-notion-config'],
+      cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
     });
     res.status(result.status).json(result.body);
   });

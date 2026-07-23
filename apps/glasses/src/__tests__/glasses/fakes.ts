@@ -30,22 +30,29 @@ const LIST_FETCHERS = [
   'fetchVoiceNotes',
   'fetchJournalNotes',
   'fetchAllNotes',
-  'fetchActiveProjects',
+  'fetchDoingProjects',
+  'fetchOngoingProjects',
   'fetchPlannedProjects',
+  'fetchOnHoldProjects',
+  'fetchDoneProjects',
   'fetchBoardProjects',
   'fetchArchivedProjects',
   'fetchRecentTags',
   'fetchFavoriteTags',
   'fetchAToZTags',
   'fetchTypeTags',
-  'fetchTasksForProject',
+  'fetchProjectTasksTodo',
+  'fetchProjectTasksDone',
   'fetchNotesForProject',
 ] as const;
 
-/** Every api.ts export as a vi.fn(), list fetchers defaulted to an empty array. */
+/** Every api.ts export as a vi.fn(), list fetchers defaulted to an empty single page. */
 export function apiMock(): ApiModule {
   const base = Object.fromEntries(
-    LIST_FETCHERS.map((name) => [name, vi.fn().mockResolvedValue([])]),
+    LIST_FETCHERS.map((name) => [
+      name,
+      vi.fn().mockResolvedValue({ items: [], hasMore: false, nextCursor: null }),
+    ]),
   ) as Record<(typeof LIST_FETCHERS)[number], ReturnType<typeof vi.fn>>;
 
   return {
