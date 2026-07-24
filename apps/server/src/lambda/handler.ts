@@ -48,6 +48,7 @@ export async function handler(event: LambdaFunctionUrlEvent): Promise<LambdaFunc
     body: parseBody(event),
     // Function URL lowercases incoming header names.
     tenantHeader: event.headers?.['x-notion-config'],
+    tokenHeader: event.headers?.['x-notion-token'],
     cursor: event.queryStringParameters?.cursor,
   });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseTenant } from '../tenant';
+import { parseTenant, parseToken } from '../tenant';
 
 function encode(payload: unknown): string {
   return Buffer.from(JSON.stringify(payload)).toString('base64');
@@ -52,5 +52,20 @@ describe('parseTenant', () => {
 
   it('returns null when a required field is the wrong type', () => {
     expect(parseTenant(encode({ ...validPayload, notesDb: 42 }))).toBeNull();
+  });
+});
+
+describe('parseToken', () => {
+  it('returns a non-empty header value as-is', () => {
+    expect(parseToken('ntn_abc123')).toBe('ntn_abc123');
+  });
+
+  it('returns null for a missing/undefined header', () => {
+    expect(parseToken(undefined)).toBeNull();
+    expect(parseToken('')).toBeNull();
+  });
+
+  it('returns null for an array header value', () => {
+    expect(parseToken(['a', 'b'])).toBeNull();
   });
 });

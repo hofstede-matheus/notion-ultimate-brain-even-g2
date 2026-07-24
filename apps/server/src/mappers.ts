@@ -1,4 +1,4 @@
-import type { Note, Project, Tag, Task } from '@notion-ub/contracts';
+import type { Note, NotionDatabaseSummary, Project, Tag, Task } from '@notion-ub/contracts';
 
 interface NotionText {
   plain_text?: string;
@@ -50,4 +50,23 @@ export function pageToProject(page: NotionPage): Project {
 
 export function pageToTag(page: NotionPage): Tag {
   return { id: page.id, name: pageTitle(page) };
+}
+
+/** The slice of a Notion database object the database-picker route reads. */
+export interface NotionDatabase {
+  id: string;
+  title?: NotionText[];
+}
+
+export function databaseTitle(db: NotionDatabase): string {
+  return (
+    db.title
+      ?.map((t) => t.plain_text ?? '')
+      .join('')
+      .trim() || '(untitled)'
+  );
+}
+
+export function databaseToSummary(db: NotionDatabase): NotionDatabaseSummary {
+  return { id: db.id, name: databaseTitle(db) };
 }

@@ -1,4 +1,4 @@
-import type { Client } from '@notionhq/client';
+import { APIErrorCode, APIResponseError, type Client } from '@notionhq/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Route, RouteContext } from '../routes';
 import { invokeRoute, ROUTES } from '../routes';
@@ -22,6 +22,7 @@ function fakeNotion() {
   return {
     databases: { query: vi.fn() },
     pages: { create: vi.fn(), update: vi.fn(), retrieve: vi.fn() },
+    search: vi.fn(),
     // The generic escape hatch the markdown route uses — the SDK (installed
     // at 2.3.0) has no typed method for that endpoint yet.
     request: vi.fn(),
@@ -404,6 +405,105 @@ describe('GET /api/pages/:id/markdown', () => {
     // yet, and this is the same call its typed methods build on.
     expect(notion.request).toHaveBeenCalledWith({ path: 'pages/p1/markdown', method: 'get' });
     expect(res).toEqual({ status: 200, body: markdownResponse });
+  });
+});
+
+describe('GET /api/databases', () => {
+  const databasePage = (id: string, name: string) => ({
+    object: 'database',
+    id,
+    title: [{ plain_text: name }],
+  });
+
+  it('maps a single page of results', async () => {
+    const notion = fakeNotion();
+    notion.search.mockResolvedValue({
+      results: [databasePage('d1', 'Tasks'), databasePage('d2', 'Notes')],
+      has_more: false,
+      next_cursor: null,
+    });
+
+    const res = await route('GET', '/api/databases').handler(ctx(notion));
+
+    expect(notion.search).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: { property: 'object', value: 'database' } }),
+    );
+    expect(res).toEqual({
+      status: 200,
+      body: {
+        databases: [
+          { id: 'd1', name: 'Tasks' },
+          { id: 'd2', name: 'Notes' },
+        ],
+      },
+    });
+  });
+
+  it('loops across pages and concatenates results', async () => {
+    const notion = fakeNotion();
+    notion.search
+      .mockResolvedValueOnce({
+        results: [databasePage('d1', 'Tasks')],
+        has_more: true,
+        next_cursor: 'cursor-2',
+      })
+      .mockResolvedValueOnce({
+        results: [databasePage('d2', 'Notes')],
+        has_more: false,
+        next_cursor: null,
+      });
+
+    const res = (await route('GET', '/api/databases').handler(ctx(notion))) as {
+      body: { databases: { id: string }[] };
+    };
+
+    expect(notion.search).toHaveBeenCalledTimes(2);
+    expect(notion.search).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ start_cursor: 'cursor-2' }),
+    );
+    expect(res.body.databases.map((d) => d.id)).toEqual(['d1', 'd2']);
+  });
+
+  it('skips a partial database result with no title', async () => {
+    const notion = fakeNotion();
+    notion.search.mockResolvedValue({
+      results: [{ object: 'database', id: 'd1', properties: {} }, databasePage('d2', 'Notes')],
+      has_more: false,
+      next_cursor: null,
+    });
+
+    const res = (await route('GET', '/api/databases').handler(ctx(notion))) as {
+      body: { databases: { id: string }[] };
+    };
+
+    expect(res.body.databases.map((d) => d.id)).toEqual(['d2']);
+  });
+
+  it('maps an unauthorized Notion error to a 401', async () => {
+    const notion = fakeNotion();
+    notion.search.mockRejectedValue(
+      new APIResponseError({
+        code: APIErrorCode.Unauthorized,
+        status: 401,
+        message: 'API token is invalid.',
+        headers: new Headers(),
+        rawBodyText: '',
+      }),
+    );
+
+    const res = await route('GET', '/api/databases').handler(ctx(notion));
+
+    expect(res).toEqual({ status: 401, body: { error: 'Invalid Notion token' } });
+  });
+
+  it('lets a non-auth error fall through to the 500 boundary', async () => {
+    const notion = fakeNotion();
+    notion.search.mockRejectedValue(new Error('notion down'));
+
+    const res = await invokeRoute(route('GET', '/api/databases'), ctx(notion));
+
+    expect(res).toEqual({ status: 500, body: { error: 'notion down' } });
   });
 });
 

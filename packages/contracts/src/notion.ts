@@ -25,3 +25,9 @@ export interface NotionPageObject {
   id?: string;
   properties?: Record<string, { rich_text?: { plain_text?: string }[] } | undefined>;
 }
+
+/** One database the integration token can see — for the settings database picker. */
+export interface NotionDatabaseSummary {
+  id: string;
+  name: string;
+}

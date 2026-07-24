@@ -4,8 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // network — the fake query resolves empty so the view handler returns [].
 const query = vi.fn().mockResolvedValue({ results: [] });
 const create = vi.fn().mockResolvedValue({ id: 'page1' });
+const search = vi.fn().mockResolvedValue({ results: [], has_more: false, next_cursor: null });
 vi.mock('../notion-client', () => ({
-  createNotionClient: vi.fn(() => ({ databases: { query }, pages: { create } })),
+  createNotionClient: vi.fn(() => ({ databases: { query }, pages: { create }, search })),
 }));
 
 import { handler, type LambdaFunctionUrlEvent } from '../lambda/handler';
@@ -93,5 +94,20 @@ describe('lambda handler', () => {
       }),
     );
     expect(res.statusCode).toBe(400);
+  });
+
+  it('reaches a token-auth route with only X-Notion-Token, no X-Notion-Config', async () => {
+    const res = await handler(
+      event({ rawPath: '/api/databases', headers: { 'x-notion-token': 'ntn_abc123' } }),
+    );
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({ databases: [] });
+    expect(createNotionClient).toHaveBeenCalledWith('ntn_abc123');
+  });
+
+  it('401s a token-auth route with no token header', async () => {
+    const res = await handler(event({ rawPath: '/api/databases' }));
+    expect(res.statusCode).toBe(401);
+    expect(JSON.parse(res.body)).toEqual({ error: 'Missing or invalid Notion token' });
   });
 });

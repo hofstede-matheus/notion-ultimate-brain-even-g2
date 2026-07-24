@@ -14,12 +14,20 @@
  */
 
 import type { Client } from '@notionhq/client';
+import { APIErrorCode, isNotionClientError } from '@notionhq/client';
 import { translateFilter } from './filters';
 import type { NotionPage } from './mappers';
-import { pageTitle, pageToNote, pageToProject, pageToTag, pageToTask } from './mappers';
+import {
+  databaseToSummary,
+  pageTitle,
+  pageToNote,
+  pageToProject,
+  pageToTag,
+  pageToTask,
+} from './mappers';
 import { createNotionClient } from './notion-client';
 import type { TenantDb } from './tenant';
-import { parseTenant } from './tenant';
+import { parseTenant, parseToken } from './tenant';
 import {
   NOTE_VIEWS,
   PROJECT_VIEWS,
@@ -60,6 +68,10 @@ export interface AuthedContext extends RouteContext {
 export interface Route {
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   path: string; // Express-style, e.g. '/api/tasks/:id/done'
+  // 'tenant' (default, omit) requires the full X-Notion-Config header (token +
+  // all 4 DB ids). 'token' requires only X-Notion-Token — for routes that run
+  // before DB ids are known, like the settings form's database picker.
+  auth?: 'tenant' | 'token';
   handler: (ctx: RouteContext) => Promise<RouteResult>;
 }
 
@@ -80,6 +92,28 @@ function authed(
   };
 }
 
+// Context for a 'token'-auth route: only `notion` is guaranteed (no `db` —
+// the database picker runs before DB ids are known).
+export interface TokenAuthedContext extends RouteContext {
+  notion: Client;
+}
+
+/**
+ * Like `authed()`, but for a 'token'-auth route: asserts only `ctx.notion`,
+ * never `ctx.db`. `runRoute` guarantees `notion` is present before the
+ * handler runs, so reaching here without it is an invariant violation.
+ */
+function tokenAuthed(
+  handler: (ctx: TokenAuthedContext) => Promise<RouteResult>,
+): (ctx: RouteContext) => Promise<RouteResult> {
+  return (ctx) => {
+    if (!ctx.notion) {
+      throw new Error('Route requires a resolved Notion client, but none was present');
+    }
+    return handler(ctx as TokenAuthedContext);
+  };
+}
+
 /**
  * Single 500-mapping boundary for both entry points (Express, Lambda) — the
  * one place a handler's thrown error becomes a RouteResult, so individual
@@ -96,10 +130,11 @@ export async function invokeRoute(route: Route, ctx: RouteContext): Promise<Rout
 }
 
 /**
- * Shared dispatch for both entry points: parses the tenant header, 401s a
- * request with no valid tenant, builds the handler ctx, and runs it through
- * the S1 error boundary. Express and Lambda keep only their transport-specific
- * glue (param/body extraction, response serialization).
+ * Shared dispatch for both entry points: parses the tenant (or, for a
+ * 'token'-auth route, the bare token) header, 401s a request with no valid
+ * credential, builds the handler ctx, and runs it through the S1 error
+ * boundary. Express and Lambda keep only their transport-specific glue
+ * (param/body extraction, response serialization).
  */
 export async function runRoute(
   route: Route,
@@ -107,14 +142,24 @@ export async function runRoute(
     params,
     body,
     tenantHeader,
+    tokenHeader,
     cursor,
   }: {
     params: Record<string, string>;
     body: unknown;
     tenantHeader: string | string[] | undefined;
+    tokenHeader?: string | string[] | undefined;
     cursor?: string;
   },
 ): Promise<RouteResult> {
+  if (route.auth === 'token') {
+    const token = parseToken(tokenHeader);
+    if (!token) {
+      return { status: 401, body: { error: 'Missing or invalid Notion token' } };
+    }
+    return invokeRoute(route, { params, body, notion: createNotionClient(token), cursor });
+  }
+
   const tenant = parseTenant(tenantHeader);
   if (!tenant) {
     return { status: 401, body: { error: 'Missing or invalid Notion configuration' } };
@@ -122,9 +167,9 @@ export async function runRoute(
   return invokeRoute(route, {
     params,
     body,
-    notion: tenant ? createNotionClient(tenant.token) : undefined,
-    db: tenant?.db,
-    timeZone: tenant?.timeZone,
+    notion: createNotionClient(tenant.token),
+    db: tenant.db,
+    timeZone: tenant.timeZone,
     cursor,
   });
 }
@@ -409,6 +454,46 @@ const pageRoute: Route = {
   }),
 };
 
+// ---------------------------------------------------------------------------
+// GET /api/databases
+// Databases the integration token can see, for the settings form's database
+// picker — run before any DB id is known, so this is 'token'-auth rather
+// than the usual full-tenant gate. Loops on Notion's search pagination so an
+// integration shared with >100 databases still gets a complete list.
+// ---------------------------------------------------------------------------
+const listDatabasesRoute: Route = {
+  method: 'GET',
+  path: '/api/databases',
+  auth: 'token',
+  handler: tokenAuthed(async ({ notion }) => {
+    try {
+      const databases: { id: string; name: string }[] = [];
+      let cursor: string | undefined;
+      do {
+        const response = await notion.search({
+          filter: { property: 'object', value: 'database' },
+          page_size: 100,
+          start_cursor: cursor,
+        });
+        for (const result of response.results) {
+          if (result.object === 'database' && 'title' in result) {
+            databases.push(databaseToSummary(result));
+          }
+        }
+        cursor = response.has_more ? (response.next_cursor ?? undefined) : undefined;
+      } while (cursor);
+      return { status: 200, body: { databases } };
+    } catch (err) {
+      // Distinguish "bad token" from a genuine server error, so the settings
+      // form can show a token-specific message instead of a generic failure.
+      if (isNotionClientError(err) && 'code' in err && err.code === APIErrorCode.Unauthorized) {
+        return { status: 401, body: { error: 'Invalid Notion token' } };
+      }
+      throw err;
+    }
+  }),
+};
+
 export const ROUTES: Route[] = [
   ...buildViewRoutes('tasks', 'tasks', TASK_VIEWS, 'tasks', pageToTask),
   ...buildViewRoutes('notes', 'notes', NOTE_VIEWS, 'notes', pageToNote),
@@ -423,4 +508,5 @@ export const ROUTES: Route[] = [
   deletePageRoute,
   pageMarkdownRoute,
   pageRoute,
+  listDatabasesRoute,
 ];

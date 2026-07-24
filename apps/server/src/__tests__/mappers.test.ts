@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { pageTitle, pageToNote, pageToProject, pageToTag, pageToTask } from '../mappers';
+import {
+  databaseTitle,
+  databaseToSummary,
+  pageTitle,
+  pageToNote,
+  pageToProject,
+  pageToTag,
+  pageToTask,
+} from '../mappers';
 
 const title = (text: string) => ({ title: [{ plain_text: text }] });
 
@@ -106,6 +114,30 @@ describe('pageToTag', () => {
     expect(pageToTag({ id: 'g1', properties: { Name: title('Tag') } })).toEqual({
       id: 'g1',
       name: 'Tag',
+    });
+  });
+});
+
+describe('databaseTitle', () => {
+  it('joins and trims the title rich-text array', () => {
+    expect(databaseTitle({ id: 'd1', title: [{ plain_text: 'Tasks' }] })).toBe('Tasks');
+    expect(
+      databaseTitle({ id: 'd2', title: [{ plain_text: '  My ' }, { plain_text: 'Tasks  ' }] }),
+    ).toBe('My Tasks');
+  });
+
+  it('falls back to (untitled) when the title is empty or missing', () => {
+    expect(databaseTitle({ id: 'd3', title: [] })).toBe('(untitled)');
+    expect(databaseTitle({ id: 'd4' })).toBe('(untitled)');
+    expect(databaseTitle({ id: 'd5', title: [{ plain_text: '   ' }] })).toBe('(untitled)');
+  });
+});
+
+describe('databaseToSummary', () => {
+  it('maps id and resolved title', () => {
+    expect(databaseToSummary({ id: 'd1', title: [{ plain_text: 'Tasks' }] })).toEqual({
+      id: 'd1',
+      name: 'Tasks',
     });
   });
 });

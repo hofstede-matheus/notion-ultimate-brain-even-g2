@@ -62,3 +62,12 @@ export function parseTenant(headerValue: string | undefined | string[]): Tenant 
     ...(isNonEmptyString(timeZone) ? { timeZone } : {}),
   };
 }
+
+/**
+ * Extract a bare integration token from the X-Notion-Token header — used by
+ * token-only routes (the database picker) where DB IDs aren't known yet, so
+ * the full X-Notion-Config tenant header can't be built.
+ */
+export function parseToken(headerValue: string | undefined | string[]): string | null {
+  return isNonEmptyString(headerValue) ? headerValue : null;
+}
