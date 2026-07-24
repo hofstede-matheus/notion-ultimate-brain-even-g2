@@ -70,6 +70,13 @@ Scope to one workspace with `pnpm --filter @notion-ub/server <task>` /
 - CI (`.github/workflows/ci.yml`) runs lint + `turbo run check-types test build` on PRs to
   `main`. `deploy-lambda.yml` and `build-ehpk.yml` deploy on push to `main` when the
   respective app changes.
+- **Trace logging.** `apps/glasses/src/logging/` (`trace.ts`) is the app-wide log sink —
+  used by both `src/glasses/**` and `src/web/**`, shown in the Settings screen's debug
+  console, and copyable for bug reports (see README's "Reporting a bug"). When you add a
+  new screen, action, or fetch, add a `trace.info/warn/error('CAT', msg, ctx?)` call at
+  its entry point and on its failure path — don't let a new `catch` swallow an error
+  silently. Secrets are redacted automatically (`logging/redact.ts`); don't log the raw
+  tenant token or `X-Notion-Config` header value outside `tenant-config.ts`.
 
 ## Versions
 

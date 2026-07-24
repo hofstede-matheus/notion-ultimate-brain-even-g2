@@ -6,7 +6,11 @@ import type {
   Tag,
   Task,
 } from '@notion-ub/contracts';
+import { trace } from './logging/trace';
 import { getTenantHeader } from './tenant-config';
+
+/** Bytes of a non-2xx response body captured in the trace log before throwing. */
+const ERROR_BODY_PREVIEW_BYTES = 500;
 
 /**
  * API client for the GlassTask backend server.
@@ -28,7 +32,19 @@ async function request<T>(path: string, init: RequestInit = {}, resultKey?: stri
     ...init,
     headers: { ...init.headers, 'X-Notion-Config': getTenantHeader() },
   });
-  if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+  if (!res.ok) {
+    // Captured before throwing — the caught Error's message alone (just the
+    // status code) has repeatedly hidden the real cause here (e.g. Notion's
+    // "status is not a property that exists" when a filter uses a group
+    // label instead of the real option name — see CLAUDE.md's gotchas).
+    const body = await res
+      .clone()
+      .text()
+      .then((t) => t.slice(0, ERROR_BODY_PREVIEW_BYTES))
+      .catch(() => '<unreadable body>');
+    trace.error('API', `${path} ${res.status} ${res.statusText}`, { body });
+    throw new Error(`Request failed with status ${res.status}`);
+  }
   const data = await res.json();
   return resultKey ? data[resultKey] : data;
 }

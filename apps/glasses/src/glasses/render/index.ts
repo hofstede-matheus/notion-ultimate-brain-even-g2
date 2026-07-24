@@ -6,6 +6,7 @@ import {
   TextContainerProperty,
   TextContainerUpgrade,
 } from '@evenrealities/even_hub_sdk';
+import { trace } from '../../logging/trace';
 import type { ScreenName } from '../../state';
 import { getBridge, state } from '../../state';
 import {
@@ -36,7 +37,10 @@ async function rebuildPage(config: {
   listObject?: ListContainerProperty[];
 }): Promise<void> {
   const b = getBridge();
-  if (!b) return;
+  if (!b) {
+    trace.warn('RENDER', 'no bridge — frame dropped');
+    return;
+  }
 
   if (!state.startupRendered) {
     await b.createStartUpPageContainer(new CreateStartUpPageContainer(config));
@@ -50,6 +54,11 @@ async function rebuildPage(config: {
 /** Full container rebuild. Assumes `state.screen === screen` already. */
 export async function renderFull(): Promise<void> {
   const display = currentDisplay();
+  trace.debug(
+    'RENDER',
+    `full mode=${display.mode} screen=${state.screen}`,
+    display.mode === 'list' ? { items: display.items.length } : undefined,
+  );
 
   if (display.mode === 'text') {
     await rebuildPage({
@@ -113,9 +122,15 @@ export async function renderFull(): Promise<void> {
  * list items only ever change via a full renderFull() rebuild.
  */
 export async function renderUpdate(screen: ScreenName): Promise<void> {
-  if (state.screen !== screen) return;
+  if (state.screen !== screen) {
+    trace.debug('RENDER', `update skipped — navigated away from ${screen} to ${state.screen}`);
+    return;
+  }
   const b = getBridge();
-  if (!b) return;
+  if (!b) {
+    trace.warn('RENDER', 'no bridge — frame dropped');
+    return;
+  }
 
   const display = currentDisplay();
   const content = display.mode === 'text' ? display.content : display.header;

@@ -5,6 +5,7 @@
  */
 
 import type { TenantConfig } from '@notion-ub/contracts';
+import { registerSecret } from './logging/redact';
 
 let current: TenantConfig | null = null;
 
@@ -14,6 +15,7 @@ export function getTenantConfig(): TenantConfig | null {
 
 export function setTenantConfig(cfg: TenantConfig): void {
   current = cfg;
+  registerSecret(cfg.token);
 }
 
 /** Base64 JSON payload for the X-Notion-Config header; '' when unset. */
@@ -23,7 +25,12 @@ export function getTenantHeader(): string {
   // against the user's local calendar day, not UTC. Resolved here (not stored)
   // so it always reflects the device's current zone.
   const payload = { ...current, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone };
-  return btoa(JSON.stringify(payload));
+  const header = btoa(JSON.stringify(payload));
+  // Registered so the raw header value is scrubbed if it ever ends up in a
+  // logged line (e.g. a future debug dump of request headers) — see
+  // logging/redact.ts.
+  registerSecret(header);
+  return header;
 }
 
 /**

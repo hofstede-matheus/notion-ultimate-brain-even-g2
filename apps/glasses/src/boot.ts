@@ -13,6 +13,8 @@ import {
 import { loadStoredConfig, saveStoredConfig } from '@web/services/config';
 import { VOSK_MODEL_URL } from './glasses/constants';
 import { startGlasses } from './glasses/events';
+import { loadPreviousSession, startPersisting } from './logging/persist';
+import { trace } from './logging/trace';
 import { setBridge } from './state';
 import { preloadVoskModel } from './stt';
 import { getDevEnvConfig, getTenantConfig, setTenantConfig } from './tenant-config';
@@ -33,40 +35,65 @@ async function reconfigure(prefill?: TenantConfig | null): Promise<void> {
     const cfg = await promptForConfig(prefill, prefill != null);
     await saveStoredConfig(cfg);
     setTenantConfig(cfg);
+    trace.info('BOOT', 'tenant config saved');
   } catch (err) {
-    if (err instanceof SettingsCancelledError) return;
+    if (err instanceof SettingsCancelledError) {
+      trace.info('BOOT', 'settings cancelled, keeping existing config');
+      return;
+    }
     throw err;
   }
 }
 
 export async function boot(): Promise<void> {
+  trace.info('BOOT', 'session start', {
+    app: __APP_VERSION__,
+    apiBase: import.meta.env.VITE_API_BASE || '(same-origin)',
+    ua: navigator.userAgent,
+  });
+  // Fire-and-forget: previous-session lines get prepended once loaded, but
+  // nothing else in boot() should wait on the storage bridge for this.
+  void loadPreviousSession().finally(startPersisting);
+
   async function connect(): Promise<void> {
+    trace.info('BOOT', 'connect start');
     setStatus('Waiting for Even Hub bridge...');
     disableConnect();
 
     try {
       const bridge = await waitForEvenAppBridge();
       setBridge(bridge);
+      trace.info('BOOT', 'bridge acquired');
 
       let cfg = await loadStoredConfig();
-      if (!cfg) cfg = getDevEnvConfig();
+      let cfgSource: 'stored' | 'env' | 'prompted' = 'stored';
+      if (!cfg) {
+        cfg = getDevEnvConfig();
+        cfgSource = 'env';
+      }
       if (!cfg) {
         setStatus('Enter your Notion settings to continue.');
+        cfgSource = 'prompted';
         await reconfigure();
       } else {
         setTenantConfig(cfg);
       }
+      trace.info('BOOT', `config source = ${cfgSource}`);
 
       // Wire event listener + render the initial menu screen
       await startGlasses();
+      trace.info('BOOT', 'glasses started');
 
       setStatus('Connected! Use your glasses.');
       hideConnect();
 
       // Warm the Vosk model in the background — off the critical path, same as EvenChess.
       // By the time the user navigates to Add Task the model will be ready.
+      trace.info('BOOT', 'vosk preload started');
       preloadVoskModel(VOSK_MODEL_URL);
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      trace.error('BOOT', `connect failed: ${msg}`);
       setStatus('Connection failed. Tap to retry.');
       showRetry();
     }

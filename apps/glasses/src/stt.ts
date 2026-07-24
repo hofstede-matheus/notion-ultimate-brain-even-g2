@@ -12,6 +12,7 @@
  */
 
 import { createModel, type KaldiRecognizer, type Model } from 'vosk-browser';
+import { trace } from './logging/trace';
 
 /**
  * The narrow slice of vosk-browser's `result` worker event that this code (and
@@ -156,11 +157,17 @@ function finalize(): void {
  */
 export function preloadVoskModel(modelUrl: string): void {
   if (modelPromise) return;
-  modelPromise = createModel(modelUrl).catch(() => {
-    modelPromise = null; // allow a retry later
-    console.warn(`Voice model failed to load from ${modelUrl} — run npm run fetch:voice-model`);
-    return null;
-  });
+  trace.info('VOICE', `model preload start (${modelUrl})`);
+  modelPromise = createModel(modelUrl)
+    .then((model) => {
+      trace.info('VOICE', 'model ready');
+      return model;
+    })
+    .catch(() => {
+      modelPromise = null; // allow a retry later
+      trace.warn('VOICE', `model failed to load from ${modelUrl} — run npm run fetch:voice-model`);
+      return null;
+    });
 }
 
 /**
@@ -206,7 +213,9 @@ export async function ensureRecognizer(modelUrl: string): Promise<boolean> {
     });
 
     return true;
-  } catch {
+  } catch (e) {
+    const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+    trace.error('VOICE', `recognizer init failed: ${msg}`);
     return false;
   }
 }

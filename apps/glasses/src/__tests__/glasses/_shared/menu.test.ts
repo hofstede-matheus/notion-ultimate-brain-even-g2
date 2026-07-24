@@ -8,6 +8,7 @@ vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
+import { clear as clearLog, getSnapshot as getLogSnapshot } from '../../../logging/sink';
 import { back, mount, select } from '../harness';
 
 describe('root menu', () => {
@@ -28,6 +29,20 @@ describe('root menu', () => {
     h.dispatch(select(1)); // Notes
 
     expect(h.state.screen).toBe('notes-menu');
+  });
+
+  it('logs a SEL record followed by a NAV record, in order', () => {
+    clearLog();
+    const h = mount();
+    h.state.screen = 'menu';
+
+    h.dispatch(select(1)); // Notes
+
+    const records = getLogSnapshot();
+    const selIndex = records.findIndex((r) => r.cat === 'SEL');
+    const navTransitionIndex = records.findIndex((r) => r.cat === 'NAV' && r.msg.includes('->'));
+    expect(selIndex).toBeGreaterThanOrEqual(0);
+    expect(navTransitionIndex).toBeGreaterThan(selIndex);
   });
 
   it('GO_BACK at the root shuts the app down', () => {

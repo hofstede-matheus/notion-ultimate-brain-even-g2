@@ -12,6 +12,7 @@ vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { fetchInboxTasks } from '../../../api';
 import { loadCachedList, saveCachedList } from '../../../cache';
+import { clear as clearLog, getSnapshot as getLogSnapshot } from '../../../logging/sink';
 import { mount } from '../harness';
 
 const CACHE_KEY = 'notionultimatebrain:inbox';
@@ -81,6 +82,19 @@ describe('failed fetch on cold open', () => {
       expect(display.content).not.toContain('Fetching tasks...');
     }
   });
+
+  it('logs an error record instead of failing silently', async () => {
+    vi.mocked(fetchInboxTasks).mockRejectedValue(new Error('offline'));
+    const h = mount();
+    h.state.screen = 'tasks-menu';
+
+    h.ctx.enterView('inbox');
+    await h.settle();
+
+    const errorRecords = getLogSnapshot().filter((r) => r.level === 'error');
+    expect(errorRecords).toHaveLength(1);
+    expect(errorRecords[0]?.ctx?.error).toContain('offline');
+  });
 });
 
 describe('failed fetch on warm open', () => {
@@ -145,6 +159,7 @@ describe('a screen with no registered fetcher', () => {
 
 beforeEach(() => {
   vi.mocked(loadCachedList).mockResolvedValue(null);
+  clearLog();
 });
 
 afterEach(() => {

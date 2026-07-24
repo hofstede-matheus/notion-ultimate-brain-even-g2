@@ -101,6 +101,16 @@ pnpm --filter @notion-ub/server test    # server only
 pnpm --filter @notion-ub/glasses test   # glasses only
 ```
 
+## Reporting a bug
+
+The phone webview keeps a running trace of everything the app does — key presses,
+screen changes, selections, cache hits/misses, and every API request/response/failure
+— in a debug log at the bottom of the Settings screen (tap the gear icon). To report a
+bug: reproduce it, open Settings, tap **Copy log**, and paste the result into the bug
+report/email. The buffer survives an app reload (persisted, tagged as "previous
+session"), and the Notion integration token is scrubbed automatically before anything
+is shown or copied. See `apps/glasses/src/logging/` for the implementation.
+
 ## Type checking
 
 ```bash

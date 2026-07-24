@@ -1,3 +1,4 @@
+import { trace } from '../../../logging/trace';
 import type { ScreenName } from '../../../state';
 import { state } from '../../../state';
 import { navigate } from '../_shared/navigation';
@@ -12,6 +13,7 @@ export function openProjectDetail(
   projectName: string,
   returnTo: ScreenName,
 ): void {
+  trace.info('NAV', `openProjectDetail "${projectName}"`, { id: projectId });
   state.selectedProject = { id: projectId, name: projectName, returnTo };
   navigate('project-detail');
 }

@@ -1,5 +1,6 @@
 import { deletePage, markTaskDone } from '../../../api';
 import { saveCachedList } from '../../../cache';
+import { trace } from '../../../logging/trace';
 import type { ScreenName } from '../../../state';
 import { state } from '../../../state';
 import { renderUpdate } from '../../render';
@@ -49,6 +50,7 @@ export function openConfirm(
   itemName: string,
   returnTo: ScreenName,
 ): void {
+  trace.info('ACT', `confirm open kind=${action.kind}`, { id: itemId, name: itemName });
   state.pendingAction = { kind: action.kind, itemId, itemName, returnTo };
   state.errorMessage = '';
   navigate(action.confirmScreenName);
@@ -56,6 +58,7 @@ export function openConfirm(
 
 export function dismissConfirm(): void {
   const returnTo = state.pendingAction?.returnTo ?? 'tasks-menu';
+  trace.info('ACT', `confirm dismissed -> ${returnTo}`);
   state.pendingAction = null;
   navigate(returnTo);
 }
@@ -79,10 +82,13 @@ export async function confirmAction(): Promise<void> {
   const action = ITEM_ACTIONS[kind];
 
   const spinner = startSpinner(() => void renderUpdate(action.confirmScreenName));
+  trace.info('ACT', `calling ${kind} api`, { id: itemId });
 
   try {
     await action.apiCall(itemId);
     removeItemFromOwningList(itemId, returnTo);
+    const dataKey = DATA_KEY_OVERRIDES[returnTo] ?? returnTo;
+    trace.info('ACT', `ok, removed from ${dataKey}`, { left: (state.lists[dataKey] ?? []).length });
 
     state.pendingAction = null;
     state.actionToast = { kind, itemName: pending.itemName, returnTo, untilMs: Date.now() + 1500 };
@@ -95,7 +101,9 @@ export async function confirmAction(): Promise<void> {
       navigate(returnTo);
     }, 1500);
   } catch (e) {
-    state.errorMessage = e instanceof Error ? e.message : 'Unknown error';
+    const msg = e instanceof Error ? e.message : 'Unknown error';
+    trace.error('ACT', `${kind} failed: ${msg}`, { id: itemId });
+    state.errorMessage = msg;
     void renderUpdate(action.confirmScreenName);
   } finally {
     stopSpinner(spinner);
@@ -108,6 +116,7 @@ export function dismissActionToast(): void {
     actionToastTimeout = null;
   }
   const returnTo = state.actionToast?.returnTo ?? 'tasks-menu';
+  trace.info('ACT', `toast dismissed -> ${returnTo}`);
   state.actionToast = null;
   navigate(returnTo);
 }

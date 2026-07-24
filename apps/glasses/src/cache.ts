@@ -1,4 +1,5 @@
 import { storageGet, storageSet } from 'even-toolkit/storage';
+import { trace } from './logging/trace';
 
 // ---------------------------------------------------------------------------
 // localStorage keys
@@ -27,5 +28,6 @@ export async function loadCachedList<T>(key: string): Promise<T[] | null> {
  * Failures are swallowed — cache writes are best-effort.
  */
 export async function saveCachedList<T>(key: string, items: T[]): Promise<void> {
+  trace.debug('CACHE', `write ${key}`, { items: items.length });
   await storageSet(key, items);
 }

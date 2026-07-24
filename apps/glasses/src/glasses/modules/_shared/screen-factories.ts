@@ -1,4 +1,5 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils';
+import { trace } from '../../../logging/trace';
 import type { AppState, ListItem, ScreenName } from '../../../state';
 import { MAX_ITEM_BYTES, MAX_LIST_ITEMS } from '../../constants';
 import type { GlassCtx, MenuDef, ScreenModule } from '../../types';
@@ -71,7 +72,12 @@ export function makeMenuScreen(
         const idx = action.itemIndex;
         if (typeof idx === 'number') {
           const item = def.items[idx];
-          if (item?.target) route(item.target, ctx);
+          if (item?.target) {
+            trace.info('SEL', `menu "${item.label}" (idx ${idx}) -> ${item.target}`);
+            route(item.target, ctx);
+          } else if (item) {
+            trace.warn('SEL', `menu item "${item.label}" has no target`);
+          }
         }
         return;
       }
@@ -341,6 +347,7 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
       if (action.type === 'GO_BACK') {
         ctx.stopSpinner();
         const parent = typeof config.parent === 'function' ? config.parent(state) : config.parent;
+        trace.info('NAV', `back ${config.screen} -> ${parent}`);
         ctx.navigate(parent);
         return;
       }
@@ -368,10 +375,18 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
           const item = items[start + idx];
           if (item) {
             const kind = config.onSelect ?? selectKindFor(config.screen);
+            trace.info('SEL', `${config.screen} row ${idx} "${item.name}"`, {
+              id: item.id,
+              kind: kind ?? 'unknown',
+            });
             if (kind === 'task') ctx.openTaskActions(item.id, item.name, config.screen);
             else if (kind === 'project') ctx.openProjectDetail(item.id, item.name, config.screen);
             else if (kind === 'note') ctx.openNoteActions(item.id, item.name, config.screen);
             else if (kind === 'tag') ctx.openTagNotes(item.id, item.name, config.screen);
+            else
+              trace.warn('SEL', `${config.screen} row has no select kind — dead row`, {
+                id: item.id,
+              });
           }
         }
         return;

@@ -1,13 +1,24 @@
-import { LOG_LEVELS } from '../constants';
-import { appendLine } from '../providers/LogProvider';
+import { formatArgs, previewBody } from '../../logging/format';
+import { trace } from '../../logging/trace';
+import { BODY_PREVIEW_BYTES, type Level, LOG_LEVELS } from '../constants';
 import { isAudioFrameLog } from './audioFilter';
-import { formatArgs, previewBody, timestamp } from './format';
+import { isSimulatorNoiseLog } from './consoleNoise';
 
 let installed = false;
 
+/** Maps a patched console method name to the trace system's 4-level scale. */
+const LEVEL_MAP: Record<Level, 'debug' | 'info' | 'warn' | 'error'> = {
+  log: 'info',
+  info: 'info',
+  warn: 'warn',
+  error: 'error',
+  debug: 'debug',
+};
+
 /**
- * Patches console.log/info/warn/error/debug so every call is mirrored into the
- * on-screen log container (in addition to the browser's normal DevTools output).
+ * Patches console.log/info/warn/error/debug so every call is mirrored into
+ * the trace buffer (in addition to the browser's normal DevTools output, via
+ * ../../logging/trace's own console mirror).
  *
  * Idempotent — safe to call more than once.
  */
@@ -19,20 +30,20 @@ export function installLogger(): void {
     const original = console[level].bind(console);
     console[level] = (...args: unknown[]) => {
       if (isAudioFrameLog(args)) return; // suppress per-frame PCM spam
+      if (isSimulatorNoiseLog(args)) return; // suppress the simulator's ~2s heartbeat
       original(...args);
-      const line = `[${timestamp()}] [${level.toUpperCase()}] ${formatArgs(args)}`;
-      appendLine(level, line);
+      trace[LEVEL_MAP[level]]('CON', formatArgs(args));
     };
   }
 
   // surface uncaught errors too
   window.addEventListener('error', (e) => {
-    appendLine('error', `[${timestamp()}] [UNCAUGHT] ${e.message}`);
+    trace.error('CON', `[UNCAUGHT] ${e.message}`);
   });
   window.addEventListener('unhandledrejection', (e) => {
     const reason =
       e.reason instanceof Error ? `${e.reason.name}: ${e.reason.message}` : String(e.reason);
-    appendLine('error', `[${timestamp()}] [UNHANDLED] ${reason}`);
+    trace.error('CON', `[UNHANDLED] ${reason}`);
   });
 
   installFetchLogger();
@@ -55,13 +66,12 @@ function installFetchLogger(): void {
 
     const isApi = url.includes('/api/');
     const started = performance.now();
-    const reqBody = init?.body ? await previewBody(init.body as BodyInit) : null;
+    const reqBody = init?.body
+      ? await previewBody(init.body as BodyInit, BODY_PREVIEW_BYTES)
+      : null;
 
     if (isApi) {
-      const reqLine = reqBody
-        ? `[${timestamp()}] [API →] ${method} ${url}  body=${reqBody}`
-        : `[${timestamp()}] [API →] ${method} ${url}`;
-      appendLine('info', reqLine, true);
+      trace.info('API', `→ ${method} ${url}`, reqBody ? { body: reqBody } : undefined);
     }
 
     try {
@@ -69,22 +79,14 @@ function installFetchLogger(): void {
       const ms = Math.round(performance.now() - started);
       if (isApi) {
         const level = res.ok ? 'info' : 'warn';
-        appendLine(
-          level,
-          `[${timestamp()}] [API ←] ${method} ${url}  ${res.status} ${res.statusText}  ${ms}ms`,
-          true,
-        );
+        trace[level]('API', `← ${method} ${url} ${res.status} ${res.statusText}`, { ms });
       }
       return res;
     } catch (err) {
       const ms = Math.round(performance.now() - started);
       const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
       if (isApi) {
-        appendLine(
-          'error',
-          `[${timestamp()}] [API ✗] ${method} ${url}  failed after ${ms}ms — ${msg}`,
-          true,
-        );
+        trace.error('API', `✗ ${method} ${url} failed after ${ms}ms`, { error: msg });
       }
       throw err;
     }

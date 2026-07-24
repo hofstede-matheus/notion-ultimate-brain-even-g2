@@ -1,5 +1,6 @@
 import { AudioInputSource } from '@evenrealities/even_hub_sdk';
 import { createTask } from '../../../api';
+import { trace } from '../../../logging/trace';
 import { getBridge, state } from '../../../state';
 import * as stt from '../../../stt';
 import { VOSK_MODEL_URL } from '../../constants';
@@ -32,6 +33,7 @@ export async function startRecording(): Promise<void> {
     const ready = await stt.ensureRecognizer(VOSK_MODEL_URL);
     startingRecognizer = false;
     if (!ready) {
+      trace.warn('VOICE', 'recognizer not ready — model still loading');
       state.recording = 'error';
       state.errorMessage = 'Voice model loading. Please try again in a moment.';
       void renderUpdate('add-task');
@@ -41,6 +43,7 @@ export async function startRecording(): Promise<void> {
     const mySession = ++recordingSession;
 
     // Start recording
+    trace.info('VOICE', 'recording start');
     state.recording = 'recording';
     state.createdTaskName = '';
     state.errorMessage = '';
@@ -53,11 +56,13 @@ export async function startRecording(): Promise<void> {
       async (text) => {
         if (mySession !== recordingSession) return; // stale — user already left/restarted
         if (!text || text.trim().length === 0) {
+          trace.warn('VOICE', 'no speech detected');
           state.recording = 'error';
           state.errorMessage = "Couldn't hear anything. Tap to try again.";
           void renderUpdate('add-task');
           return;
         }
+        trace.info('VOICE', 'transcript received', { len: text.trim().length });
         state.pendingTranscript = text.trim();
         state.recording = 'confirm';
         void renderUpdate('add-task');
@@ -66,6 +71,7 @@ export async function startRecording(): Promise<void> {
       // Called synchronously — close the mic and show "processing".
       () => {
         if (mySession !== recordingSession) return;
+        trace.info('VOICE', 'recording stop');
         void b.audioControl(false);
         state.recording = 'processing';
         void renderUpdate('add-task');
@@ -76,6 +82,7 @@ export async function startRecording(): Promise<void> {
 
   if (state.recording === 'recording') {
     // User tapped while recording — manual stop (same path as VAD auto-stop)
+    trace.info('VOICE', 'manual stop');
     stt.stopListening();
   }
 }
@@ -83,17 +90,21 @@ export async function startRecording(): Promise<void> {
 export async function confirmAddTask(): Promise<void> {
   const transcript = state.pendingTranscript;
   if (!transcript) return;
+  trace.info('VOICE', 'confirming task creation');
   state.recording = 'confirming';
   void renderUpdate('add-task');
   const spinner = startSpinner(() => void renderUpdate('add-task'));
   try {
     const result = await createTask(transcript);
+    trace.info('VOICE', 'task created', { id: result.id, name: result.name });
     state.createdTaskName = result.name;
     state.pendingTranscript = '';
     state.recording = 'done';
   } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Unknown error';
+    trace.error('VOICE', `task creation failed: ${msg}`);
     state.pendingTranscript = '';
-    state.errorMessage = e instanceof Error ? e.message : 'Unknown error';
+    state.errorMessage = msg;
     state.recording = 'error';
   } finally {
     stopSpinner(spinner);
@@ -102,6 +113,7 @@ export async function confirmAddTask(): Promise<void> {
 }
 
 export function discardAddTask(): void {
+  trace.info('VOICE', 'transcript discarded');
   state.pendingTranscript = '';
   state.recording = 'idle';
   void renderUpdate('add-task');

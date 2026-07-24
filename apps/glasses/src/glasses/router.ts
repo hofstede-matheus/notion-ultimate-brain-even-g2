@@ -1,3 +1,4 @@
+import { trace } from '../logging/trace';
 import type { AppState } from '../state';
 import { FALLBACK_SCREEN } from './constants';
 import { menuScreen } from './menu';
@@ -116,7 +117,12 @@ export const SCREENS: Record<string, ScreenModule> = {
 const fallbackScreen: ScreenModule = SCREENS[FALLBACK_SCREEN] ?? menuScreen;
 
 function getScreen(name: string): ScreenModule {
-  return SCREENS[name] ?? fallbackScreen;
+  const screen = SCREENS[name];
+  if (!screen) {
+    trace.warn('NAV', `unknown screen '${name}', falling back to '${FALLBACK_SCREEN}'`);
+    return fallbackScreen;
+  }
+  return screen;
 }
 
 export const router = {
@@ -124,6 +130,7 @@ export const router = {
     return getScreen(snapshot.screen).display(snapshot);
   },
   onGlassAction(action: AppGlassAction, snapshot: AppState, ctx: GlassCtx): void {
+    trace.debug('NAV', `dispatch screen=${snapshot.screen} action=${action.type}`);
     getScreen(snapshot.screen).action(action, snapshot, ctx);
   },
 };

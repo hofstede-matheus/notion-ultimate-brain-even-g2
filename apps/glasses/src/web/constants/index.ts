@@ -8,13 +8,11 @@
 export type Level = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
 /**
- * console method names that get mirrored into the on-screen log overlay.
- * Order is irrelevant; the overlay only cares that every level is patched.
+ * console method names that get mirrored into the trace log (see
+ * ../utils/logger.ts). Order is irrelevant; the buffer only cares that
+ * every level is patched.
  */
 export const LOG_LEVELS: readonly Level[] = ['log', 'info', 'warn', 'error', 'debug'];
-
-/** Max on-screen log lines before the buffer (and the matching DOM) is pruned FIFO. */
-export const MAX_LOG_LINES = 500;
 
 /** Bytes of a request body included in each `[API →]` log line. */
 export const BODY_PREVIEW_BYTES = 200;

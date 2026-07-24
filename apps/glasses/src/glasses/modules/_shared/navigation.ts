@@ -33,6 +33,7 @@ import {
   type PagedResult,
 } from '../../../api';
 import { cacheKeyForScreen, loadCachedList, saveCachedList } from '../../../cache';
+import { trace } from '../../../logging/trace';
 import type { ListItem, ScreenName } from '../../../state';
 import { getBridge, state } from '../../../state';
 import { SPINNER_FRAMES, SPINNER_INTERVAL_MS } from '../../constants';
@@ -127,6 +128,7 @@ let spinnerOwner = 0;
 export function startSpinner(onTick: () => void): number {
   stopSpinner(); // clear any previous interval first
   const owner = ++spinnerOwner;
+  trace.debug('NAV', `spinner start owner=${owner}`);
   let i = 0;
   state.spinnerFrame = SPINNER_FRAMES[0] ?? '';
   spinnerInterval = setInterval(() => {
@@ -139,10 +141,14 @@ export function startSpinner(onTick: () => void): number {
 
 /** Stops the spinner, unless `owner` names a flow that no longer holds it. */
 export function stopSpinner(owner?: number): void {
-  if (owner !== undefined && owner !== spinnerOwner) return;
+  if (owner !== undefined && owner !== spinnerOwner) {
+    trace.debug('NAV', `spinner stop skipped — owner=${owner} superseded by ${spinnerOwner}`);
+    return;
+  }
   if (spinnerInterval !== null) {
     clearInterval(spinnerInterval);
     spinnerInterval = null;
+    trace.debug('NAV', `spinner stop owner=${owner ?? spinnerOwner}`);
   }
   state.spinnerFrame = '';
 }
@@ -152,6 +158,7 @@ export function stopSpinner(owner?: number): void {
 // ---------------------------------------------------------------------------
 
 export function navigate(screen: ScreenName): void {
+  trace.info('NAV', `${state.screen} -> ${screen}`);
   if (screen === 'add-task') {
     state.recording = 'idle';
     state.createdTaskName = '';
@@ -165,7 +172,12 @@ export function navigate(screen: ScreenName): void {
 export function shutdown(): void {
   // Root page: MUST call shutDownPageContainer(1)
   const b = getBridge();
-  if (b) void b.shutDownPageContainer(1);
+  if (!b) {
+    trace.warn('NAV', 'shutdown requested but bridge is missing');
+    return;
+  }
+  trace.info('NAV', 'shutdown (root double-tap)');
+  void b.shutDownPageContainer(1);
 }
 
 // ---------------------------------------------------------------------------
@@ -204,7 +216,12 @@ export function cacheKeyForListView(screen: ScreenName): string {
 export async function enterView(screen: ScreenName): Promise<void> {
   const dataKey = DATA_KEY_OVERRIDES[screen] ?? screen;
   const fetchFn = VIEW_FETCHERS[dataKey];
-  if (!fetchFn) return;
+  if (!fetchFn) {
+    trace.warn('NAV', `enterView('${screen}') — no fetcher for '${dataKey}', no-op`);
+    return;
+  }
+
+  trace.info('NAV', `enterView('${screen}') dataKey=${dataKey}`);
 
   // A fresh entry into a list screen always starts on its first page.
   state.listPages[screen] = 0;
@@ -213,9 +230,11 @@ export async function enterView(screen: ScreenName): Promise<void> {
   const cacheKey = cacheKeyForListView(dataKey);
   const cached = await loadCachedList<ListItem>(cacheKey);
   if (cached !== null) {
+    trace.debug('CACHE', `hit ${cacheKey}`, { items: cached.length });
     state.lists[dataKey] = cached;
     state.loading = false;
   } else {
+    trace.debug('CACHE', `miss ${cacheKey}`);
     state.loading = true;
   }
   navigate(screen);
@@ -226,13 +245,21 @@ export async function enterView(screen: ScreenName): Promise<void> {
   const spinner = startSpinner(() => {
     void renderUpdate(screen);
   });
+  const started = performance.now();
 
   try {
     const fresh = await fetchAllPages(fetchFn);
+    const ms = Math.round(performance.now() - started);
+    trace.info('API', `loaded ${dataKey}`, { items: fresh.length, ms });
     state.lists[dataKey] = fresh;
     state.loading = false;
     void saveCachedList(cacheKey, fresh);
-  } catch {
+  } catch (e) {
+    const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+    trace.error('NAV', `enterView('${screen}') fetch failed — showing empty list`, {
+      dataKey,
+      error: msg,
+    });
     if (state.loading) state.lists[dataKey] = []; // no cache — show empty
     state.loading = false;
   } finally {
@@ -255,7 +282,11 @@ export async function enterView(screen: ScreenName): Promise<void> {
 export function turnListPage(screen: ScreenName, delta: number, totalPages: number): void {
   const current = state.listPages[screen] ?? 0;
   const next = Math.min(Math.max(current + delta, 0), Math.max(totalPages - 1, 0));
-  if (next === current) return;
+  if (next === current) {
+    trace.debug('NAV', `page turn clamped no-op on ${screen} (page ${current + 1}/${totalPages})`);
+    return;
+  }
+  trace.info('NAV', `page ${next + 1}/${totalPages} on ${screen}`);
   state.listPages[screen] = next;
   void renderFull();
 }

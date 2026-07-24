@@ -1,10 +1,11 @@
 import { type EvenHubEvent, OsEventTypeList } from '@evenrealities/even_hub_sdk';
+import { trace } from '../../logging/trace';
 import { getBridge, state } from '../../state';
 import * as stt from '../../stt';
 import { createGlassCtx } from '../glass-ctx';
 import { renderFull } from '../render';
 import { router } from '../router';
-import { isScrollThrottled, resolveEventType, toGlassAction } from './resolve';
+import { eventTypeName, isScrollThrottled, resolveEventType, toGlassAction } from './resolve';
 
 const ctx = createGlassCtx();
 
@@ -21,6 +22,12 @@ export function onEvenHubEvent(event: EvenHubEvent): void {
 
   const eventType = resolveEventType(event);
   if (eventType === undefined) return;
+
+  trace.info('EVT', eventTypeName(eventType), {
+    screen: state.screen,
+    idx: event.listEvent?.currentSelectItemIndex,
+    name: event.listEvent?.currentSelectItemName,
+  });
 
   // Throttle scroll events
   if (

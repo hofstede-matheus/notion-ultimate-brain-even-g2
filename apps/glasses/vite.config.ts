@@ -1,10 +1,21 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
+const pkg = JSON.parse(
+  readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8'),
+);
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  define: {
+    // Baked in at build time so the exported log (see logging/export.ts)
+    // always names the app version that produced it — stays in step with
+    // package.json for free, including the bump-glasses-version skill.
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   resolve: {
     alias: {
       '@web': fileURLToPath(new URL('./src/web', import.meta.url)),

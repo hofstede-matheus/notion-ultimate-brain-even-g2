@@ -1,3 +1,4 @@
+import { trace } from '../../../logging/trace';
 import { loadPageContent } from '../../../page-loader';
 import type { ScreenName } from '../../../state';
 import { state } from '../../../state';
@@ -28,6 +29,7 @@ export async function openPage(pageId: string, title: string, returnTo: ScreenNa
   const mySession = ++pageSession;
   const base = { title, returnTo, pages: [] as string[][], index: 0, error: '' };
 
+  trace.info('NAV', `openPage "${title}"`, { id: pageId });
   state.pageContent = { ...base, loading: true };
   navigate('page-content');
 
@@ -35,16 +37,26 @@ export async function openPage(pageId: string, title: string, returnTo: ScreenNa
 
   try {
     const { markdown, truncated } = await loadPageContent(pageId);
-    if (mySession !== pageSession) return;
+    if (mySession !== pageSession) {
+      trace.debug('NAV', `openPage "${title}" resolved after session moved on — discarded`);
+      return;
+    }
     const pages = markdownToPages(markdown);
     if (truncated) pages.push(TRUNCATED_NOTICE);
+    trace.info('NAV', `openPage "${title}" loaded`, {
+      markdownLen: markdown.length,
+      pages: pages.length,
+      truncated,
+    });
     state.pageContent = { ...base, loading: false, pages };
   } catch (e) {
     if (mySession !== pageSession) return;
+    const msg = e instanceof Error ? e.message : 'Unknown error';
+    trace.error('NAV', `openPage "${title}" failed: ${msg}`, { id: pageId });
     state.pageContent = {
       ...base,
       loading: false,
-      error: e instanceof Error ? e.message : 'Unknown error',
+      error: msg,
     };
   } finally {
     // Still runs for the early returns above, hence the second check: a stale
@@ -63,6 +75,7 @@ export function turnPage(delta: number): void {
   const next = content.index + delta;
   if (next < 0 || next >= content.pages.length) return;
 
+  trace.debug('NAV', `page reader ${next + 1}/${content.pages.length}`);
   content.index = next;
   // The layout is identical page to page, so an in-place content upgrade is
   // enough — and avoids the full-rebuild flicker on every page turn.
