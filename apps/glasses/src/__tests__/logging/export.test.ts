@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest';
 import { buildLogText } from '../../logging/export';
 import { append, clear, seedPreviousSession } from '../../logging/sink';
