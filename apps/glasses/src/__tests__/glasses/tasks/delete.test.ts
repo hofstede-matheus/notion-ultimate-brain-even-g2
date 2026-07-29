@@ -19,7 +19,7 @@ function openConfirm(h: ReturnType<typeof mount>) {
   h.state.screen = 'inbox';
   h.state.lists.inbox = [TASK];
   h.dispatch(select(0)); // -> task-actions
-  h.dispatch(select(4)); // Delete task
+  h.dispatch(select(5)); // Delete task
 }
 
 describe('opening the delete confirm dialog from a task', () => {
@@ -53,7 +53,7 @@ describe('opening the delete confirm dialog from a task', () => {
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: longName }];
     h.dispatch(select(0));
-    h.dispatch(select(4)); // Delete task
+    h.dispatch(select(5)); // Delete task
 
     const display = h.render();
     expect(display.mode).toBe('list');
@@ -76,7 +76,7 @@ describe('confirming delete', () => {
 
     await h.settle();
 
-    expect(deletePage).toHaveBeenCalledWith('t1', undefined);
+    expect(deletePage).toHaveBeenCalledWith('t1');
     expect(h.state.lists.inbox).toEqual([]);
     expect(h.state.actionToast).toMatchObject({
       kind: 'delete',

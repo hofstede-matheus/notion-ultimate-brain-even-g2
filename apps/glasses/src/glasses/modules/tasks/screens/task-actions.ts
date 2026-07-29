@@ -22,6 +22,11 @@ const ACTIONS: Array<{ label: string; run: (task: SelectedTask, ctx: GlassCtx) =
     run: (_task, ctx) => ctx.openDueDatePicker(),
   },
   {
+    label: 'Change project',
+    run: (task, ctx) =>
+      ctx.openProjectPicker(task.taskId, task.taskName, task.returnTo, 'task-actions'),
+  },
+  {
     label: 'Mark as done',
     run: (task, ctx) => ctx.openConfirm('markDone', task.taskId, task.taskName, task.returnTo),
   },

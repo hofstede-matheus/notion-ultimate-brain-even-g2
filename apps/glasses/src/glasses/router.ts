@@ -5,6 +5,8 @@ import { menuScreen } from './menu';
 import { deleteConfirmScreen } from './modules/_shared/delete-confirm';
 import { deleteToastScreen } from './modules/_shared/delete-toast';
 import { pageContentScreen } from './modules/_shared/page-content-screen';
+import { setProjectConfirmScreen } from './modules/_shared/set-project-confirm';
+import { setProjectToastScreen } from './modules/_shared/set-project-toast';
 import { allNotesScreen } from './modules/notes/screens/all';
 import { notesByProjectScreen } from './modules/notes/screens/by-project';
 import { notesByTagScreen } from './modules/notes/screens/by-tag';
@@ -26,6 +28,7 @@ import { doneScreen } from './modules/projects/screens/done';
 import { projectsMenuScreen } from './modules/projects/screens/menu';
 import { onHoldScreen } from './modules/projects/screens/on-hold';
 import { ongoingScreen } from './modules/projects/screens/ongoing';
+import { projectPickerScreen } from './modules/projects/screens/picker';
 import { plannedScreen } from './modules/projects/screens/planned';
 import { projectNotesScreen } from './modules/projects/screens/project-notes';
 import { projectTasksDoneScreen } from './modules/projects/screens/project-tasks-done';
@@ -110,6 +113,9 @@ export const SCREENS: Record<string, ScreenModule> = {
   'page-content': pageContentScreen,
   'delete-confirm': deleteConfirmScreen,
   'delete-toast': deleteToastScreen,
+  'project-picker': projectPickerScreen,
+  'set-project-confirm': setProjectConfirmScreen,
+  'set-project-toast': setProjectToastScreen,
   'project-detail': projectDetailScreen,
   'project-tasks-menu': projectTasksMenuScreen,
   'project-tasks-todo': projectTasksTodoScreen,

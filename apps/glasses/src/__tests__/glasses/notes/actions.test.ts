@@ -30,7 +30,7 @@ describe('tapping a note on a list screen', () => {
     expect(h.state.screen).toBe('note-actions');
     expect(h.render()).toMatchObject({
       mode: 'list',
-      items: ['Open page', 'Load metadata', 'Delete note'],
+      items: ['Open page', 'Load metadata', 'Change project', 'Delete note'],
     });
   });
 

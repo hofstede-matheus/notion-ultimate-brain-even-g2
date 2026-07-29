@@ -17,7 +17,7 @@ function openConfirm(h: ReturnType<typeof mount>) {
   h.state.screen = 'inbox';
   h.state.lists.inbox = [TASK];
   h.dispatch(select(0)); // -> task-actions
-  h.dispatch(select(3)); // Mark as done
+  h.dispatch(select(4)); // Mark as done
 }
 
 describe('opening the confirm dialog', () => {
@@ -61,7 +61,7 @@ describe('opening the confirm dialog', () => {
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: longName }];
     h.dispatch(select(0));
-    h.dispatch(select(3)); // Mark as done
+    h.dispatch(select(4)); // Mark as done
 
     const display = h.render();
     expect(display.mode).toBe('list');
@@ -85,7 +85,7 @@ describe('confirming mark-done', () => {
 
     await h.settle();
 
-    expect(markTaskDone).toHaveBeenCalledWith('t1', undefined);
+    expect(markTaskDone).toHaveBeenCalledWith('t1');
     expect(h.state.lists.inbox).toEqual([]);
     expect(h.state.pendingAction).toBeNull();
     expect(h.state.actionToast).toMatchObject({

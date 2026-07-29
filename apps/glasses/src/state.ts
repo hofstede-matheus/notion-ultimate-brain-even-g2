@@ -50,6 +50,9 @@ export type ScreenName =
   | 'page-content'
   | 'delete-confirm'
   | 'delete-toast'
+  | 'project-picker'
+  | 'set-project-confirm'
+  | 'set-project-toast'
   | 'project-detail'
   | 'project-tasks-menu'
   | 'project-tasks-todo'
@@ -86,16 +89,19 @@ export interface AppState {
   listPages: Partial<Record<ScreenName, number>>;
 
   // Confirm dialog for a mutating item action — kind is 'markDone' (tasks
-  // only), 'delete' (tasks and notes), or 'setDue' (tasks only); returnTo is
-  // the list screen to navigate back to. Generic over item id/name since
-  // "Delete" is shared by both the task and the note action menus. `date` is
-  // only set for 'setDue' — the ISO date to write, or null to clear it.
+  // only), 'delete' (tasks and notes), 'setDue' (tasks only), or 'setProject'
+  // (tasks and notes); returnTo is the list screen to navigate back to.
+  // Generic over item id/name since "Delete" is shared by both the task and
+  // the note action menus. `date` is only set for 'setDue' — the ISO date to
+  // write, or null to clear it. `project` is only set for 'setProject' — the
+  // project to write (id null clears the relation), and its name for display.
   pendingAction: {
-    kind: 'markDone' | 'delete' | 'setDue';
+    kind: 'markDone' | 'delete' | 'setDue' | 'setProject';
     itemId: string;
     itemName: string;
     returnTo: ScreenName;
     date?: string | null;
+    project?: { id: string | null; name: string };
   } | null;
 
   // The task the action menu / metadata / delete flow is operating on.
@@ -161,13 +167,26 @@ export interface AppState {
     error: string;
   } | null;
 
-  // Item action toast (mark-done, delete, or setDue); shown after API call completes.
+  // Item action toast (mark-done, delete, setDue, or setProject); shown after
+  // API call completes.
   actionToast: {
-    kind: 'markDone' | 'delete' | 'setDue';
+    kind: 'markDone' | 'delete' | 'setDue' | 'setProject';
     itemName: string;
     returnTo: ScreenName;
     untilMs: number;
     date?: string | null;
+    project?: { id: string | null; name: string };
+  } | null;
+
+  // The item (task or note) the project picker / confirm / toast flow is
+  // operating on — mirrors selectedTask/selectedNote. `returnTo` is the list
+  // screen to land back on after the toast; `backTo` is the action menu
+  // ('task-actions' or 'note-actions') GO_BACK from the picker returns to.
+  projectPicker: {
+    itemId: string;
+    itemName: string;
+    returnTo: ScreenName;
+    backTo: ScreenName;
   } | null;
 
   // The project the Tasks/Notes drill-down menu (and its two list screens)
@@ -202,6 +221,7 @@ export const state: AppState = {
   taskMetadata: null,
   selectedNote: null,
   noteMetadata: null,
+  projectPicker: null,
   pageContent: null,
   actionToast: null,
   selectedProject: null,

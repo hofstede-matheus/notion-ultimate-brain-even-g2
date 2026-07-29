@@ -13,6 +13,7 @@ import {
   turnListPage,
 } from './modules/_shared/navigation';
 import { openPage, turnPage } from './modules/_shared/page-reader';
+import { openProjectPicker, pickProject } from './modules/_shared/project-picker';
 import { enterNoteMetadata, openNoteActions } from './modules/notes/actions';
 import { openProjectDetail } from './modules/projects/actions';
 import { openTagNotes } from './modules/tags/actions';
@@ -49,9 +50,9 @@ export function createGlassCtx(): GlassCtx {
     cancelRecordingAndGoBack,
     confirmAddTask,
     discardAddTask,
-    openConfirm: (kind, itemId, itemName, returnTo, date) => {
+    openConfirm: (kind, itemId, itemName, returnTo, extra) => {
       const action = ITEM_ACTIONS[kind];
-      openConfirm(action, itemId, itemName, returnTo, date);
+      openConfirm(action, itemId, itemName, returnTo, extra);
     },
     confirmAction,
     dismissConfirm,
@@ -67,6 +68,8 @@ export function createGlassCtx(): GlassCtx {
     openPage: (pageId, title, returnTo) => void openPage(pageId, title, returnTo),
     turnPage,
     openProjectDetail,
+    openProjectPicker,
+    pickProject,
     openTagNotes,
   };
 }

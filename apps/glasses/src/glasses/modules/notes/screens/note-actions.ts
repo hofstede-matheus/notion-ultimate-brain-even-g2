@@ -17,6 +17,11 @@ const ACTIONS: Array<{ label: string; run: (note: SelectedNote, ctx: GlassCtx) =
   },
   { label: 'Load metadata', run: (_note, ctx) => ctx.enterNoteMetadata() },
   {
+    label: 'Change project',
+    run: (note, ctx) =>
+      ctx.openProjectPicker(note.noteId, note.noteName, note.returnTo, 'note-actions'),
+  },
+  {
     label: 'Delete note',
     run: (note, ctx) => ctx.openConfirm('delete', note.noteId, note.noteName, note.returnTo),
   },

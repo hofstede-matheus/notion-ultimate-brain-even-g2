@@ -417,6 +417,33 @@ const pageMetadataRoute: Route = {
 };
 
 // ---------------------------------------------------------------------------
+// PATCH /api/pages/:id/project
+// Set (or clear, when projectId is null) a page's Project relation. Generic
+// over tasks and notes — both databases carry a Project relation, and this
+// always replaces rather than appends, matching "change project" rather than
+// "add project". Body: { projectId: string | null }
+// ---------------------------------------------------------------------------
+const setPageProjectRoute: Route = {
+  method: 'PATCH',
+  path: '/api/pages/:id/project',
+  handler: authed(async ({ params, body, notion }) => {
+    const { id } = params;
+    if (!id) {
+      return { status: 400, body: { error: 'Missing page id' } };
+    }
+    const { projectId } = (body as { projectId?: unknown }) ?? {};
+    if (projectId !== null && typeof projectId !== 'string') {
+      return { status: 400, body: { error: 'Invalid "projectId" — expected a string or null' } };
+    }
+    const page = await notion.pages.update({
+      page_id: id,
+      properties: { Project: { relation: projectId ? [{ id: projectId }] : [] } },
+    });
+    return { status: 200, body: { id: page.id } };
+  }),
+};
+
+// ---------------------------------------------------------------------------
 // DELETE /api/pages/:id
 // Move a page to the Notion Bin. Generic over tasks and notes — `pages.update`
 // doesn't care which database a page belongs to, only the client decides
@@ -533,6 +560,7 @@ export const ROUTES: Route[] = [
   markTaskDoneRoute,
   setTaskDueRoute,
   pageMetadataRoute,
+  setPageProjectRoute,
   deletePageRoute,
   pageMarkdownRoute,
   pageRoute,

@@ -63,6 +63,7 @@ export function apiMock(): ApiModule {
     createTask: vi.fn(async (name: string) => ({ id: 't1', name })),
     markTaskDone: vi.fn().mockResolvedValue(undefined),
     setTaskDueDate: vi.fn().mockResolvedValue(undefined),
+    setPageProject: vi.fn().mockResolvedValue(undefined),
     deletePage: vi.fn().mockResolvedValue(undefined),
     fetchPageMetadata: vi.fn().mockResolvedValue({ project: null, due: null }),
     fetchPageMarkdown: vi.fn().mockResolvedValue({ markdown: '', truncated: false }),

@@ -172,7 +172,7 @@ function paginateItems<T>(items: T[], pageIndex: number): PageSlice<T> {
 }
 
 /** What tapping a row on a list screen does. */
-type SelectKind = 'task' | 'project' | 'note' | 'tag';
+type SelectKind = 'task' | 'project' | 'note' | 'tag' | 'project-pick';
 
 /**
  * Screens whose list items are Project records. Used to route
@@ -389,6 +389,7 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
             else if (kind === 'project') ctx.openProjectDetail(item.id, item.name, config.screen);
             else if (kind === 'note') ctx.openNoteActions(item.id, item.name, config.screen);
             else if (kind === 'tag') ctx.openTagNotes(item.id, item.name, config.screen);
+            else if (kind === 'project-pick') ctx.pickProject(item.id, item.name);
             else
               trace.warn('SEL', `${config.screen} row has no select kind — dead row`, {
                 id: item.id,

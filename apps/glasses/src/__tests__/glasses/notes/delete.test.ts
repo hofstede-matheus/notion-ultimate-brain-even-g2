@@ -18,7 +18,7 @@ function openConfirm(h: ReturnType<typeof mount>) {
   h.state.screen = 'notes-inbox';
   h.state.lists['notes-inbox'] = [NOTE];
   h.dispatch(select(0)); // -> note-actions
-  h.dispatch(select(2)); // Delete note
+  h.dispatch(select(3)); // Delete note
 }
 
 describe('opening the delete confirm dialog from a note', () => {
@@ -41,7 +41,7 @@ describe('opening the delete confirm dialog from a note', () => {
     h.state.screen = 'notes-inbox';
     h.state.lists['notes-inbox'] = [{ id: 'n1', name: longName }];
     h.dispatch(select(0));
-    h.dispatch(select(2)); // Delete note
+    h.dispatch(select(3)); // Delete note
 
     const display = h.render();
     expect(display.mode).toBe('list');
@@ -61,7 +61,7 @@ describe('confirming delete', () => {
     h.dispatch(select(0));
     await h.settle();
 
-    expect(deletePage).toHaveBeenCalledWith('n1', undefined);
+    expect(deletePage).toHaveBeenCalledWith('n1');
     expect(h.state.lists['notes-inbox']).toEqual([]);
     expect(h.state.screen).toBe('delete-toast');
   });

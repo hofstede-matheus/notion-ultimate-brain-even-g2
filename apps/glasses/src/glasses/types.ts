@@ -50,11 +50,11 @@ export interface GlassCtx {
   confirmAddTask(): Promise<void>;
   discardAddTask(): void;
   openConfirm(
-    action: 'markDone' | 'delete' | 'setDue',
+    action: 'markDone' | 'delete' | 'setDue' | 'setProject',
     itemId: string,
     itemName: string,
     returnTo: ScreenName,
-    date?: string | null,
+    extra?: { date?: string | null; project?: { id: string | null; name: string } },
   ): void;
   confirmAction(): Promise<void>;
   dismissConfirm(): void;
@@ -72,6 +72,15 @@ export interface GlassCtx {
   openNoteActions(noteId: string, noteName: string, returnTo: ScreenName): void;
   /** A note's metadata is just its Project — Notes have no Due date. */
   enterNoteMetadata(): void;
+  /** Opens the project picker for a task or note, seeded from its action menu. */
+  openProjectPicker(
+    itemId: string,
+    itemName: string,
+    returnTo: ScreenName,
+    backTo: ScreenName,
+  ): void;
+  /** Picks a project (or the "no project" row) from the project picker and opens the confirm dialog. */
+  pickProject(projectId: string, projectName: string): void;
   /** Turns a list screen `delta` pages, clamped to `[0, totalPages - 1]`. */
   turnListPage(screen: ScreenName, delta: number, totalPages: number): void;
   /** Reads any Notion page — a task or a note, from its action menu. `returnTo` is wherever a double-tap should land. */

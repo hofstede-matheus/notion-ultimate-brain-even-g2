@@ -115,6 +115,14 @@ export async function setTaskDueDate(id: string, date?: string | null): Promise<
   });
 }
 
+/** Sets or clears (projectId=null) a page's Project relation. Generic over tasks and notes. */
+export async function setPageProject(id: string, projectId: string | null): Promise<void> {
+  await request(`/api/pages/${id}/project`, {
+    method: 'PATCH',
+    body: JSON.stringify({ projectId }),
+  });
+}
+
 export function fetchProjectTasksTodo(
   projectId: string,
   cursor?: string,

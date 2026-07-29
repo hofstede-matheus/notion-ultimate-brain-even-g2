@@ -109,7 +109,7 @@ export function selectDueDateCell(): void {
   const cell = currentRow(p)[p.colIndex];
   if (!cell) return;
   trace.info('ACT', `due date selected ${cell.iso}`, { taskId: p.taskId });
-  openItemConfirm(ITEM_ACTIONS.setDue, p.taskId, p.taskName, p.returnTo, cell.iso);
+  openItemConfirm(ITEM_ACTIONS.setDue, p.taskId, p.taskName, p.returnTo, { date: cell.iso });
 }
 
 export function dueDatePickerBack(): void {

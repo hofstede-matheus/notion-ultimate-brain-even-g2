@@ -1,4 +1,4 @@
-import { deletePage, markTaskDone, setTaskDueDate } from '../../../api';
+import { deletePage, markTaskDone, setPageProject, setTaskDueDate } from '../../../api';
 import { saveCachedList } from '../../../cache';
 import { trace } from '../../../logging/trace';
 import type { ListItem, ScreenName } from '../../../state';
@@ -13,27 +13,32 @@ import {
 } from './navigation';
 
 // ---------------------------------------------------------------------------
-// Item actions — confirm dialog + toast for mark-done, delete, and setDue,
-// unified flow. Shared by tasks ("Mark as done", "Change due date", "Delete
-// task") and notes ("Delete note") — the state involved doesn't care which
-// kind of page it's acting on, so this is generic over item id/name rather
-// than task-specific. `date` only carries a payload for setDue.
+// Item actions — confirm dialog + toast for mark-done, delete, setDue, and
+// setProject, unified flow. Shared by tasks ("Mark as done", "Change due
+// date", "Change project", "Delete task") and notes ("Change project",
+// "Delete note") — the state involved doesn't care which kind of page it's
+// acting on, so this is generic over item id/name rather than task-specific.
+// `date`/`project` only carry a payload for setDue/setProject respectively.
 // ---------------------------------------------------------------------------
 
-type ItemActionKind = 'markDone' | 'delete' | 'setDue';
+type ItemActionKind = 'markDone' | 'delete' | 'setDue' | 'setProject';
+
+type PendingAction = NonNullable<typeof state.pendingAction>;
 
 interface ItemAction {
   kind: ItemActionKind;
   confirmScreenName: ScreenName;
   toastScreenName: ScreenName;
-  apiCall: (itemId: string, date?: string | null) => Promise<void>;
+  apiCall: (pending: PendingAction) => Promise<void>;
   /**
    * How to reflect a successful call in local list state. markDone/delete
    * drop the item from whichever list owns it; setDue instead patches its
    * dueDate in place so Today/Overdue (filtered views over the same fetched
-   * array — see tasks/helpers.ts) reclassify it without a refetch.
+   * array — see tasks/helpers.ts) reclassify it without a refetch; setProject
+   * drops the item only when the new project no longer matches the list it's
+   * being viewed from (see applyProjectToOwningList below).
    */
-  applyToOwningList: (itemId: string, returnTo: ScreenName, date?: string | null) => void;
+  applyToOwningList: (pending: PendingAction) => void;
 }
 
 function removeItemFromOwningList(itemId: string, returnTo: ScreenName): void {
@@ -62,27 +67,61 @@ function patchDueDateInOwningList(
   void saveCachedList(cacheKeyForListView(dataKey), list);
 }
 
+/**
+ * Removes the item from whichever list it's being viewed from, but only when
+ * the new project actually takes it out of that view: the Inbox screens are
+ * defined by "no project", so assigning any project removes it from there;
+ * a project's own Tasks/Notes screens are defined by "this project", so only
+ * changing away from `state.selectedProject` removes it (including clearing
+ * it — a `null` new id is compared the same as any other project id would
+ * be). Any other list (e.g. Today) isn't project-scoped, so setting a
+ * project on an item there must not make it vanish from that list.
+ */
+function applyProjectToOwningList(pending: PendingAction): void {
+  const { itemId, returnTo, project } = pending;
+  const newProjectId = project?.id ?? null;
+
+  const removesFromInbox =
+    (returnTo === 'inbox' || returnTo === 'notes-inbox') && newProjectId !== null;
+  const removesFromProjectList =
+    (returnTo === 'project-tasks-todo' ||
+      returnTo === 'project-tasks-done' ||
+      returnTo === 'project-notes') &&
+    newProjectId !== (state.selectedProject?.id ?? null);
+
+  if (removesFromInbox || removesFromProjectList) {
+    removeItemFromOwningList(itemId, returnTo);
+  }
+}
+
 export const ITEM_ACTIONS: Record<ItemActionKind, ItemAction> = {
   markDone: {
     kind: 'markDone',
     confirmScreenName: 'mark-done-confirm',
     toastScreenName: 'mark-done-toast',
-    apiCall: markTaskDone,
-    applyToOwningList: removeItemFromOwningList,
+    apiCall: (p) => markTaskDone(p.itemId),
+    applyToOwningList: (p) => removeItemFromOwningList(p.itemId, p.returnTo),
   },
   delete: {
     kind: 'delete',
     confirmScreenName: 'delete-confirm',
     toastScreenName: 'delete-toast',
-    apiCall: deletePage,
-    applyToOwningList: removeItemFromOwningList,
+    apiCall: (p) => deletePage(p.itemId),
+    applyToOwningList: (p) => removeItemFromOwningList(p.itemId, p.returnTo),
   },
   setDue: {
     kind: 'setDue',
     confirmScreenName: 'due-date-confirm',
     toastScreenName: 'due-date-toast',
-    apiCall: setTaskDueDate,
-    applyToOwningList: patchDueDateInOwningList,
+    apiCall: (p) => setTaskDueDate(p.itemId, p.date),
+    applyToOwningList: (p) => patchDueDateInOwningList(p.itemId, p.returnTo, p.date),
+  },
+  setProject: {
+    kind: 'setProject',
+    confirmScreenName: 'set-project-confirm',
+    toastScreenName: 'set-project-toast',
+    apiCall: (p) => setPageProject(p.itemId, p.project?.id ?? null),
+    applyToOwningList: applyProjectToOwningList,
   },
 };
 
@@ -93,10 +132,10 @@ export function openConfirm(
   itemId: string,
   itemName: string,
   returnTo: ScreenName,
-  date?: string | null,
+  extra?: { date?: string | null; project?: { id: string | null; name: string } },
 ): void {
-  trace.info('ACT', `confirm open kind=${action.kind}`, { id: itemId, name: itemName, date });
-  state.pendingAction = { kind: action.kind, itemId, itemName, returnTo, date };
+  trace.info('ACT', `confirm open kind=${action.kind}`, { id: itemId, name: itemName, ...extra });
+  state.pendingAction = { kind: action.kind, itemId, itemName, returnTo, ...extra };
   state.errorMessage = '';
   navigate(action.confirmScreenName);
 }
@@ -111,15 +150,15 @@ export function dismissConfirm(): void {
 export async function confirmAction(): Promise<void> {
   const pending = state.pendingAction;
   if (!pending) return;
-  const { kind, itemId, returnTo, date } = pending;
+  const { kind, returnTo, date, project } = pending;
   const action = ITEM_ACTIONS[kind];
 
   const spinner = startSpinner(() => void renderUpdate(action.confirmScreenName));
-  trace.info('ACT', `calling ${kind} api`, { id: itemId, date });
+  trace.info('ACT', `calling ${kind} api`, { id: pending.itemId, date, project });
 
   try {
-    await action.apiCall(itemId, date);
-    action.applyToOwningList(itemId, returnTo, date);
+    await action.apiCall(pending);
+    action.applyToOwningList(pending);
     const dataKey = DATA_KEY_OVERRIDES[returnTo] ?? returnTo;
     trace.info('ACT', `ok, applied to ${dataKey}`, { left: (state.lists[dataKey] ?? []).length });
 
@@ -130,6 +169,7 @@ export async function confirmAction(): Promise<void> {
       returnTo,
       untilMs: Date.now() + 1500,
       date,
+      project,
     };
     navigate(action.toastScreenName);
 
@@ -141,7 +181,7 @@ export async function confirmAction(): Promise<void> {
     }, 1500);
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
-    trace.error('ACT', `${kind} failed: ${msg}`, { id: itemId });
+    trace.error('ACT', `${kind} failed: ${msg}`, { id: pending.itemId });
     state.errorMessage = msg;
     void renderUpdate(action.confirmScreenName);
   } finally {

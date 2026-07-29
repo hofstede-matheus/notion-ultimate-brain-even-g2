@@ -25,6 +25,7 @@ export function resetState(): void {
   state.taskMetadata = null;
   state.selectedNote = null;
   state.noteMetadata = null;
+  state.projectPicker = null;
   state.pageContent = null;
   state.actionToast = null;
   state.selectedProject = null;

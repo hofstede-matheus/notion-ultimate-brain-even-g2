@@ -100,11 +100,15 @@ const VIEW_FETCHERS: Partial<
  * Screens whose fetched data lives under a different state.lists/cache key.
  * Overdue is a filtered view over the same array Today fetches
  * (/api/tasks/today returns everything due today-or-before) — see
- * getOverdueFlatTasks/getTodayFlatTasks in tasks/helpers.ts. Exported for
- * item-actions.ts's removeItemFromOwningList, which needs the same mapping.
+ * getOverdueFlatTasks/getTodayFlatTasks in tasks/helpers.ts. The project
+ * picker is the same trick applied to Projects: it reuses the Board view's
+ * fetcher/cache entry rather than needing its own VIEW_FETCHERS registration.
+ * Exported for item-actions.ts's removeItemFromOwningList, which needs the
+ * same mapping.
  */
 export const DATA_KEY_OVERRIDES: Partial<Record<ScreenName, ScreenName>> = {
   overdue: 'today',
+  'project-picker': 'projects-board',
 };
 
 // ---------------------------------------------------------------------------

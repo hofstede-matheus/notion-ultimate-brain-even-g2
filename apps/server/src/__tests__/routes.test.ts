@@ -198,6 +198,71 @@ describe('PATCH /api/tasks/:id/due', () => {
   });
 });
 
+describe('PATCH /api/pages/:id/project', () => {
+  it('sets the project relation', async () => {
+    const notion = fakeNotion();
+    notion.pages.update.mockResolvedValue({ id: 't1' });
+
+    const res = await route('PATCH', '/api/pages/:id/project').handler(
+      ctx(notion, { params: { id: 't1' }, body: { projectId: 'p1' } }),
+    );
+
+    expect(notion.pages.update).toHaveBeenCalledWith({
+      page_id: 't1',
+      properties: { Project: { relation: [{ id: 'p1' }] } },
+    });
+    expect(res).toEqual({ status: 200, body: { id: 't1' } });
+  });
+
+  it('clears the project relation when projectId is null', async () => {
+    const notion = fakeNotion();
+    notion.pages.update.mockResolvedValue({ id: 't1' });
+
+    const res = await route('PATCH', '/api/pages/:id/project').handler(
+      ctx(notion, { params: { id: 't1' }, body: { projectId: null } }),
+    );
+
+    expect(notion.pages.update).toHaveBeenCalledWith({
+      page_id: 't1',
+      properties: { Project: { relation: [] } },
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects a non-string, non-null projectId with 400', async () => {
+    const notion = fakeNotion();
+
+    const res = await route('PATCH', '/api/pages/:id/project').handler(
+      ctx(notion, { params: { id: 't1' }, body: { projectId: 42 } }),
+    );
+
+    expect(res.status).toBe(400);
+    expect(notion.pages.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects a missing id with 400', async () => {
+    const notion = fakeNotion();
+
+    const res = await route('PATCH', '/api/pages/:id/project').handler(
+      ctx(notion, { params: {}, body: { projectId: 'p1' } }),
+    );
+
+    expect(res.status).toBe(400);
+    expect(notion.pages.update).not.toHaveBeenCalled();
+  });
+
+  it('works for a note id exactly the same way', async () => {
+    const notion = fakeNotion();
+    notion.pages.update.mockResolvedValue({ id: 'n1' });
+
+    const res = await route('PATCH', '/api/pages/:id/project').handler(
+      ctx(notion, { params: { id: 'n1' }, body: { projectId: 'p1' } }),
+    );
+
+    expect(res.status).toBe(200);
+  });
+});
+
 describe('DELETE /api/pages/:id', () => {
   it('moves the page to the trash', async () => {
     const notion = fakeNotion();
