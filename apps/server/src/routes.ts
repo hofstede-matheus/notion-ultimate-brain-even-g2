@@ -358,6 +358,33 @@ const markTaskDoneRoute: Route = {
 };
 
 // ---------------------------------------------------------------------------
+// PATCH /api/tasks/:id/due
+// Set (or clear, when date is null) a task's due date in the Notion Tasks
+// database. Body: { date: 'YYYY-MM-DD' | null }
+// ---------------------------------------------------------------------------
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const setTaskDueRoute: Route = {
+  method: 'PATCH',
+  path: '/api/tasks/:id/due',
+  handler: authed(async ({ params, body, notion }) => {
+    const { id } = params;
+    if (!id) {
+      return { status: 400, body: { error: 'Missing task id' } };
+    }
+    const { date } = (body as { date?: unknown }) ?? {};
+    if (date !== null && (typeof date !== 'string' || !DATE_RE.test(date))) {
+      return { status: 400, body: { error: 'Invalid "date" — expected YYYY-MM-DD or null' } };
+    }
+    const page = await notion.pages.update({
+      page_id: id,
+      properties: { Due: { date: date ? { start: date } : null } },
+    });
+    return { status: 200, body: { id: page.id } };
+  }),
+};
+
+// ---------------------------------------------------------------------------
 // GET /api/pages/:id/metadata
 // Fetch a page's Project (resolved name) and Due date, on demand. Generic
 // over tasks and notes: both databases carry a Project relation, only tasks
@@ -504,6 +531,7 @@ export const ROUTES: Route[] = [
   notesForTagRoute,
   createTaskRoute,
   markTaskDoneRoute,
+  setTaskDueRoute,
   pageMetadataRoute,
   deletePageRoute,
   pageMarkdownRoute,

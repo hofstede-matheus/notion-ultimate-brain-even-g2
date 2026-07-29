@@ -42,6 +42,9 @@ export type ScreenName =
   | 'mark-done-toast'
   | 'task-actions'
   | 'task-metadata'
+  | 'task-due-date'
+  | 'due-date-confirm'
+  | 'due-date-toast'
   | 'note-actions'
   | 'note-metadata'
   | 'page-content'
@@ -83,18 +86,45 @@ export interface AppState {
   listPages: Partial<Record<ScreenName, number>>;
 
   // Confirm dialog for a mutating item action — kind is 'markDone' (tasks
-  // only) or 'delete' (tasks and notes); returnTo is the list screen to
-  // navigate back to. Generic over item id/name since "Delete" is shared by
-  // both the task and the note action menus.
+  // only), 'delete' (tasks and notes), or 'setDue' (tasks only); returnTo is
+  // the list screen to navigate back to. Generic over item id/name since
+  // "Delete" is shared by both the task and the note action menus. `date` is
+  // only set for 'setDue' — the ISO date to write, or null to clear it.
   pendingAction: {
-    kind: 'markDone' | 'delete';
+    kind: 'markDone' | 'delete' | 'setDue';
     itemId: string;
     itemName: string;
     returnTo: ScreenName;
+    date?: string | null;
   } | null;
 
   // The task the action menu / metadata / delete flow is operating on.
-  selectedTask: { taskId: string; taskName: string; returnTo: ScreenName } | null;
+  // `dueDate` (if known from the list row that led here) seeds the due-date
+  // picker's initial cursor and "current due" marker without an extra fetch.
+  selectedTask: {
+    taskId: string;
+    taskName: string;
+    returnTo: ScreenName;
+    dueDate?: string;
+  } | null;
+
+  // The due-date picker (bitmap calendar) for the task in `selectedTask`.
+  // Navigation is two-phase: 'week' moves rowIndex over 0 (prev-month nav),
+  // 1-6 (week rows), 7 (next-month nav); 'day' fixes rowIndex at the entered
+  // week and moves colIndex 0-6. viewYear/viewMonth is the month currently
+  // displayed (1-based month), independent of `todayIso`.
+  dueDatePicker: {
+    taskId: string;
+    taskName: string;
+    returnTo: ScreenName;
+    viewYear: number;
+    viewMonth: number;
+    phase: 'week' | 'day';
+    rowIndex: number;
+    colIndex: number;
+    todayIso: string;
+    dueIso: string | null;
+  } | null;
 
   // Metadata screen data (fetched on demand).
   taskMetadata: {
@@ -131,12 +161,13 @@ export interface AppState {
     error: string;
   } | null;
 
-  // Item action toast (mark-done or delete); shown after API call completes.
+  // Item action toast (mark-done, delete, or setDue); shown after API call completes.
   actionToast: {
-    kind: 'markDone' | 'delete';
+    kind: 'markDone' | 'delete' | 'setDue';
     itemName: string;
     returnTo: ScreenName;
     untilMs: number;
+    date?: string | null;
   } | null;
 
   // The project the Tasks/Notes drill-down menu (and its two list screens)
@@ -167,6 +198,7 @@ export const state: AppState = {
   listPages: {},
   pendingAction: null,
   selectedTask: null,
+  dueDatePicker: null,
   taskMetadata: null,
   selectedNote: null,
   noteMetadata: null,

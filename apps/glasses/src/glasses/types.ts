@@ -3,12 +3,19 @@ import type { AppState, ScreenName } from '../state';
 /**
  * What a screen wants rendered. 'list' screens (Today/Inbox with >=1 items)
  * render as a header text container + a native G2 list widget
- * (ListContainerProperty); every other case (menu, add-task, loading,
- * empty) is a single full-page text container.
+ * (ListContainerProperty); most other cases (menu, add-task, loading, empty)
+ * are a single full-page text container. 'bitmap' is the due-date calendar:
+ * a full-width pixel buffer drawn into four image containers, framed by a
+ * label above and a hint below — the only screen that isn't pure text/list,
+ * since a calendar grid needs pixel alignment the proportional G2 font can't
+ * give it. A full-screen ' ' text container underneath is what keeps taps
+ * and swipes routed to this screen instead of the (invisible) image
+ * containers, which can't hold `isEventCapture` themselves.
  */
 export type ScreenDisplay =
   | { mode: 'text'; content: string }
-  | { mode: 'list'; header: string; items: string[] };
+  | { mode: 'list'; header: string; items: string[] }
+  | { mode: 'bitmap'; topText: string; bottomText: string; pixels: Uint8Array };
 
 /**
  * Extends the toolkit's GlassAction shape with native-list selection data,
@@ -43,16 +50,25 @@ export interface GlassCtx {
   confirmAddTask(): Promise<void>;
   discardAddTask(): void;
   openConfirm(
-    action: 'markDone' | 'delete',
+    action: 'markDone' | 'delete' | 'setDue',
     itemId: string,
     itemName: string,
     returnTo: ScreenName,
+    date?: string | null,
   ): void;
   confirmAction(): Promise<void>;
   dismissConfirm(): void;
   dismissActionToast(): void;
-  openTaskActions(taskId: string, taskName: string, returnTo: ScreenName): void;
+  openTaskActions(taskId: string, taskName: string, returnTo: ScreenName, dueDate?: string): void;
   enterTaskMetadata(): void;
+  /** Opens the bitmap calendar for `state.selectedTask`, seeded on its current due date if known. */
+  openDueDatePicker(): void;
+  /** Swipe within the due-date picker — week row in 'week' phase, day column in 'day' phase. */
+  moveDueDateCursor(direction: 'up' | 'down'): void;
+  /** Tap within the due-date picker — pages the month, enters a week, or confirms a day. */
+  selectDueDateCell(): void;
+  /** Double-tap within the due-date picker — steps back a phase, or exits to task-actions from 'week'. */
+  dueDatePickerBack(): void;
   openNoteActions(noteId: string, noteName: string, returnTo: ScreenName): void;
   /** A note's metadata is just its Project — Notes have no Due date. */
   enterNoteMetadata(): void;

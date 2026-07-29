@@ -41,6 +41,8 @@ import { tagsTypesAreaScreen } from './modules/tags/screens/types-area';
 import { tagsTypesEntityScreen } from './modules/tags/screens/types-entity';
 import { tagsTypesResourceScreen } from './modules/tags/screens/types-resource';
 import { addTaskScreen } from './modules/tasks/screens/add-task';
+import { dueDateConfirmScreen } from './modules/tasks/screens/due-date-confirm';
+import { dueDateToastScreen } from './modules/tasks/screens/due-date-toast';
 import { inboxScreen } from './modules/tasks/screens/inbox';
 import { markDoneConfirmScreen } from './modules/tasks/screens/mark-done-confirm';
 import { markDoneToastScreen } from './modules/tasks/screens/mark-done-toast';
@@ -48,6 +50,7 @@ import { tasksMenuScreen } from './modules/tasks/screens/menu';
 import { next7DaysScreen } from './modules/tasks/screens/next-7-days';
 import { overdueScreen } from './modules/tasks/screens/overdue';
 import { taskActionsScreen } from './modules/tasks/screens/task-actions';
+import { taskDueDateScreen } from './modules/tasks/screens/task-due-date';
 import { taskMetadataScreen } from './modules/tasks/screens/task-metadata';
 import { todayScreen } from './modules/tasks/screens/today';
 import { tomorrowScreen } from './modules/tasks/screens/tomorrow';
@@ -99,6 +102,9 @@ export const SCREENS: Record<string, ScreenModule> = {
   'mark-done-toast': markDoneToastScreen,
   'task-actions': taskActionsScreen,
   'task-metadata': taskMetadataScreen,
+  'task-due-date': taskDueDateScreen,
+  'due-date-confirm': dueDateConfirmScreen,
+  'due-date-toast': dueDateToastScreen,
   'note-actions': noteActionsScreen,
   'note-metadata': noteMetadataScreen,
   'page-content': pageContentScreen,

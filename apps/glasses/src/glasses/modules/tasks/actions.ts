@@ -10,9 +10,14 @@ import { navigate, startSpinner, stopSpinner } from '../_shared/navigation';
 // Offers Load metadata / Mark as done / Delete task.
 // ---------------------------------------------------------------------------
 
-export function openTaskActions(taskId: string, taskName: string, returnTo: ScreenName): void {
-  trace.info('NAV', `openTaskActions "${taskName}"`, { id: taskId });
-  state.selectedTask = { taskId, taskName, returnTo };
+export function openTaskActions(
+  taskId: string,
+  taskName: string,
+  returnTo: ScreenName,
+  dueDate?: string,
+): void {
+  trace.info('NAV', `openTaskActions "${taskName}"`, { id: taskId, dueDate });
+  state.selectedTask = { taskId, taskName, returnTo, dueDate };
   navigate('task-actions');
 }
 

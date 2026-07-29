@@ -30,7 +30,11 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 async function request<T>(path: string, init: RequestInit = {}, resultKey?: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: { ...init.headers, 'X-Notion-Config': getTenantHeader() },
+    headers: {
+      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      ...init.headers,
+      'X-Notion-Config': getTenantHeader(),
+    },
   });
   if (!res.ok) {
     // Captured before throwing — the caught Error's message alone (just the
@@ -101,6 +105,14 @@ export function createTask(name: string): Promise<{ id: string; name: string }> 
 
 export async function markTaskDone(id: string): Promise<void> {
   await request(`/api/tasks/${id}/done`, { method: 'PATCH' });
+}
+
+/** Sets or clears (date=null) a task's due date. */
+export async function setTaskDueDate(id: string, date?: string | null): Promise<void> {
+  await request(`/api/tasks/${id}/due`, {
+    method: 'PATCH',
+    body: JSON.stringify({ date: date ?? null }),
+  });
 }
 
 export function fetchProjectTasksTodo(

@@ -9,7 +9,7 @@ import type { AppState } from '../../../state';
  * serialize as UTC and roll back to the previous day for users ahead of UTC,
  * misclassifying yesterday's tasks as today (and dropping them from Overdue).
  */
-function todayDateStr(): string {
+export function todayDateStr(): string {
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');

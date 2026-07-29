@@ -144,6 +144,60 @@ describe('PATCH /api/tasks/:id/done', () => {
   });
 });
 
+describe('PATCH /api/tasks/:id/due', () => {
+  it('sets the due date', async () => {
+    const notion = fakeNotion();
+    notion.pages.update.mockResolvedValue({ id: 't1' });
+
+    const res = await route('PATCH', '/api/tasks/:id/due').handler(
+      ctx(notion, { params: { id: 't1' }, body: { date: '2026-07-06' } }),
+    );
+
+    expect(notion.pages.update).toHaveBeenCalledWith({
+      page_id: 't1',
+      properties: { Due: { date: { start: '2026-07-06' } } },
+    });
+    expect(res).toEqual({ status: 200, body: { id: 't1' } });
+  });
+
+  it('clears the due date when date is null', async () => {
+    const notion = fakeNotion();
+    notion.pages.update.mockResolvedValue({ id: 't1' });
+
+    const res = await route('PATCH', '/api/tasks/:id/due').handler(
+      ctx(notion, { params: { id: 't1' }, body: { date: null } }),
+    );
+
+    expect(notion.pages.update).toHaveBeenCalledWith({
+      page_id: 't1',
+      properties: { Due: { date: null } },
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects a malformed date with 400', async () => {
+    const notion = fakeNotion();
+
+    const res = await route('PATCH', '/api/tasks/:id/due').handler(
+      ctx(notion, { params: { id: 't1' }, body: { date: 'not-a-date' } }),
+    );
+
+    expect(res.status).toBe(400);
+    expect(notion.pages.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects a missing date field with 400', async () => {
+    const notion = fakeNotion();
+
+    const res = await route('PATCH', '/api/tasks/:id/due').handler(
+      ctx(notion, { params: { id: 't1' }, body: {} }),
+    );
+
+    expect(res.status).toBe(400);
+    expect(notion.pages.update).not.toHaveBeenCalled();
+  });
+});
+
 describe('DELETE /api/pages/:id', () => {
   it('moves the page to the trash', async () => {
     const notion = fakeNotion();

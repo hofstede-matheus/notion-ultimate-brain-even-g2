@@ -21,6 +21,7 @@ export function resetState(): void {
   state.listPages = {};
   state.pendingAction = null;
   state.selectedTask = null;
+  state.dueDatePicker = null;
   state.taskMetadata = null;
   state.selectedNote = null;
   state.noteMetadata = null;

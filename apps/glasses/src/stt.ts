@@ -1,7 +1,7 @@
 /**
  * Offline speech-to-text via vosk-browser (Kaldi WASM).
  *
- * Pattern mirrors EvenChess's voice/recognizer.ts + voice/controller.ts:
+ * Pattern:
  *   - createModel(url) loads and caches the model from a .tar.gz in public/vosk/
  *   - KaldiRecognizer streams Float32 PCM frames in real-time
  *   - Amplitude-based VAD auto-stops after SILENCE_MS of quiet
@@ -27,7 +27,7 @@ export interface VoskResultMessage {
 }
 
 // ---------------------------------------------------------------------------
-// Timing constants (matches EvenChess controller.ts conventions)
+// Timing constants
 // ---------------------------------------------------------------------------
 
 const SAMPLE_RATE = 16000;
@@ -59,7 +59,7 @@ let maxTimer: ReturnType<typeof setTimeout> | null = null;
 let resultTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ---------------------------------------------------------------------------
-// Audio conversion helpers (from EvenChess voice/pcm.ts)
+// Audio conversion helpers
 // ---------------------------------------------------------------------------
 
 /**

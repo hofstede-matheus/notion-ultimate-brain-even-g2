@@ -18,6 +18,12 @@ import { openProjectDetail } from './modules/projects/actions';
 import { openTagNotes } from './modules/tags/actions';
 import { enterTaskMetadata, openTaskActions } from './modules/tasks/actions';
 import {
+  dueDatePickerBack,
+  moveDueDateCursor,
+  openDueDatePicker,
+  selectDueDateCell,
+} from './modules/tasks/calendar/picker';
+import {
   cancelRecordingAndGoBack,
   confirmAddTask,
   discardAddTask,
@@ -43,15 +49,19 @@ export function createGlassCtx(): GlassCtx {
     cancelRecordingAndGoBack,
     confirmAddTask,
     discardAddTask,
-    openConfirm: (kind, itemId, itemName, returnTo) => {
+    openConfirm: (kind, itemId, itemName, returnTo, date) => {
       const action = ITEM_ACTIONS[kind];
-      openConfirm(action, itemId, itemName, returnTo);
+      openConfirm(action, itemId, itemName, returnTo, date);
     },
     confirmAction,
     dismissConfirm,
     dismissActionToast,
     openTaskActions,
     enterTaskMetadata: () => void enterTaskMetadata(),
+    openDueDatePicker,
+    moveDueDateCursor,
+    selectDueDateCell,
+    dueDatePickerBack,
     openNoteActions,
     enterNoteMetadata: () => void enterNoteMetadata(),
     openPage: (pageId, title, returnTo) => void openPage(pageId, title, returnTo),

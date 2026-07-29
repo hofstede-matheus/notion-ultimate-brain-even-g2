@@ -61,7 +61,7 @@ describe('confirming delete', () => {
     h.dispatch(select(0));
     await h.settle();
 
-    expect(deletePage).toHaveBeenCalledWith('n1');
+    expect(deletePage).toHaveBeenCalledWith('n1', undefined);
     expect(h.state.lists['notes-inbox']).toEqual([]);
     expect(h.state.screen).toBe('delete-toast');
   });

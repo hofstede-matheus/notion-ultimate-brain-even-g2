@@ -87,7 +87,7 @@ export async function boot(): Promise<void> {
       setStatus('Connected! Use your glasses.');
       hideConnect();
 
-      // Warm the Vosk model in the background — off the critical path, same as EvenChess.
+      // Warm the Vosk model in the background — off the critical path.
       // By the time the user navigates to Add Task the model will be ready.
       trace.info('BOOT', 'vosk preload started');
       preloadVoskModel(VOSK_MODEL_URL);

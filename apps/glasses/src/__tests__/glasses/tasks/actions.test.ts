@@ -32,7 +32,7 @@ describe('tapping a task on a list screen', () => {
     const display = h.render();
     expect(display).toMatchObject({
       mode: 'list',
-      items: ['Load metadata', 'Open page', 'Mark as done', 'Delete task'],
+      items: ['Load metadata', 'Open page', 'Change due date', 'Mark as done', 'Delete task'],
     });
   });
 

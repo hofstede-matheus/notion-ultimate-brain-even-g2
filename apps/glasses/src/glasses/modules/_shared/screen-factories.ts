@@ -379,7 +379,13 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
               id: item.id,
               kind: kind ?? 'unknown',
             });
-            if (kind === 'task') ctx.openTaskActions(item.id, item.name, config.screen);
+            if (kind === 'task')
+              ctx.openTaskActions(
+                item.id,
+                item.name,
+                config.screen,
+                'dueDate' in item ? item.dueDate : undefined,
+              );
             else if (kind === 'project') ctx.openProjectDetail(item.id, item.name, config.screen);
             else if (kind === 'note') ctx.openNoteActions(item.id, item.name, config.screen);
             else if (kind === 'tag') ctx.openTagNotes(item.id, item.name, config.screen);
