@@ -2,12 +2,33 @@
 
 A GTD task manager for [Even Realities G2](https://www.evenrealities.com/) smart glasses,
 backed by Notion. View today's tasks, process your inbox, browse notes/projects/tags, read
-a page's contents a screenful at a time, and capture new tasks by voice — all from the
-glasses.
+a page's contents a screenful at a time, act on an item (mark done, reschedule, reassign,
+delete), and capture new tasks by voice — all from the glasses.
 
 The project is multi-tenant: each device holds its own Notion integration token and
 database IDs (entered in the app's Settings screen), sent with every request via the
 `X-Notion-Config` header. The backend never stores Notion credentials.
+
+## What you can do from the glasses
+
+- **Tasks** — Inbox, Today, Tomorrow, Next 7 days. Open a task's action menu to load its
+  metadata (project + due date), read its page, **change the due date** on a bitmap-drawn
+  month calendar, **change its project**, mark it done, or delete it.
+- **Notes** — Inbox, Favorites, By tag, By project, Meetings, Web clips, Voice notes,
+  Journal, All. Same action menu, minus due dates: open page, load metadata, change
+  project, delete.
+- **Projects** — Doing, Ongoing, Planned, On hold, Done, Board, Archived. Drill into a
+  project to see its open/done tasks and its notes.
+- **Tags** — Recent, Favorites, A–Z, and a Types submenu split by Area / Resource / Entity;
+  drill a tag into the notes filed under it.
+- **Page reader** — a task's or note's page renders as pre-paginated screenfuls of text,
+  turned with a swipe (falling back to the page's Description property when its body is
+  empty, as most Ultimate Brain tasks are).
+- **Voice capture** — dictate a new task offline on-device; confirm the transcript before
+  it's written to Notion.
+
+Lists paginate across both Notion's cursor and the G2's 20-item display cap, and fetched
+lists are cached on the device so revisiting a view is instant.
 
 ## Monorepo architecture
 
@@ -24,15 +45,26 @@ packages/
   typescript-config/  @notion-ub/typescript-config — shared tsconfig base + variants
 ```
 
-- **`apps/glasses`** — two front ends in one Vite build. `src/glasses/` renders on the
-  glasses via the Even Realities SDK (`@evenrealities/even_hub_sdk`); `src/web/` is a React
-  19 + Tailwind v4 phone webview (status + Settings screens) that holds the tenant config.
-  Packaged into a `.ehpk` bundle with the [Even Hub CLI](https://www.npmjs.com/package/@evenrealities/evenhub-cli).
-  Offline voice capture uses [Vosk](https://alphacephei.com/vosk/) (`vosk-browser`).
+- **`apps/glasses`** — two front ends in one Vite build.
+  - `src/glasses/` renders on the glasses via the Even Realities SDK
+    (`@evenrealities/even_hub_sdk`): a screen table (`router.ts`), an event layer
+    (`events/`), a render layer (`render/`), and per-domain `modules/` (`tasks`, `notes`,
+    `projects`, `tags`) over a `_shared/` core — generic list screens, pagination, the page
+    reader, the project picker, and one confirm→toast flow behind every item action.
+    `bitmap/` is a small 1-bit BMP encoder + 5×7 font used to draw the due-date calendar,
+    which the G2 has no native widget for.
+  - `src/web/` is a React 19 + Tailwind v4 phone webview (status + Settings screens),
+    layered into `providers/` · `hooks/` · `services/` · `components/` · `screens/`. This
+    is where the tenant config is entered and persisted.
+  - Packaged into a `.ehpk` bundle with the
+    [Even Hub CLI](https://www.npmjs.com/package/@evenrealities/evenhub-cli). Offline voice
+    capture uses [Vosk](https://alphacephei.com/vosk/) (`vosk-browser`).
 - **`apps/server`** — a thin, framework-agnostic route layer (`src/routes.ts`) with two
   entry points that share the same handlers: `src/express/index.ts` for local dev, and
   `src/lambda/handler.ts` for production (bundled with esbuild, deployed via Terraform as
-  an AWS Lambda Function URL — see `apps/server/terraform/`).
+  an AWS Lambda Function URL — see `apps/server/terraform/`). Most routes sit behind the
+  full tenant gate; `GET /api/databases` is the one token-only route, since the settings
+  form's database picker runs before any database ID is known.
 - **`packages/typescript-config`** — `base.json` (shared strict compiler options) plus
   `dom.json` (glasses, browser libs) and `node.json` (server, Node types), consumed by each
   app via `extends`.
@@ -66,8 +98,9 @@ payload over a phone-tethered link.
 
 - Node.js ≥ 20.9
 - [pnpm](https://pnpm.io) 9 (`corepack enable pnpm` or `npm i -g pnpm@9`)
-- A Notion integration token + the database IDs for your Tasks/Notes/Projects/Tags
-  databases (entered in-app, not in an env file — see `apps/glasses/src/tenant-config.ts`)
+- A Notion integration token, with your Tasks/Notes/Projects/Tags databases shared with
+  that integration. The database IDs are picked in-app, not set in an env file — see
+  `apps/glasses/src/tenant-config.ts`.
 
 ## Setup
 
@@ -83,8 +116,15 @@ pnpm dev
 
 Runs both apps in parallel via Turborepo: the Express server on `http://localhost:3210`
 and the Vite dev server (glasses webview) on `http://localhost:5173`, which proxies
-`/api/*` to the server. Open `http://localhost:5173`, enter your Notion token + database
-IDs in Settings, and the app will start syncing.
+`/api/*` to the server. Open `http://localhost:5173` and go to Settings: paste your Notion
+integration token, and the form lists every database that token can see so you can pick
+Tasks / Notes / Projects / Tags from dropdowns instead of hunting down IDs. Save, and the
+app starts syncing.
+
+For local iteration you can skip re-entering settings each run by setting
+`VITE_NOTION_TOKEN` / `VITE_NOTION_TASKS_DB` / `VITE_NOTION_NOTES_DB` /
+`VITE_NOTION_PROJECTS_DB` / `VITE_NOTION_TAGS_DB` — they're read only under `vite dev`,
+never in a built app.
 
 To run one app at a time:
 
@@ -100,6 +140,9 @@ pnpm test              # both apps, via turbo
 pnpm --filter @notion-ub/server test    # server only
 pnpm --filter @notion-ub/glasses test   # glasses only
 ```
+
+Glasses tests live in `apps/glasses/src/__tests__/`, mirroring the source tree, and drive
+screens through a shared harness rather than the real SDK.
 
 ## Reporting a bug
 
@@ -149,4 +192,6 @@ pnpm --filter @notion-ub/server tf:apply
 
 CI (`.github/workflows/deploy-lambda.yml`) builds and applies automatically on push to
 `main` when `apps/server/**` changes. `.github/workflows/build-ehpk.yml` similarly builds
-and uploads the `.ehpk` artifact when `apps/glasses/**` changes.
+and uploads the `.ehpk` artifact when `apps/glasses/**` changes — but only when that push
+also bumped `apps/glasses/package.json`'s version, so an unversioned change doesn't
+produce a duplicate build.
