@@ -1,0 +1,12 @@
+{
+  "name": "@notion-ub/landing-page",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "serve . -l 3000",
+    "build": "rm -rf dist && mkdir -p dist && cp -R index.html css fonts img dist/"
+  },
+  "devDependencies": {
+    "serve": "^14.2.5"
+  }
+}

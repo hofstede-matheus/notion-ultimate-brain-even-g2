@@ -1,0 +1,107 @@
+/* Additions for the static build — everything else is the site's own CSS. */
+
+/* Hero: text-left / image-right split. This compiled bundle only contains the
+   utility classes the original site actually used, and the source never
+   combined grid-cols-2 with the bp: prefix (it used a stacked overlay
+   instead), so the class doesn't exist yet. Added at the same 768px
+   breakpoint every other bp: rule in entry.css already uses.
+
+   Column 1 sizes to the headline's own content instead of taking an even
+   50/50 split, so column 2 (the glasses) gets most of the width — close to
+   the near-full-width box the site's own scale-135/translate-y-20% zoom
+   values were tuned for. An even split left those values zooming into a box
+   about half the size they expected, which is why the glasses read small. */
+@media (min-width: 768px) {
+	.bp\:grid-cols-2 {
+		grid-template-columns: auto minmax(0, 1fr);
+	}
+}
+
+/* Nudge the glasses a little bigger still. The compiled bp:/tablet:scale-*
+   utilities only override the --tw-scale-x/y custom properties; the actual
+   `scale:` declaration lives on the base .scale-260 rule, so overriding it
+   reliably means setting `scale` directly rather than fighting the vars.
+   The img[src=...] selector already outweighs those single-class rules on
+   specificity (it carries a type selector too), so no !important needed.
+
+   Three source breakpoints exist below this: base (<390px), mobile:
+   (390px+), and bp: (768px+) before this file's own 1024px tier takes over.
+   An iPhone (390-767px CSS width) falls in the "mobile:" tier, which none
+   of the rules below touch — edit the 390-767px block, not this one, to
+   change how it looks on a phone. Ranges are capped with max-width so each
+   tier is isolated and only one rule can ever be "the" active value for a
+   given width. */
+@media (min-width: 390px) and (max-width: 767px) {
+	img[src="img/G2_Hero.webp"] {
+		scale: 220%;
+	}
+}
+@media (min-width: 1024px) {
+	img[src="img/G2_Hero.webp"] {
+		scale: 130%;
+	}
+}
+
+/* The lens screen (Dashboard_1/Ebook_01/Bus_01/Sport_1) is a separate element
+   from the glasses image, scaled and positioned independently to line up
+   with the lens area. Scaling the glasses without it throws that alignment
+   off, so it needs a matching value at each tier above. Same 390-767px /
+   1024px+ split as the glasses block above — edit the first one for phones. */
+@media (min-width: 390px) and (max-width: 767px) {
+	.lens-screen {
+		scale: 150%;
+	}
+}
+@media (min-width: 1024px) {
+	.lens-screen {
+		scale: 80%;
+	}
+}
+
+/* Hero lens: the original crossfades four screens via JS. Same effect, CSS only. */
+.lens-frame {
+	opacity: 0;
+	animation: lens-cycle 12s cubic-bezier(0.6, 0, 0, 1) infinite;
+}
+.lens-frame:nth-child(1) {
+	animation-delay: 0s;
+}
+.lens-frame:nth-child(2) {
+	animation-delay: 3s;
+}
+.lens-frame:nth-child(3) {
+	animation-delay: 6s;
+}
+.lens-frame:nth-child(4) {
+	animation-delay: 9s;
+}
+
+@keyframes lens-cycle {
+	0% {
+		opacity: 0;
+		transform: translateY(22px);
+	}
+	4%,
+	22% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+	27% {
+		opacity: 0;
+		transform: translateY(-22px);
+	}
+	27.01%,
+	100% {
+		opacity: 0;
+		transform: translateY(22px);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.lens-frame {
+		animation: none;
+	}
+	.lens-frame:nth-child(1) {
+		opacity: 1;
+	}
+}
