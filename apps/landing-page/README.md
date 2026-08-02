@@ -1,6 +1,7 @@
-# poc-even-hub
+# landing-page
 
-Static, JS-free mirror of the **hub.evenrealities.com** landing page.
+Static, JS-free landing page for Notion Ultimate Brain — Even Realities G2, adapted from a
+locally-derived copy of the Even Hub developer portal's markup.
 
 Open `index.html` directly, or serve it:
 
