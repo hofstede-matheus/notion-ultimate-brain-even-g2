@@ -49,6 +49,7 @@ async function request<T>(path: string, init: RequestInit = {}, resultKey?: stri
     trace.error('API', `${path} ${res.status} ${res.statusText}`, { body });
     throw new Error(`Request failed with status ${res.status}`);
   }
+  trace.info('API', `${path} ${res.status} ${res.statusText}`);
   const data = await res.json();
   return resultKey ? data[resultKey] : data;
 }
