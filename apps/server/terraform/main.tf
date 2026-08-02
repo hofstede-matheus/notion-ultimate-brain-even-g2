@@ -43,6 +43,12 @@ resource "aws_lambda_function" "notion_backend" {
   timeout       = 10
 
   role = aws_iam_role.lambda.arn
+
+  environment {
+    variables = {
+      DEBUG = var.debug
+    }
+  }
 }
 
 resource "aws_lambda_function_url" "notion_backend" {

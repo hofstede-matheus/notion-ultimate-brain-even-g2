@@ -9,6 +9,17 @@ vi.mock('../notion-client', () => ({
   createNotionClient: vi.fn(() => ({ databases: { query }, pages: { create }, search })),
 }));
 
+// Real pino I/O isn't needed here — these tests assert response shape, not
+// log output (that's covered by logger.test.ts's summarizeResult tests).
+vi.mock('../lambda/logger', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lambda/logger')>();
+  return {
+    ...actual,
+    logger: { info: vi.fn() },
+    flushLogger: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
 import { handler, type LambdaFunctionUrlEvent } from '../lambda/handler';
 import { createNotionClient } from '../notion-client';
 

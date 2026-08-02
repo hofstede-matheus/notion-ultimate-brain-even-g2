@@ -1,4 +1,5 @@
 import { ROUTES, runRoute } from '../routes';
+import { flushLogger, logger, summarizeResult } from './logger';
 import { matchRoute } from './match-route';
 
 // Minimal shape of a Lambda Function URL event/response — avoids taking a
@@ -33,24 +34,25 @@ function parseBody(event: LambdaFunctionUrlEvent): unknown {
 export async function handler(event: LambdaFunctionUrlEvent): Promise<LambdaFunctionUrlResult> {
   const method = event.requestContext.http.method;
   const path = event.rawPath;
+  const start = Date.now();
 
   const match = matchRoute(ROUTES, method, path);
-  if (!match) {
-    return {
-      statusCode: 404,
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ error: `No route for ${method} ${path}` }),
-    };
-  }
+  const result = match
+    ? await runRoute(match.route, {
+        params: match.params,
+        body: parseBody(event),
+        // Function URL lowercases incoming header names.
+        tenantHeader: event.headers?.['x-notion-config'],
+        tokenHeader: event.headers?.['x-notion-token'],
+        cursor: event.queryStringParameters?.cursor,
+      })
+    : { status: 404, body: { error: `No route for ${method} ${path}` } };
 
-  const result = await runRoute(match.route, {
-    params: match.params,
-    body: parseBody(event),
-    // Function URL lowercases incoming header names.
-    tenantHeader: event.headers?.['x-notion-config'],
-    tokenHeader: event.headers?.['x-notion-token'],
-    cursor: event.queryStringParameters?.cursor,
-  });
+  // Never pass event.headers/tenantHeader/tokenHeader into the logger — only
+  // `result` carries the tenant's Notion token risk, and it never contains
+  // one (routes.ts never echoes the token back in a response body).
+  logger.info(summarizeResult(method, path, result, Date.now() - start), 'request');
+  await flushLogger();
 
   return {
     statusCode: result.status,
