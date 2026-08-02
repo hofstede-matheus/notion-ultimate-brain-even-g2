@@ -1,0 +1,13 @@
+{
+  "hosting": [
+    {
+      "site": "notion-ub-landing",
+      "public": "apps/landing-page/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ]
+    }
+  ]
+}
