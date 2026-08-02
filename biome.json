@@ -10,7 +10,12 @@
       "!**/node_modules",
       "!**/.turbo",
       "!**/.kilo",
-      "!pnpm-lock.yaml"
+      "!pnpm-lock.yaml",
+      "!apps/landing-page/css/entry.css",
+      "!apps/landing-page/css/button.css",
+      "!apps/landing-page/css/index.css",
+      "!apps/landing-page/css/inline-a.css",
+      "!apps/landing-page/css/inline-b.css"
     ]
   },
   "formatter": {

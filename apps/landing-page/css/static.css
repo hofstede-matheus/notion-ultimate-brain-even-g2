@@ -12,9 +12,9 @@
    values were tuned for. An even split left those values zooming into a box
    about half the size they expected, which is why the glasses read small. */
 @media (min-width: 768px) {
-	.bp\:grid-cols-2 {
-		grid-template-columns: auto minmax(0, 1fr);
-	}
+  .bp\:grid-cols-2 {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
 }
 
 /* Nudge the glasses a little bigger still. The compiled bp:/tablet:scale-*
@@ -32,14 +32,14 @@
    tier is isolated and only one rule can ever be "the" active value for a
    given width. */
 @media (min-width: 390px) and (max-width: 767px) {
-	img[src="img/G2_Hero.webp"] {
-		scale: 220%;
-	}
+  img[src="img/G2_Hero.webp"] {
+    scale: 220%;
+  }
 }
 @media (min-width: 1024px) {
-	img[src="img/G2_Hero.webp"] {
-		scale: 130%;
-	}
+  img[src="img/G2_Hero.webp"] {
+    scale: 130%;
+  }
 }
 
 /* The lens screen (Dashboard_1/Ebook_01/Bus_01/Sport_1) is a separate element
@@ -48,60 +48,60 @@
    off, so it needs a matching value at each tier above. Same 390-767px /
    1024px+ split as the glasses block above — edit the first one for phones. */
 @media (min-width: 390px) and (max-width: 767px) {
-	.lens-screen {
-		scale: 150%;
-	}
+  .lens-screen {
+    scale: 150%;
+  }
 }
 @media (min-width: 1024px) {
-	.lens-screen {
-		scale: 80%;
-	}
+  .lens-screen {
+    scale: 80%;
+  }
 }
 
 /* Hero lens: the original crossfades four screens via JS. Same effect, CSS only. */
 .lens-frame {
-	opacity: 0;
-	animation: lens-cycle 12s cubic-bezier(0.6, 0, 0, 1) infinite;
+  opacity: 0;
+  animation: lens-cycle 12s cubic-bezier(0.6, 0, 0, 1) infinite;
 }
 .lens-frame:nth-child(1) {
-	animation-delay: 0s;
+  animation-delay: 0s;
 }
 .lens-frame:nth-child(2) {
-	animation-delay: 3s;
+  animation-delay: 3s;
 }
 .lens-frame:nth-child(3) {
-	animation-delay: 6s;
+  animation-delay: 6s;
 }
 .lens-frame:nth-child(4) {
-	animation-delay: 9s;
+  animation-delay: 9s;
 }
 
 @keyframes lens-cycle {
-	0% {
-		opacity: 0;
-		transform: translateY(22px);
-	}
-	4%,
-	22% {
-		opacity: 1;
-		transform: translateY(0);
-	}
-	27% {
-		opacity: 0;
-		transform: translateY(-22px);
-	}
-	27.01%,
-	100% {
-		opacity: 0;
-		transform: translateY(22px);
-	}
+  0% {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  4%,
+  22% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  27% {
+    opacity: 0;
+    transform: translateY(-22px);
+  }
+  27.01%,
+  100% {
+    opacity: 0;
+    transform: translateY(22px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.lens-frame {
-		animation: none;
-	}
-	.lens-frame:nth-child(1) {
-		opacity: 1;
-	}
+  .lens-frame {
+    animation: none;
+  }
+  .lens-frame:nth-child(1) {
+    opacity: 1;
+  }
 }
