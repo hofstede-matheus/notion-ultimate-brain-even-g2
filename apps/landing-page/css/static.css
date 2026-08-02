@@ -42,7 +42,7 @@
   }
 }
 
-/* The lens screen (Dashboard_1/Ebook_01/Bus_01/Sport_1) is a separate element
+/* The lens screen (01_Home through 10_CodeReview) is a separate element
    from the glasses image, scaled and positioned independently to line up
    with the lens area. Scaling the glasses without it throws that alignment
    off, so it needs a matching value at each tier above. Same 390-767px /
@@ -58,10 +58,19 @@
   }
 }
 
-/* Hero lens: the original crossfades four screens via JS. Same effect, CSS only. */
+/* Hero lens: the original crossfades screens via JS, tilting each frame in
+   3D like movie credits scrolling toward/away from camera. Same effect, CSS
+   only — perspective on the shared parent plus a rotateX on each frame's
+   own animation. 10 slides on a 30s loop, 3s stagger apart (10 * 3s = 30s so
+   the loop tiles seamlessly) — keeps each screenshot on screen long enough
+   to read. */
+.lens-screen {
+  perspective: 500px;
+}
 .lens-frame {
   opacity: 0;
-  animation: lens-cycle 12s cubic-bezier(0.6, 0, 0, 1) infinite;
+  transform-origin: 50% 100%;
+  animation: lens-cycle 30s cubic-bezier(0.6, 0, 0, 1) infinite;
 }
 .lens-frame:nth-child(1) {
   animation-delay: 0s;
@@ -75,25 +84,43 @@
 .lens-frame:nth-child(4) {
   animation-delay: 9s;
 }
+.lens-frame:nth-child(5) {
+  animation-delay: 12s;
+}
+.lens-frame:nth-child(6) {
+  animation-delay: 15s;
+}
+.lens-frame:nth-child(7) {
+  animation-delay: 18s;
+}
+.lens-frame:nth-child(8) {
+  animation-delay: 21s;
+}
+.lens-frame:nth-child(9) {
+  animation-delay: 24s;
+}
+.lens-frame:nth-child(10) {
+  animation-delay: 27s;
+}
 
 @keyframes lens-cycle {
   0% {
     opacity: 0;
-    transform: translateY(22px);
+    transform: translateY(22px) rotateX(10deg);
   }
-  4%,
-  22% {
+  3%,
+  7% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) rotateX(10deg);
   }
-  27% {
+  9% {
     opacity: 0;
-    transform: translateY(-22px);
+    transform: translateY(-22px) rotateX(10deg);
   }
-  27.01%,
+  9.01%,
   100% {
     opacity: 0;
-    transform: translateY(22px);
+    transform: translateY(22px) rotateX(10deg);
   }
 }
 
