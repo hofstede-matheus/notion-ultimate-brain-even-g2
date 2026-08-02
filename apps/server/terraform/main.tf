@@ -58,7 +58,7 @@ resource "aws_lambda_function_url" "notion_backend" {
   cors {
     allow_origins = ["*"]
     allow_methods = ["GET", "POST", "PATCH", "DELETE"]
-    allow_headers = ["content-type", "x-notion-config"]
+    allow_headers = ["content-type", "x-notion-config", "x-notion-token"]
   }
 }
 
