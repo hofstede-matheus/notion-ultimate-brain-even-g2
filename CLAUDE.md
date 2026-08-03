@@ -32,7 +32,13 @@ IDs via the `X-Notion-Config` header; the server stores no credentials.
   framework-agnostic route table shared by two entry points: `src/express/index.ts` (local
   dev) and `src/lambda/handler.ts` + `lambda/match-route.ts` (prod, esbuild →
   `dist-lambda/`, deployed via Terraform in `terraform/`). Helpers: `notion-client.ts`,
-  `mappers.ts`, `filters.ts`, `views.ts`, `tenant.ts`, `config.ts`.
+  `mappers.ts`, `filters.ts`, `views.ts`, `tenant.ts`, `config.ts`, `lambda/logger.ts`
+  (structured request logging via pino).
+- `apps/landing-page` (`@notion-ub/landing-page`) — static, script-free marketing site
+  (Nuxt-derived markup with the JS runtime stripped, see its own
+  [README](apps/landing-page/README.md)). `pnpm build` just copies `index.html`/`css`/
+  `fonts`/`img` into `dist/`; deployed to Firebase Hosting, not part of the Node
+  build/test/check-types graph.
 - `packages/contracts` (`@notion-ub/contracts`) — shared types (Task, Note, Project, Tag,
   TenantConfig, NotionDatabaseSummary, Notion page shapes). Import cross-app types from
   here, not by reaching into another app.
@@ -99,10 +105,19 @@ Scope to one workspace with `pnpm --filter @notion-ub/server <task>` /
 - The offline voice model isn't in git. `pnpm dev`/`build` expect
   `apps/glasses/public/vosk/model.tar.gz`; fetch it with
   `pnpm --filter @notion-ub/glasses fetch:voice-model`.
+- **Server logging.** `apps/server/src/lambda/logger.ts` wraps pino with no `transport`
+  (pino-pretty/multi-target spawn a worker that loads a script by path, which doesn't
+  survive the esbuild single-file bundle). Every request logs a summary; the full response
+  body is added when `status >= 400` or `DEBUG=true`. Lambda freezes the execution
+  environment right after the handler returns, so `handler.ts` awaits `flushLogger()`
+  before returning — don't add a log call after that point or it can be lost.
 - CI (`.github/workflows/ci.yml`) runs lint + `turbo run check-types test build` on PRs and
   pushes to `main`. `deploy-lambda.yml` deploys on push to `main` when `apps/server/**`
   changes; `build-ehpk.yml` builds the `.ehpk` on `apps/glasses/**` changes **only if
-  `apps/glasses/package.json`'s version was bumped in that push**.
+  `apps/glasses/package.json`'s version was bumped in that push**. `deploy-landing.yml`
+  deploys `apps/landing-page` to Firebase Hosting on push to `main` when it (or
+  `firebase.json`/`.firebaserc`) changes; `firebase-hosting-pull-request.yml` builds a
+  preview channel for PRs that touch the same paths.
 - **Trace logging.** `apps/glasses/src/logging/` (`trace.ts`) is the app-wide log sink —
   used by both `src/glasses/**` and `src/web/**`, shown in the Settings screen's debug
   console, and copyable for bug reports (see README's "Reporting a bug"). When you add a
@@ -115,5 +130,5 @@ Scope to one workspace with `pnpm --filter @notion-ub/server <task>` /
 
 ## Versions
 
-`apps/glasses` and the glasses `app.json` version are bumped together (currently 2.5.0) —
+`apps/glasses` and the glasses `app.json` version are bumped together (currently 2.5.1) —
 use the `bump-glasses-version` skill. The server / root version tracks separately (2.0.4).

@@ -33,12 +33,13 @@ lists are cached on the device so revisiting a view is instant.
 ## Monorepo architecture
 
 This is a [Turborepo](https://turborepo.dev) + [pnpm workspaces](https://pnpm.io/workspaces)
-monorepo with two apps and two shared packages:
+monorepo with three apps and two shared packages:
 
 ```
 apps/
-  glasses/    @notion-ub/glasses — the G2 webview app (Vite + TypeScript)
-  server/     @notion-ub/server — the Notion API backend (Express locally, AWS Lambda in prod)
+  glasses/       @notion-ub/glasses — the G2 webview app (Vite + TypeScript)
+  server/        @notion-ub/server — the Notion API backend (Express locally, AWS Lambda in prod)
+  landing-page/  @notion-ub/landing-page — static marketing site, deployed to Firebase Hosting
 packages/
   contracts/          @notion-ub/contracts — shared record/DTO types (Task, Note, Project, Tag,
                       TenantConfig, Notion page shapes) used by both apps
@@ -64,7 +65,14 @@ packages/
   `src/lambda/handler.ts` for production (bundled with esbuild, deployed via Terraform as
   an AWS Lambda Function URL — see `apps/server/terraform/`). Most routes sit behind the
   full tenant gate; `GET /api/databases` is the one token-only route, since the settings
-  form's database picker runs before any database ID is known.
+  form's database picker runs before any database ID is known. Requests are logged as
+  structured JSON via [pino](https://getpino.io) (`src/lambda/logger.ts`); set `DEBUG=true`
+  to include full response bodies on every call instead of only failed ones.
+- **`apps/landing-page`** — a static, script-free marketing site (markup derived from the
+  Even Hub developer portal with its Nuxt/Vue runtime stripped out; see its own
+  [README](apps/landing-page/README.md) for how it was built). `pnpm build` just copies
+  `index.html`/`css`/`fonts`/`img` into `dist/`; it isn't part of the `check-types`/`test`
+  graph and deploys separately to Firebase Hosting.
 - **`packages/typescript-config`** — `base.json` (shared strict compiler options) plus
   `dom.json` (glasses, browser libs) and `node.json` (server, Node types), consumed by each
   app via `extends`.
@@ -166,8 +174,10 @@ pnpm check-types
 pnpm build
 ```
 
-- `apps/server` → esbuild bundles `src/lambda/handler.ts` into `dist-lambda/index.js`
-  (the AWS Lambda deployment artifact).
+- `apps/server` → two independent esbuild bundles: `build:lambda` bundles
+  `src/lambda/handler.ts` (deps included) into `dist-lambda/index.js`, the AWS Lambda
+  deployment artifact; `build:express` bundles `src/express/index.ts` (deps external) into
+  `dist/index.js`, runnable with `node dist/index.js`. `pnpm build` runs both.
 - `apps/glasses` → Vite builds the webview into `dist/`.
 
 To package the glasses app into a `.ehpk` for the Even Hub:
@@ -178,6 +188,50 @@ pnpm --filter @notion-ub/glasses pack
 
 (Fetches the offline voice model on first run via `pnpm --filter @notion-ub/glasses fetch:voice-model`
 if it isn't present.)
+
+## Running the server on its own
+
+You don't need the glasses app or the landing page to run the API server — it's a normal
+Express app you can clone and host yourself. It holds no Notion credentials of its own
+(every request carries the tenant's token via `X-Notion-Config`/`X-Notion-Token`), so
+there's nothing to configure besides the port.
+
+```bash
+git clone https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2.git
+cd notion-ultimate-brain-even-g2
+pnpm install
+cp apps/server/.env.example apps/server/.env   # PORT, defaults to 3210
+pnpm --filter @notion-ub/server dev            # tsx watch — good for local iteration
+```
+
+To run it without `tsx`, e.g. on a host that just runs `node`:
+
+```bash
+pnpm --filter @notion-ub/server build:express  # bundles src/express/index.ts -> dist/index.js
+node apps/server/dist/index.js
+```
+
+### Pointing the glasses app at your own server
+
+The packaged glasses app is a static build — it can't be reconfigured after the fact, so
+the server URL has to be baked in at build time via `VITE_API_BASE`
+(`apps/glasses/src/api.ts`):
+
+```bash
+VITE_API_BASE=https://your-server.example.com pnpm --filter @notion-ub/glasses pack
+```
+
+That produces a `.ehpk` pointed at your own server instead of the maintainer's Lambda.
+Upload/sideload it through the Even Hub developer portal — see
+[Packaging & Shipping](https://hub.evenrealities.com/docs/ship/packaging) for the flow.
+
+You're welcome to add the app to your own Even Hub developer account and create private
+builds from there to use yourself. **Please don't submit it for public store listing,
+though.** `apps/glasses/app.json` keeps the original `package_id` and `name` ("Ultimate
+Brain"), so a public listing of a fork would sit alongside the original under the same
+identity — anyone could install a build talking to *your* server thinking it's the
+maintainer's, and the Even Hub store ends up with several listings that look identical.
+Private/developer-hub use is fine; public listing isn't.
 
 ## Deploying the server
 
@@ -195,3 +249,19 @@ CI (`.github/workflows/deploy-lambda.yml`) builds and applies automatically on p
 and uploads the `.ehpk` artifact when `apps/glasses/**` changes — but only when that push
 also bumped `apps/glasses/package.json`'s version, so an unversioned change doesn't
 produce a duplicate build.
+
+**Advanced: deploying your own copy.** The Terraform stack and CI workflow above are wired
+to this project's own AWS account and Terraform Cloud workspace (`apps/server/terraform/versions.tf`).
+To deploy your own fork, point that `cloud { organization / workspaces }` block at your own
+Terraform Cloud org, and replace the repo's `TF_API_TOKEN` GitHub Actions secret with your
+own Terraform Cloud API token — plus `AWS_DEPLOY_ROLE_ARN` (see the bootstrap note at the
+top of `terraform/github-oidc.tf`) and, optionally, the `DEBUG` repo variable.
+
+## Deploying the landing page
+
+`apps/landing-page` deploys to [Firebase Hosting](https://firebase.google.com/docs/hosting)
+(`firebase.json`, `.firebaserc`, target `notion-ub-landing`, project `hofsdev`).
+`.github/workflows/deploy-landing.yml` builds and deploys to the live channel on push to
+`main` when `apps/landing-page/**`, `firebase.json`, or `.firebaserc` change.
+`.github/workflows/firebase-hosting-pull-request.yml` builds a preview channel for PRs
+touching those same paths.

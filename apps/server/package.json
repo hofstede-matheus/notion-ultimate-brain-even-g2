@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/express/index.ts",
-    "build": "esbuild src/lambda/handler.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist-lambda/index.js && echo '{\"type\":\"commonjs\"}' > dist-lambda/package.json",
+    "build": "pnpm build:lambda && pnpm build:express",
+    "build:lambda": "esbuild src/lambda/handler.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist-lambda/index.js && echo '{\"type\":\"commonjs\"}' > dist-lambda/package.json",
+    "build:express": "esbuild src/express/index.ts --bundle --platform=node --target=node20 --format=esm --packages=external --outfile=dist/index.js",
     "check-types": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
