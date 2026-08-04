@@ -26,6 +26,9 @@ These two must always stay in sync with each other. Do **not** touch the root `p
 
    Change only the `version` field — leave every other field (`package_id`, `edition`, `min_app_version`, `min_sdk_version`, dependencies, etc.) untouched.
 5. Report the old → new version change. Do not commit, tag, or push — leave that to the user unless they explicitly ask for it.
+6. Produce a **very brief, human, non-technical changelog** that the user can paste into a release note. Inspect the working tree (`git status` and `git diff`) for the current changeset. Keep it to 1–3 short bullet lines, written in plain everyday language, avoiding jargon like "bump", "semver", "manifest", "dependency", "package.json", "app.json", file paths, or commit/PR vocabulary. Example tone:
+   - "Quick fixes for smoother task syncing."
+   - "Polished the home screen and made voice capture a bit faster."
 
 ## Notes
 
