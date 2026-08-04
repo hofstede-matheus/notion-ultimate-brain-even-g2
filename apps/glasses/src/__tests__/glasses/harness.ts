@@ -6,7 +6,7 @@
  * the render output" tests.
  */
 
-import type { EvenAppBridge } from '@evenrealities/even_hub_sdk';
+import type { EvenAppBridge, EvenHubEvent } from '@evenrealities/even_hub_sdk';
 import { resetBridgeQueue, whenIdle } from '../../glasses/bridge-queue';
 import { createGlassCtx } from '../../glasses/glass-ctx';
 import { router } from '../../glasses/router';
@@ -74,6 +74,22 @@ export function mount() {
     /** What would be drawn right now — the pure "rendered on device" check. */
     render() {
       return router.toDisplayData(state);
+    },
+    /**
+     * Replays `event` through the callback captured by the most recent
+     * `bridge.onEvenHubEvent(...)` subscription — call `startGlasses()`
+     * first so there's a handler to replay into.
+     */
+    emit(event: EvenHubEvent): void {
+      const handler = bridge.onEvenHubEvent.mock.calls.at(-1)?.[0] as
+        | ((e: EvenHubEvent) => void)
+        | undefined;
+      if (!handler) {
+        throw new Error(
+          'emit() called before onEvenHubEvent was subscribed — call startGlasses() first',
+        );
+      }
+      handler(event);
     },
     settle: flushPromises,
   };

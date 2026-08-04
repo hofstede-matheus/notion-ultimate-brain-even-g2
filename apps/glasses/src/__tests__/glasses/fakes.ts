@@ -9,6 +9,7 @@
  * these helpers can't be referenced from inside vi.mock/vi.hoisted directly).
  */
 
+import type { DeviceStatus, EvenHubEvent, LaunchSource } from '@evenrealities/even_hub_sdk';
 import { vi } from 'vitest';
 
 type ApiModule = typeof import('../../api');
@@ -138,7 +139,11 @@ export function makeMockBridge() {
     audioControl: vi.fn().mockResolvedValue(true),
     setLocalStorage: vi.fn().mockResolvedValue(true),
     getLocalStorage: vi.fn().mockResolvedValue(''),
-    onEvenHubEvent: vi.fn(),
+    // The real SDK returns an unsubscribe function from each on*() listener.
+    // Typed callback params so tests can index bridge.on*().mock.calls[i][0].
+    onEvenHubEvent: vi.fn((_cb: (e: EvenHubEvent) => void) => () => {}),
+    onDeviceStatusChanged: vi.fn((_cb: (s: DeviceStatus) => void) => () => {}),
+    onLaunchSource: vi.fn((_cb: (s: LaunchSource) => void) => () => {}),
     updateImageRawData: vi.fn().mockResolvedValue('success'),
   };
 }

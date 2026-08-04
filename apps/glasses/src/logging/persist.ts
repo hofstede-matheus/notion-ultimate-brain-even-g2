@@ -9,7 +9,8 @@ const FLUSH_INTERVAL_MS = 2000;
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let started = false;
 
-async function flush(): Promise<void> {
+/** Immediately mirrors the live buffer to storage, bypassing the throttle. */
+export async function flush(): Promise<void> {
   try {
     const live = getSnapshot().filter((r) => !r.previousSession);
     await storageSet(STORAGE_KEY, live.slice(-LOG_PERSIST_SIZE));
