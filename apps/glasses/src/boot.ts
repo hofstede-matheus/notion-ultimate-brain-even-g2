@@ -77,7 +77,20 @@ export async function boot(): Promise<void> {
         trace.info('DEV', `device status = ${status.connectType}`, {
           connected: status.isConnected(),
         });
-        setDeviceConnected(status.isConnected());
+        // isConnected() is false for 4 different states, two of them transient
+        // (None = not yet initialized, Connecting = mid-handshake) rather than
+        // evidence of an actual problem. The glasses are commonly already
+        // connected before this listener attaches — onDeviceStatusChanged only
+        // pushes on a *change*, so a stale None/Connecting snapshot can be the
+        // only push we ever get, and treating it as "disconnected" would show
+        // a false warning that never clears. Only a genuine negative signal
+        // (Disconnected/ConnectionFailed) sets deviceConnected to false; a
+        // transient one leaves it as-is rather than overriding a good state.
+        if (status.isConnected()) {
+          setDeviceConnected(true);
+        } else if (status.isDisconnected() || status.isConnectionFailed()) {
+          setDeviceConnected(false);
+        }
       });
 
       // Fires exactly once per app instance — must be registered right after
