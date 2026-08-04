@@ -1,8 +1,7 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils';
 import type { AppState } from '../../../../state';
-import { MAX_ITEM_BYTES } from '../../../constants';
 import type { GlassCtx, ScreenModule } from '../../../types';
-import { truncateToByteLimit } from '../../_shared/screen-factories';
+import { truncateListLabel } from '../../_shared/screen-factories';
 
 type SelectedNote = NonNullable<AppState['selectedNote']>;
 
@@ -30,7 +29,7 @@ const ACTIONS: Array<{ label: string; run: (note: SelectedNote, ctx: GlassCtx) =
 export const noteActionsScreen: ScreenModule = {
   display(state) {
     const selected = state.selectedNote;
-    const name = selected ? truncateToByteLimit(selected.noteName, MAX_ITEM_BYTES) : '';
+    const name = selected ? truncateListLabel(selected.noteName) : '';
     return {
       mode: 'list',
       header: buildHeaderLine(name, ''),

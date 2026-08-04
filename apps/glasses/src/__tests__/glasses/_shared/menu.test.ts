@@ -8,6 +8,8 @@ vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
+import { MAX_LIST_ITEMS, makeMenuScreen } from '../../../glasses/modules/_shared/screen-factories';
+import type { GlassCtx } from '../../../glasses/types';
 import { clear as clearLog, getSnapshot as getLogSnapshot } from '../../../logging/sink';
 import { back, mount, select } from '../harness';
 
@@ -123,6 +125,44 @@ describe('projects list screens', () => {
     h.dispatch(select(4)); // Done
     await h.settle();
     expect(h.state.screen).toBe('projects-done');
+  });
+});
+
+describe('makeMenuScreen truncation guards (F16)', () => {
+  it('truncates an oversized label to the list row width', () => {
+    const longLabel = 'A'.repeat(120);
+    const screen = makeMenuScreen({ title: 'TEST', items: [{ label: longLabel, target: 'menu' }] });
+
+    const display = screen.display(mount().state);
+
+    expect(display.mode).toBe('list');
+    if (display.mode === 'list') {
+      expect(display.items[0]).not.toBe(longLabel);
+      expect(display.items[0]?.endsWith('...')).toBe(true);
+    }
+  });
+
+  it('caps the displayed items at MAX_LIST_ITEMS, without breaking selection routing', () => {
+    const items = Array.from({ length: MAX_LIST_ITEMS + 5 }, (_, i) => ({
+      label: `Item ${i}`,
+      target: 'menu' as const,
+    }));
+    const screen = makeMenuScreen({ title: 'TEST', items });
+    const h = mount();
+
+    const display = screen.display(h.state);
+    expect(display.mode).toBe('list');
+    if (display.mode === 'list') expect(display.items).toHaveLength(MAX_LIST_ITEMS);
+
+    // Index 3 must resolve against the same row shown on screen — i.e. the
+    // slice used for display and the array indexed by SELECT_HIGHLIGHTED
+    // must agree on ordering, even though only the first MAX_LIST_ITEMS of
+    // `items` are ever rendered.
+    const navigate = vi.fn();
+    const ctx = { navigate } as unknown as GlassCtx;
+    screen.action({ type: 'SELECT_HIGHLIGHTED', itemIndex: 3 }, h.state, ctx);
+
+    expect(navigate).toHaveBeenCalledWith('menu');
   });
 });
 

@@ -1,8 +1,7 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils';
 import type { AppState } from '../../../../state';
-import { MAX_ITEM_BYTES } from '../../../constants';
 import type { GlassCtx, ScreenModule } from '../../../types';
-import { truncateToByteLimit } from '../../_shared/screen-factories';
+import { truncateListLabel } from '../../_shared/screen-factories';
 
 type SelectedTask = NonNullable<AppState['selectedTask']>;
 
@@ -39,7 +38,7 @@ const ACTIONS: Array<{ label: string; run: (task: SelectedTask, ctx: GlassCtx) =
 export const taskActionsScreen: ScreenModule = {
   display(state) {
     const selected = state.selectedTask;
-    const name = selected ? truncateToByteLimit(selected.taskName, MAX_ITEM_BYTES) : '';
+    const name = selected ? truncateListLabel(selected.taskName) : '';
     return {
       mode: 'list',
       header: buildHeaderLine(name, ''),

@@ -1,12 +1,12 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils';
 import type { ScreenModule } from '../../../types';
-import { truncateToByteLimit } from '../../_shared/screen-factories';
+import { truncateListLabel } from '../../_shared/screen-factories';
 
 const ITEMS = ['Tasks', 'Notes'];
 
 export const projectDetailScreen: ScreenModule = {
   display(state) {
-    const name = state.selectedProject ? truncateToByteLimit(state.selectedProject.name) : '';
+    const name = state.selectedProject ? truncateListLabel(state.selectedProject.name) : '';
     return {
       mode: 'list',
       header: buildHeaderLine(name, ''),

@@ -1,7 +1,8 @@
+import { getTextWidth, pxTruncate } from 'even-toolkit/pretext';
 import { buildHeaderLine } from 'even-toolkit/text-utils';
 import { trace } from '../../../logging/trace';
 import type { AppState, ListItem, ScreenName } from '../../../state';
-import { MAX_ITEM_BYTES, MAX_LIST_ITEMS } from '../../constants';
+import { LIST_ITEM_PADDING_X, MAX_ITEM_BYTES, MAX_LIST_ITEMS, SCREEN_W } from '../../constants';
 import type { GlassCtx, MenuDef, ScreenModule } from '../../types';
 
 export { MAX_LIST_ITEMS } from '../../constants';
@@ -40,6 +41,32 @@ export function truncatePrefixedToByteLimit(
   return prefix + truncateToByteLimit(text, budget);
 }
 
+/** Inner width of a native list row: full screen width minus the widget's own horizontal padding. */
+const LIST_ITEM_INNER_W = SCREEN_W - 2 * LIST_ITEM_PADDING_X;
+
+/**
+ * Truncates `text` to what the native list widget actually clips (pixel
+ * width, via `even-toolkit/pretext`'s LVGL-accurate `pxTruncate`), then
+ * applies `truncateToByteLimit` as a backstop — the firmware's 63-byte cap
+ * rejects the whole rebuild if crossed, and byte length isn't derivable
+ * from a pixel-fit string alone. Pixel truncation runs first because it's
+ * closer to what actually overflows: bytes over-truncate accented names and
+ * under-truncate wide ASCII relative to the 552px a row actually has.
+ */
+export function truncateListLabel(text: string): string {
+  return truncateToByteLimit(pxTruncate(text, LIST_ITEM_INNER_W));
+}
+
+/**
+ * Truncates `text` so `prefix + result` fits a list row — the pixel
+ * counterpart to `truncatePrefixedToByteLimit`, for items like
+ * "Confirm: <name>" or "To <project>".
+ */
+export function truncatePrefixedListLabel(prefix: string, text: string): string {
+  const budgetPx = Math.max(0, LIST_ITEM_INNER_W - getTextWidth(prefix));
+  return truncateToByteLimit(prefix + pxTruncate(text, budgetPx));
+}
+
 /**
  * Generic factory for any list-style menu screen — header + native list
  * widget, click dispatches to `item.target` (no-op when undefined). Pass
@@ -57,7 +84,10 @@ export function makeMenuScreen(
       return {
         mode: 'list',
         header: buildHeaderLine(def.title, ''),
-        items: def.items.map((i) => i.label),
+        // Every menu today is static and well within both caps, but one
+        // oversized/localized label would otherwise reject the whole
+        // rebuild — see makeListScreen's identical guards below.
+        items: def.items.slice(0, MAX_LIST_ITEMS).map((i) => truncateListLabel(i.label)),
       };
     },
 
@@ -338,7 +368,7 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
       const header = buildHeaderLine(headerTitle, indicator);
       const listItems: string[] = [];
       if (hasPrev) listItems.push(PREV_PAGE_LABEL);
-      listItems.push(...pageItems.map((i) => truncateToByteLimit(formatLabel(i))));
+      listItems.push(...pageItems.map((i) => truncateListLabel(formatLabel(i))));
       if (hasNext) listItems.push(NEXT_PAGE_LABEL);
       return { mode: 'list', header, items: listItems };
     },

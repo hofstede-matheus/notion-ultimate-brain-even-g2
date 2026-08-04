@@ -1,7 +1,6 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils';
-import { MAX_ITEM_BYTES } from '../../constants';
 import type { ScreenModule } from '../../types';
-import { truncatePrefixedToByteLimit, truncateToByteLimit } from './screen-factories';
+import { truncatePrefixedListLabel } from './screen-factories';
 
 // Shared by the task and note action menus, mirroring due-date-confirm.ts.
 export const setProjectConfirmScreen: ScreenModule = {
@@ -9,13 +8,13 @@ export const setProjectConfirmScreen: ScreenModule = {
     const p = state.pendingAction;
     const project = p && p.kind === 'setProject' ? p.project : undefined;
     const header = state.errorMessage
-      ? buildHeaderLine(`FAILED: ${truncateToByteLimit(state.errorMessage, MAX_ITEM_BYTES)}`, '')
+      ? buildHeaderLine(truncatePrefixedListLabel('FAILED: ', state.errorMessage), '')
       : buildHeaderLine('MOVE TO?', state.spinnerFrame);
 
     const moveLabel =
       project?.id === null
         ? 'Clear project'
-        : truncatePrefixedToByteLimit('To ', project?.name ?? '');
+        : truncatePrefixedListLabel('To ', project?.name ?? '');
 
     return {
       mode: 'list',

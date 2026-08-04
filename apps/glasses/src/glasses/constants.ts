@@ -17,9 +17,19 @@ export const MAX_LIST_ITEMS = 20;
  * G2 native list widget per-item text cap, in UTF-8 bytes (not JS chars) —
  * the firmware rejects the whole rebuild if any item exceeds this, and
  * titles with accented/multi-byte characters (common in Portuguese task
- * names here) can overflow well before 63 JS `.length` characters.
+ * names here) can overflow well before 63 JS `.length` characters. Kept as
+ * a hard backstop even where labels are also pixel-truncated (see
+ * `LIST_ITEM_PADDING_X`): this is the one that rejects the whole rebuild.
  */
 export const MAX_ITEM_BYTES = 63;
+
+/**
+ * Native list item horizontal padding per side, in pixels — from
+ * font-measurement's display constants (list items are 40px tall with 12px
+ * padding per side). Used to pixel-truncate list labels against what the
+ * widget actually clips, rather than approximating by byte count.
+ */
+export const LIST_ITEM_PADDING_X = 12;
 
 // ---------------------------------------------------------------------------
 // Page reader (task-page screen)
@@ -44,7 +54,11 @@ export const READER_LINES_PER_PAGE = 8;
  * budget rather than a measurement: at 42 characters even an all-caps line
  * measures 547px against the 560px inner width, while ordinary prose lands
  * near 400px. Wider settings (the toolkit's default of 46) overflow on
- * uppercase text and cost a line to a silent extra wrap.
+ * uppercase text and cost a line to a silent extra wrap. Deliberately left
+ * as a character budget rather than switched to pixel-accurate wrapping
+ * (`even-toolkit/pretext`'s `measureTextWrap`) — reworking pagination
+ * boundaries for every existing note/task is a separate, larger change than
+ * the truncation-only pixel-accuracy pass this budget was reviewed against.
  */
 export const READER_CHARS_PER_LINE = 42;
 

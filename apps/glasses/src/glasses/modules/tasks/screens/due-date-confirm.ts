@@ -1,7 +1,6 @@
 import { buildHeaderLine } from 'even-toolkit/text-utils';
-import { MAX_ITEM_BYTES } from '../../../constants';
 import type { ScreenModule } from '../../../types';
-import { truncateToByteLimit } from '../../_shared/screen-factories';
+import { truncatePrefixedListLabel } from '../../_shared/screen-factories';
 import { formatDueDate } from '../helpers';
 
 export const dueDateConfirmScreen: ScreenModule = {
@@ -9,7 +8,7 @@ export const dueDateConfirmScreen: ScreenModule = {
     const p = state.pendingAction;
     const date = p && p.kind === 'setDue' ? (p.date ?? null) : null;
     const header = state.errorMessage
-      ? buildHeaderLine(`FAILED: ${truncateToByteLimit(state.errorMessage, MAX_ITEM_BYTES)}`, '')
+      ? buildHeaderLine(truncatePrefixedListLabel('FAILED: ', state.errorMessage), '')
       : buildHeaderLine('RESCHEDULE?', state.spinnerFrame);
 
     return {

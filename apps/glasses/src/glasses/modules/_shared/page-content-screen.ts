@@ -1,19 +1,18 @@
+import { getTextWidth, pxTruncate } from 'even-toolkit/pretext';
 import { buildHeaderLine } from 'even-toolkit/text-utils';
-import { READER_CHARS_PER_LINE } from '../../constants';
+import { CONTAINER_PADDING, SCREEN_W } from '../../constants';
 import type { ScreenModule } from '../../types';
-import { truncateToByteLimit } from './screen-factories';
 
 /**
- * Budget for the title in the header. The header has to fit on one line — if
- * it wraps, the page runs a line over the container and re-arms the firmware
- * scroll that pagination exists to avoid. That leaves READER_CHARS_PER_LINE
- * minus the two spaces buildHeaderLine inserts and up to seven characters of
- * page indicator ("100/100").
- *
- * Measured in UTF-8 bytes rather than characters, which only ever truncates
- * earlier than the character budget would — the safe direction.
+ * Pixel budget for the title in the header. The header has to fit on one
+ * line — if it wraps, the page runs a line over the container and re-arms
+ * the firmware scroll that pagination exists to avoid. Reserves space for
+ * the widest realistic page indicator ("100/100") plus the two spaces
+ * `buildHeaderLine` inserts between title and indicator. This is a text
+ * container (not a native list row), so no byte-cap backstop is needed —
+ * the 63-byte native-list cap doesn't apply here.
  */
-const HEADER_TITLE_BYTES = READER_CHARS_PER_LINE - 2 - 7;
+const HEADER_TITLE_BUDGET_PX = SCREEN_W - 2 * CONTAINER_PADDING - getTextWidth('  100/100');
 
 /**
  * The Notion page reader, shared by everything that can open a page: a task
@@ -28,7 +27,7 @@ const HEADER_TITLE_BYTES = READER_CHARS_PER_LINE - 2 - 7;
 export const pageContentScreen: ScreenModule = {
   display(state) {
     const content = state.pageContent;
-    const title = truncateToByteLimit(content?.title || 'PAGE', HEADER_TITLE_BYTES);
+    const title = pxTruncate(content?.title || 'PAGE', HEADER_TITLE_BUDGET_PX);
 
     if (!content || content.loading) {
       return {
