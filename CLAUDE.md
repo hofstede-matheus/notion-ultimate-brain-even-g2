@@ -58,7 +58,10 @@ pnpm build          # server → esbuild lambda bundle; glasses → Vite dist/
 
 Scope to one workspace with `pnpm --filter @notion-ub/server <task>` /
 `--filter @notion-ub/glasses <task>`. Package the glasses `.ehpk` with
-`pnpm --filter @notion-ub/glasses pack`.
+`pnpm --filter @notion-ub/glasses pack`. Preview on the desktop simulator (pinned
+to `@evenrealities/evenhub-simulator@0.7.3` — its container caps are
+version-specific, see `glasses/constants.ts`) with `pnpm --filter
+@notion-ub/glasses sim`, alongside `pnpm dev` serving Vite on :5173.
 
 ## Conventions
 

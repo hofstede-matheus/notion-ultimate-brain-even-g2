@@ -108,8 +108,8 @@ export const LIST_CONTAINER_NAME = 'ub-list';
  * The due-date calendar's four image containers, quartering one logical
  * 576×204 pixel buffer into 288×102 tiles. 288×144 is the real per-container
  * limit on hardware (SDK `index.d.ts`: width 20–288, height 20–144); 200×100
- * is a limit of the desktop simulator only (`@evenrealities/evenhub-simulator`
- * 0.7.x), not the firmware.
+ * is a limit of the desktop simulator only (`@evenrealities/evenhub-simulator`,
+ * pinned to 0.7.3 in package.json), not the firmware.
  *
  * Unlike the header/list containers, these are declared ONLY on the bitmap
  * screen — not on every rebuild — so every other screen in the app stays
