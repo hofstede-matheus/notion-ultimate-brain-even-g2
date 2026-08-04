@@ -7,6 +7,7 @@ import {
   onSettingsClick,
   promptForConfig,
   SettingsCancelledError,
+  setDeviceConnected,
   setStatus,
   showRetry,
 } from '@web/providers/uiController';
@@ -56,6 +57,8 @@ export async function boot(): Promise<void> {
   // nothing else in boot() should wait on the storage bridge for this.
   void loadPreviousSession().finally(startPersisting);
 
+  let deviceStatusUnsub: (() => void) | null = null;
+
   async function connect(): Promise<void> {
     trace.info('BOOT', 'connect start');
     setStatus('Waiting for Even Hub bridge...');
@@ -65,6 +68,22 @@ export async function boot(): Promise<void> {
       const bridge = await waitForEvenAppBridge();
       setBridge(bridge);
       trace.info('BOOT', 'bridge acquired');
+
+      // Real glasses link state, independent of whether startup rendering
+      // succeeded — a second connect() (via the retry button) must not stack
+      // a duplicate listener.
+      deviceStatusUnsub?.();
+      deviceStatusUnsub = bridge.onDeviceStatusChanged((status) => {
+        trace.info('DEV', `device status = ${status.connectType}`, {
+          connected: status.isConnected(),
+        });
+        setDeviceConnected(status.isConnected());
+      });
+
+      // Fires exactly once per app instance — must be registered right after
+      // the bridge is ready or the event is missed. Log-only: deep-linking
+      // 'glassesMenu' straight to a screen is a product decision, not a fix.
+      bridge.onLaunchSource((src) => trace.info('BOOT', `launch source = ${src}`));
 
       let cfg = await loadStoredConfig();
       let cfgSource: 'stored' | 'env' | 'prompted' = 'stored';

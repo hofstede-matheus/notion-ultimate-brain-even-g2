@@ -27,6 +27,8 @@ export interface UiState {
   settingsCancellable: boolean;
   /** Which way the current page transition should animate. */
   navDirection: NavDirection;
+  /** Real glasses link state from bridge.onDeviceStatusChanged; null until the first push. */
+  deviceConnected: boolean | null;
 }
 
 let state: UiState = {
@@ -37,6 +39,7 @@ let state: UiState = {
   settingsPrefill: null,
   settingsCancellable: false,
   navDirection: 'forward',
+  deviceConnected: null,
 };
 
 const listeners = new Set<() => void>();
@@ -73,6 +76,11 @@ export function hideConnect(): void {
 
 export function showRetry(): void {
   setState({ connect: { visible: true, disabled: false, label: 'Retry' } });
+}
+
+/** Invoked by boot.ts's bridge.onDeviceStatusChanged subscription. */
+export function setDeviceConnected(connected: boolean): void {
+  setState({ deviceConnected: connected });
 }
 
 let connectHandler: (() => void) | null = null;

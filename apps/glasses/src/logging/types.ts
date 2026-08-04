@@ -17,7 +17,8 @@ export type LogCategory =
   | 'VOICE'
   | 'RENDER'
   | 'CON'
-  | 'CAL';
+  | 'CAL'
+  | 'DEV';
 
 export interface LogRecord {
   /** Monotonic within a process lifetime — does not persist across reloads. */

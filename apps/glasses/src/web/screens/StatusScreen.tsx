@@ -11,9 +11,14 @@ export function StatusScreen() {
     <div>
       <ScreenHeader title="GlassTask" />
       <div className="flex items-center gap-2 mb-4">
-        <StatusDot connected={ui.connected} />
+        <StatusDot connected={ui.deviceConnected ?? ui.connected} />
         <p className="text-[15px] text-text-dim">{ui.status}</p>
       </div>
+      {ui.deviceConnected === false && (
+        <p className="text-[15px] text-negative mb-4">
+          Glasses disconnected — reconnect in the Even app.
+        </p>
+      )}
       {ui.connect.visible && (
         <Button variant="highlight" disabled={ui.connect.disabled} onClick={() => triggerConnect()}>
           {ui.connect.label}
