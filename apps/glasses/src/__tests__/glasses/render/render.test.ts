@@ -6,12 +6,13 @@
  * renderFull() actually hand the bridge the display data it computed.
  */
 
-import type {
-  ImageContainerProperty,
-  ImageRawDataUpdate,
-  RebuildPageContainer,
-  TextContainerProperty,
-  TextContainerUpgrade,
+import {
+  type ImageContainerProperty,
+  type ImageRawDataUpdate,
+  type RebuildPageContainer,
+  StartUpPageCreateResult,
+  type TextContainerProperty,
+  type TextContainerUpgrade,
 } from '@evenrealities/even_hub_sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -20,13 +21,15 @@ vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { CONTAINER_ID_CAL_TOP } from '../../../glasses/constants';
-import { renderFull, renderUpdate } from '../../../glasses/render';
+import { renderFull, renderUpdate, StartupRejectedError } from '../../../glasses/render';
 import { router } from '../../../glasses/router';
+import { clear as clearLog, getSnapshot as getLogSnapshot } from '../../../logging/sink';
 import { mount, move, select } from '../harness';
 
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2026-07-15T12:00:00'));
+  clearLog();
 });
 
 describe('router.toDisplayData — pure, no bridge involved', () => {
@@ -209,6 +212,63 @@ describe('renderFull — the bridge wiring', () => {
     h.state.screen = 'menu';
     await renderUpdate('task-metadata'); // stale — user navigated away
     expect(h.bridge.textContainerUpgrade).toHaveBeenCalledTimes(1); // unchanged
+  });
+});
+
+describe('renderFull — startup/rebuild/upgrade result codes are checked, not discarded', () => {
+  it('a non-success startup result leaves startupRendered false, throws, and logs the code', async () => {
+    const h = mount();
+    h.state.screen = 'menu';
+    h.state.startupRendered = false;
+    h.bridge.createStartUpPageContainer.mockResolvedValueOnce(StartUpPageCreateResult.oversize);
+
+    await expect(renderFull()).rejects.toThrow(StartupRejectedError);
+
+    expect(h.state.startupRendered).toBe(false);
+    const errors = getLogSnapshot().filter((r) => r.level === 'error');
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.msg).toContain('oversize');
+  });
+
+  it('a retry after a rejected startup attempts createStartUpPageContainer again', async () => {
+    const h = mount();
+    h.state.screen = 'menu';
+    h.state.startupRendered = false;
+    h.bridge.createStartUpPageContainer.mockResolvedValueOnce(StartUpPageCreateResult.invalid);
+
+    await expect(renderFull()).rejects.toThrow(StartupRejectedError);
+    expect(h.bridge.createStartUpPageContainer).toHaveBeenCalledTimes(1);
+
+    h.bridge.createStartUpPageContainer.mockResolvedValueOnce(StartUpPageCreateResult.success);
+    await renderFull();
+
+    expect(h.bridge.createStartUpPageContainer).toHaveBeenCalledTimes(2);
+    expect(h.state.startupRendered).toBe(true);
+  });
+
+  it('rebuildPageContainer resolving false logs a warning without throwing', async () => {
+    const h = mount();
+    h.state.screen = 'inbox';
+    h.state.lists.inbox = [{ id: 't1', name: 'Buy milk' }];
+    h.state.startupRendered = true;
+    h.bridge.rebuildPageContainer.mockResolvedValueOnce(false);
+
+    await expect(renderFull()).resolves.toBeUndefined();
+
+    const warnings = getLogSnapshot().filter((r) => r.level === 'warn');
+    expect(warnings.some((r) => r.msg.includes('rebuildPageContainer rejected'))).toBe(true);
+  });
+
+  it('textContainerUpgrade resolving false logs a warning without throwing', async () => {
+    const h = mount();
+    h.state.screen = 'task-metadata';
+    h.state.taskMetadata = { loading: true, project: null, due: null, error: '' };
+    h.bridge.textContainerUpgrade.mockResolvedValueOnce(false);
+
+    await expect(renderUpdate('task-metadata')).resolves.toBeUndefined();
+
+    const warnings = getLogSnapshot().filter((r) => r.level === 'warn');
+    expect(warnings.some((r) => r.msg.includes('header textContainerUpgrade rejected'))).toBe(true);
   });
 });
 

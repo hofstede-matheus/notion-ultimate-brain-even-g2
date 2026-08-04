@@ -6,6 +6,7 @@ import {
   ListContainerProperty,
   ListItemContainerProperty,
   RebuildPageContainer,
+  StartUpPageCreateResult,
   TextContainerProperty,
   TextContainerUpgrade,
 } from '@evenrealities/even_hub_sdk';
@@ -14,6 +15,7 @@ import type { ScreenName } from '../../state';
 import { getBridge, state } from '../../state';
 import { encodeBmp, fnv32a } from '../bitmap/bmp';
 import { sliceRect } from '../bitmap/pixels';
+import { enqueue } from '../bridge-queue';
 import {
   CAL_BOTTOM_CONTAINER_NAME,
   CAL_BUF_W,
@@ -54,6 +56,39 @@ function currentDisplay() {
 }
 
 // ---------------------------------------------------------------------------
+// Startup result decoding — hand-mapped rather than relying on the enum's
+// reverse mapping, same reasoning as events/resolve.ts's eventTypeName: the
+// SDK ships a minified bundle, and numeric-enum reverse lookup isn't
+// guaranteed to survive that.
+// ---------------------------------------------------------------------------
+
+const STARTUP_RESULT_NAMES: Record<number, string> = {
+  [StartUpPageCreateResult.success]: 'success',
+  [StartUpPageCreateResult.invalid]: 'invalid',
+  [StartUpPageCreateResult.oversize]: 'oversize',
+  [StartUpPageCreateResult.outOfMemory]: 'outOfMemory',
+};
+
+function startUpResultName(result: StartUpPageCreateResult | undefined): string {
+  if (result === undefined) return 'no response (bridge-queue timeout/throw)';
+  return STARTUP_RESULT_NAMES[result] ?? `unknown(${result})`;
+}
+
+/**
+ * Thrown when `createStartUpPageContainer` doesn't return `success`.
+ * `state.startupRendered` is left `false` so a retry can attempt startup
+ * again — the SDK documents it as one-shot, so a retry may also be refused,
+ * but that will now be logged rather than producing a silent blank display.
+ * Caught in boot.ts's `connect()` to show a distinct status message.
+ */
+export class StartupRejectedError extends Error {
+  constructor(public readonly result: StartUpPageCreateResult | undefined) {
+    super(`startup page rejected: ${startUpResultName(result)}`);
+    this.name = 'StartupRejectedError';
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Rebuild helper — handles first-call (startup) vs subsequent (rebuild)
 // ---------------------------------------------------------------------------
 
@@ -70,12 +105,25 @@ async function rebuildPage(config: {
   }
 
   if (!state.startupRendered) {
-    await b.createStartUpPageContainer(new CreateStartUpPageContainer(config));
+    const result = await enqueue('createStartUpPageContainer', () =>
+      b.createStartUpPageContainer(new CreateStartUpPageContainer(config)),
+    );
+    if (result !== StartUpPageCreateResult.success) {
+      trace.error('RENDER', `startup rejected: ${startUpResultName(result)}`, { result });
+      throw new StartupRejectedError(result);
+    }
     state.startupRendered = true;
     return;
   }
 
-  await b.rebuildPageContainer(new RebuildPageContainer(config));
+  const ok = await enqueue('rebuildPageContainer', () =>
+    b.rebuildPageContainer(new RebuildPageContainer(config)),
+  );
+  if (ok === false) {
+    trace.warn('RENDER', 'rebuildPageContainer rejected', {
+      containers: config.containerTotalNum,
+    });
+  }
 }
 
 /**
@@ -107,6 +155,27 @@ let lastTileHash: [number | null, number | null, number | null, number | null] =
 let bitmapContainersLive = false;
 let lastCalTopText: string | null = null;
 let lastCalBottomText: string | null = null;
+
+/** Clears the calendar session's cached-frame state (see the fields above). */
+function clearCalendarSession(): void {
+  bitmapContainersLive = false;
+  lastCalTopText = null;
+  lastCalBottomText = null;
+  lastTileHash = [null, null, null, null];
+}
+
+/**
+ * Exported for the foreground-enter lifecycle handler (glasses/events/index.ts).
+ * After a background/foreground cycle we cannot assume the firmware still
+ * holds the calendar's image containers, so `sendCalendarTiles`'s per-tile
+ * hash skip must not trust state left over from before backgrounding — that
+ * mismatch is exactly what `bitmapContainersLive`'s doc comment describes.
+ * Does NOT touch `state.startupRendered`, which must survive for the app's
+ * lifetime (see `StartupRejectedError`).
+ */
+export function resetRenderSession(): void {
+  clearCalendarSession();
+}
 
 /** Full container rebuild. Assumes `state.screen === screen` already. */
 export async function renderFull(): Promise<void> {
@@ -144,10 +213,7 @@ export async function renderFull(): Promise<void> {
     return;
   }
 
-  bitmapContainersLive = false;
-  lastCalTopText = null;
-  lastCalBottomText = null;
-  lastTileHash = [null, null, null, null];
+  clearCalendarSession();
 
   if (display.mode === 'text') {
     await rebuildPage({
@@ -218,24 +284,30 @@ async function updateCalendarLabels(topText: string, bottomText: string): Promis
   if (!b) return;
 
   if (topText !== lastCalTopText) {
-    await b.textContainerUpgrade(
-      new TextContainerUpgrade({
-        containerID: CONTAINER_ID_CAL_TOP,
-        containerName: CAL_TOP_CONTAINER_NAME,
-        content: topText,
-      }),
+    const ok = await enqueue('textContainerUpgrade(cal-top)', () =>
+      b.textContainerUpgrade(
+        new TextContainerUpgrade({
+          containerID: CONTAINER_ID_CAL_TOP,
+          containerName: CAL_TOP_CONTAINER_NAME,
+          content: topText,
+        }),
+      ),
     );
+    if (ok === false) trace.warn('RENDER', 'cal-top textContainerUpgrade rejected');
     lastCalTopText = topText;
   }
 
   if (bottomText !== lastCalBottomText) {
-    await b.textContainerUpgrade(
-      new TextContainerUpgrade({
-        containerID: CONTAINER_ID_CAL_BOTTOM,
-        containerName: CAL_BOTTOM_CONTAINER_NAME,
-        content: bottomText,
-      }),
+    const ok = await enqueue('textContainerUpgrade(cal-bottom)', () =>
+      b.textContainerUpgrade(
+        new TextContainerUpgrade({
+          containerID: CONTAINER_ID_CAL_BOTTOM,
+          containerName: CAL_BOTTOM_CONTAINER_NAME,
+          content: bottomText,
+        }),
+      ),
     );
+    if (ok === false) trace.warn('RENDER', 'cal-bottom textContainerUpgrade rejected');
     lastCalBottomText = bottomText;
   }
 }
@@ -244,7 +316,8 @@ async function updateCalendarLabels(topText: string, bottomText: string): Promis
  * Quarters the calendar's logical 576×204 pixel buffer into the four SDK
  * image tiles, encodes each as a 1-bit BMP, and sends only the tiles whose
  * bytes changed since the last frame — sequentially, per
- * `updateImageRawData`'s documented "no concurrent image sends" constraint.
+ * `updateImageRawData`'s documented "no concurrent image sends" constraint
+ * (now also enforced across screens by bridge-queue's single chain).
  */
 async function sendCalendarTiles(pixels: Uint8Array): Promise<void> {
   const b = getBridge();
@@ -283,22 +356,23 @@ async function sendCalendarTiles(pixels: Uint8Array): Promise<void> {
     const hash = fnv32a(bmp);
     if (lastTileHash[i] === hash) continue;
 
-    try {
-      const result = await b.updateImageRawData(
+    const result = await enqueue(`updateImageRawData(${tile.name})`, () =>
+      b.updateImageRawData(
         new ImageRawDataUpdate({
           containerID: tile.id,
           containerName: tile.name,
           imageData: Array.from(bmp),
         }),
-      );
+      ),
+    );
+    // undefined means the call already logged an error (threw / timed out) —
+    // avoid a second, redundant warn for the same failure.
+    if (result !== undefined) {
       if (ImageRawDataUpdateResult.isSuccess(result)) {
         lastTileHash[i] = hash;
       } else {
         trace.warn('RENDER', `calendar tile ${tile.name} send failed`, { result });
       }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      trace.error('RENDER', `calendar tile ${tile.name} send threw: ${msg}`);
     }
   }
 }
@@ -333,11 +407,14 @@ export async function renderUpdate(screen: ScreenName): Promise<void> {
 
   const content = display.mode === 'text' ? display.content : display.header;
 
-  await b.textContainerUpgrade(
-    new TextContainerUpgrade({
-      containerID: CONTAINER_ID_HEADER,
-      containerName: HEADER_CONTAINER_NAME,
-      content,
-    }),
+  const ok = await enqueue('textContainerUpgrade(header)', () =>
+    b.textContainerUpgrade(
+      new TextContainerUpgrade({
+        containerID: CONTAINER_ID_HEADER,
+        containerName: HEADER_CONTAINER_NAME,
+        content,
+      }),
+    ),
   );
+  if (ok === false) trace.warn('RENDER', 'header textContainerUpgrade rejected');
 }

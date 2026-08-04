@@ -13,6 +13,7 @@ import {
 import { loadStoredConfig, saveStoredConfig } from '@web/services/config';
 import { VOSK_MODEL_URL } from './glasses/constants';
 import { startGlasses } from './glasses/events';
+import { StartupRejectedError } from './glasses/render';
 import { loadPreviousSession, startPersisting } from './logging/persist';
 import { trace } from './logging/trace';
 import { setBridge } from './state';
@@ -94,7 +95,14 @@ export async function boot(): Promise<void> {
     } catch (err) {
       const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
       trace.error('BOOT', `connect failed: ${msg}`);
-      setStatus('Connection failed. Tap to retry.');
+      if (err instanceof StartupRejectedError) {
+        // state.startupRendered is still false (render/index.ts never set it) — retrying
+        // re-attempts createStartUpPageContainer, which the SDK documents as one-shot, so
+        // a retry may also be refused. That refusal will now be logged, not silent.
+        setStatus('Glasses display setup failed — check the glasses are connected, then retry.');
+      } else {
+        setStatus('Connection failed. Tap to retry.');
+      }
       showRetry();
     }
   }

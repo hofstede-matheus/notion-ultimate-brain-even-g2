@@ -7,6 +7,7 @@
  */
 
 import type { EvenAppBridge } from '@evenrealities/even_hub_sdk';
+import { resetBridgeQueue, whenIdle } from '../../glasses/bridge-queue';
 import { createGlassCtx } from '../../glasses/glass-ctx';
 import { router } from '../../glasses/router';
 import type { AppGlassAction } from '../../glasses/types';
@@ -38,13 +39,24 @@ export function resetState(): void {
   state.errorMessage = '';
 }
 
-/** Drains the microtask queue `depth` levels deep — enough for chained awaits on a mock's resolved promises to settle. */
+/**
+ * Drains pending async work: `depth` raw microtask ticks (for non-bridge
+ * chains — mocked API/cache fetches, `enterView`'s finally-triggered
+ * re-render), then `whenIdle()` to fully drain the bridge-queue chain
+ * (whose depth varies with how many bridge calls a given render issues, so
+ * a fixed tick count alone can't reliably catch up), then a few more raw
+ * ticks in case a bridge call's resolution triggered further non-bridge
+ * async work.
+ */
 export async function flushPromises(depth = 5): Promise<void> {
+  for (let i = 0; i < depth; i++) await Promise.resolve();
+  await whenIdle();
   for (let i = 0; i < depth; i++) await Promise.resolve();
 }
 
 export function mount() {
   resetState();
+  resetBridgeQueue();
 
   const bridge: MockBridge = makeMockBridge();
   setBridge(bridge as unknown as EvenAppBridge);
