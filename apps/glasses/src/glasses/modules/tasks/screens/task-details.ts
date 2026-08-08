@@ -1,28 +1,10 @@
-import { getTextWidth, pxTruncate } from 'even-toolkit/pretext';
+import { pxTruncate } from 'even-toolkit/pretext';
 import { buildHeaderLine } from 'even-toolkit/text-utils';
 import { CONTAINER_PADDING, SCREEN_W } from '../../../constants';
-import { markdownToLines, paginateLines } from '../../../content/markdown-to-pages';
 import type { ScreenModule } from '../../../types';
 import { formatDueDate } from '../helpers';
 
-/** Inner width of the full-screen text container this screen renders into. */
 const TEXT_INNER_W = SCREEN_W - 2 * CONTAINER_PADDING;
-const PROJECT_PREFIX = 'Project: ';
-const DETAILS_LINES_PER_PAGE = 8;
-
-function detailPages(taskName: string, project: string | null, due: string | null): string[][] {
-  const projectBudget = TEXT_INNER_W - getTextWidth(PROJECT_PREFIX);
-  return paginateLines(
-    [
-      'Task:',
-      ...markdownToLines(taskName),
-      '',
-      `${PROJECT_PREFIX}${pxTruncate(project ?? '(none)', projectBudget)}`,
-      `Due: ${formatDueDate(due)}`,
-    ],
-    DETAILS_LINES_PER_PAGE,
-  );
-}
 
 export const taskDetailsScreen: ScreenModule = {
   display(state) {
@@ -36,8 +18,7 @@ export const taskDetailsScreen: ScreenModule = {
     }
 
     if (details.error) {
-      // Unbounded server error — an overflowing line re-arms the firmware's
-      // internal scroll (see constants.ts's reader-pagination comments).
+      // An overflowing error re-arms firmware scroll and swallows the back gesture.
       return {
         mode: 'text',
         content: [
@@ -50,18 +31,20 @@ export const taskDetailsScreen: ScreenModule = {
       };
     }
 
-    const pages = detailPages(
-      state.selectedTask?.taskName ?? '(unknown task)',
-      details.project,
-      details.due,
-    );
-    const pageIndex = Math.min(details.page, pages.length - 1);
-    const indicator = pages.length > 1 ? `${pageIndex + 1}/${pages.length}` : '';
     return {
       mode: 'text',
-      content: [buildHeaderLine('TASK DETAILS', indicator), '', ...(pages[pageIndex] ?? [])].join(
-        '\n',
-      ),
+      content: [
+        buildHeaderLine('TASK DETAILS', ''),
+        '',
+        'Task:',
+        state.selectedTask?.taskName ?? '(unknown task)',
+        '',
+        'Project:',
+        details.project ?? '(none)',
+        '',
+        'Due:',
+        formatDueDate(details.due),
+      ].join('\n'),
     };
   },
 
@@ -72,19 +55,6 @@ export const taskDetailsScreen: ScreenModule = {
       return;
     }
 
-    const details = _state.taskDetails;
-    if (!details || details.loading || details.error) return;
-
-    const pages = detailPages(
-      _state.selectedTask?.taskName ?? '(unknown task)',
-      details.project,
-      details.due,
-    );
-    if (action.type === 'HIGHLIGHT_MOVE') {
-      ctx.turnTaskDetailsPage(action.direction === 'down' ? 1 : -1, pages.length);
-      return;
-    }
-
-    if (action.type === 'SELECT_HIGHLIGHTED') ctx.turnTaskDetailsPage(1, pages.length);
+    // SELECT_HIGHLIGHTED / HIGHLIGHT_MOVE: the text container scrolls overflow.
   },
 };

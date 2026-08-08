@@ -138,7 +138,6 @@ export interface AppState {
     project: string | null;
     due: string | null;
     error: string;
-    page: number;
   } | null;
 
   // The note the action menu / metadata / delete flow is operating on —

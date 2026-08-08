@@ -25,7 +25,7 @@ export async function enterTaskDetails(): Promise<void> {
   const selected = state.selectedTask;
   if (!selected) return;
 
-  state.taskDetails = { loading: true, project: null, due: null, error: '', page: 0 };
+  state.taskDetails = { loading: true, project: null, due: null, error: '' };
   navigate('task-details');
 
   const spinner = startSpinner(() => void renderUpdate('task-details'));
@@ -33,7 +33,7 @@ export async function enterTaskDetails(): Promise<void> {
   try {
     const { project, due } = await fetchPageMetadata(selected.taskId);
     trace.info('API', 'task metadata loaded', { id: selected.taskId, project, due });
-    state.taskDetails = { loading: false, project, due, error: '', page: 0 };
+    state.taskDetails = { loading: false, project, due, error: '' };
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
     trace.error('API', `task metadata failed: ${msg}`, { id: selected.taskId });
@@ -42,18 +42,9 @@ export async function enterTaskDetails(): Promise<void> {
       project: null,
       due: null,
       error: msg,
-      page: 0,
     };
   } finally {
     stopSpinner(spinner);
     if (state.screen === 'task-details') void renderFull();
   }
-}
-
-export function turnTaskDetailsPage(delta: number, totalPages: number): void {
-  const details = state.taskDetails;
-  if (!details || details.loading || details.error || totalPages < 2) return;
-
-  details.page = Math.max(0, Math.min(details.page + delta, totalPages - 1));
-  void renderFull();
 }

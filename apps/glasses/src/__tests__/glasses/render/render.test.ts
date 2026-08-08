@@ -202,7 +202,7 @@ describe('renderFull — the bridge wiring', () => {
   it('renderUpdate sends a header-only upgrade and is a no-op if the screen changed', async () => {
     const h = mount();
     h.state.screen = 'task-details';
-    h.state.taskDetails = { loading: true, project: null, due: null, error: '', page: 0 };
+    h.state.taskDetails = { loading: true, project: null, due: null, error: '' };
 
     await renderUpdate('task-details');
     expect(h.bridge.textContainerUpgrade).toHaveBeenCalledTimes(1);
@@ -262,7 +262,7 @@ describe('renderFull — startup/rebuild/upgrade result codes are checked, not d
   it('textContainerUpgrade resolving false logs a warning without throwing', async () => {
     const h = mount();
     h.state.screen = 'task-details';
-    h.state.taskDetails = { loading: true, project: null, due: null, error: '', page: 0 };
+    h.state.taskDetails = { loading: true, project: null, due: null, error: '' };
     h.bridge.textContainerUpgrade.mockResolvedValueOnce(false);
 
     await expect(renderUpdate('task-details')).resolves.toBeUndefined();

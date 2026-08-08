@@ -71,24 +71,23 @@ describe('Task Details', () => {
       project: 'Groceries',
       due: '2026-07-25',
       error: '',
-      page: 0,
     });
     expect(h.state.screen).toBe('task-details');
     const display = h.render();
     expect(display.mode).toBe('text');
     if (display.mode === 'text') {
-      expect(display.content).toContain('Project: Groceries');
-      expect(display.content).toContain('Jul 25, 2026');
-      expect(display.content).toContain('Buy milk');
+      expect(display.content).toContain('Task:\nBuy milk');
+      expect(display.content).toContain('Project:\nGroceries');
+      expect(display.content).toContain('Due:\nJul 25, 2026');
     }
   });
 
-  it('paginates long task titles without truncating them', async () => {
-    const taskName =
-      'A detailed task title that is intentionally long enough to span multiple display pages '.repeat(
-        3,
-      );
-    vi.mocked(fetchPageMetadata).mockResolvedValue({ project: 'Groceries', due: '2026-07-25' });
+  it('keeps long task and project names in the scrollable text container', async () => {
+    const taskName = 'A detailed task title that is intentionally long enough to overflow '.repeat(
+      3,
+    );
+    const project = 'A project name that is intentionally long enough to overflow '.repeat(3);
+    vi.mocked(fetchPageMetadata).mockResolvedValue({ project, due: '2026-07-25' });
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: taskName }];
@@ -96,20 +95,13 @@ describe('Task Details', () => {
     h.dispatch(select(0));
     await h.settle();
 
-    const pages: string[] = [];
-    for (let page = 0; page < 3; page++) {
-      const display = h.render();
-      if (display.mode === 'text') pages.push(display.content);
-      h.dispatch(select());
+    const display = h.render();
+    expect(display.mode).toBe('text');
+    if (display.mode === 'text') {
+      expect(display.content).toContain(taskName);
+      expect(display.content).toContain(project);
+      expect(display.content).not.toContain('1/2');
     }
-
-    const detailContent = pages
-      .map((page) => page.split('\n').slice(2).join(''))
-      .join('')
-      .replaceAll(/\s/g, '');
-    expect(detailContent).toContain(taskName.replaceAll(/\s/g, ''));
-    expect(pages.join('\n')).toContain('Project: Groceries');
-    expect(pages.join('\n')).toContain('Jul 25, 2026');
   });
 
   it('shows the error message when the fetch fails', async () => {

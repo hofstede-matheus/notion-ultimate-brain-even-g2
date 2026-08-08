@@ -61,8 +61,6 @@ export interface GlassCtx {
   dismissActionToast(): void;
   openTaskActions(taskId: string, taskName: string, returnTo: ScreenName, dueDate?: string): void;
   enterTaskDetails(): void;
-  /** Advances the paginated task-details content by `delta` pages, clamped to the available pages. */
-  turnTaskDetailsPage(delta: number, totalPages: number): void;
   /** Opens the bitmap calendar for `state.selectedTask`, seeded on its current due date if known. */
   openDueDatePicker(): void;
   /** Swipe within the due-date picker — week row in 'week' phase, day column in 'day' phase. */
