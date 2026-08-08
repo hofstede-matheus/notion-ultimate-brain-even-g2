@@ -16,12 +16,14 @@ import { back, mount, select } from '../harness';
 const NOTE = { id: 'n1', name: 'Meeting recap' };
 const PROJECTS = [{ id: 'p1', name: 'Q3 Planning' }];
 
-function openPicker(h: ReturnType<typeof mount>) {
+async function openPicker(h: ReturnType<typeof mount>) {
   h.state.screen = 'notes-inbox';
   h.state.lists['notes-inbox'] = [NOTE];
   h.dispatch(select(0)); // -> note-actions
   h.dispatch(select(2)); // Change project -> project-picker
+  await h.settle();
   h.dispatch(select(2)); // Doing
+  await h.settle();
 }
 
 beforeEach(() => {
@@ -38,8 +40,7 @@ afterEach(() => {
 
 it('opens the picker and GO_BACK returns to note-actions', async () => {
   const h = mount();
-  openPicker(h);
-  await h.settle();
+  await openPicker(h);
 
   expect(h.state.screen).toBe('projects-doing');
   expect(h.render()).toMatchObject({
@@ -54,8 +55,7 @@ it('opens the picker and GO_BACK returns to note-actions', async () => {
 it('picking a project confirms, patches the note out of the Inbox, and shows the toast', async () => {
   vi.mocked(setPageProject).mockResolvedValue(undefined);
   const h = mount();
-  openPicker(h);
-  await h.settle();
+  await openPicker(h);
 
   h.dispatch(select(0)); // Q3 Planning
   expect(h.state.pendingAction).toMatchObject({

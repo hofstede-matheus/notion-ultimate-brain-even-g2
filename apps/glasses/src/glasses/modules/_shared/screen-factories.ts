@@ -329,7 +329,13 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
   const countInHeader = config.countInHeader ?? true;
   const formatLabel = config.formatLabel ?? ((item: ListItem) => item.name);
   const selectItems =
-    config.selectItems ?? ((state: AppState) => getListItems(state, config.screen));
+    config.selectItems ??
+    ((state: AppState) => {
+      const items = getListItems(state, config.screen);
+      return state.projectPicker && PROJECT_LIST_SCREENS.includes(config.screen)
+        ? [...items].sort((a, b) => a.name.localeCompare(b.name))
+        : items;
+    });
 
   return {
     display(state) {

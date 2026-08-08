@@ -27,7 +27,10 @@ export const projectPickerScreen: ScreenModule = {
     return {
       mode: 'list',
       header: buildHeaderLine('MOVE TO', ''),
-      items: ['— No project —', ...PROJECT_FILTERS.map((filter) => truncateListLabel(filter.label))],
+      items: [
+        '— No project —',
+        ...PROJECT_FILTERS.map((filter) => truncateListLabel(filter.label)),
+      ],
     };
   },
 

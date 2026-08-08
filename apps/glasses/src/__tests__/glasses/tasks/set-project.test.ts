@@ -20,12 +20,14 @@ const PROJECTS = [
   { id: 'p2', name: 'Errands' },
 ];
 
-function openPicker(h: ReturnType<typeof mount>, returnScreen: ScreenName = 'inbox') {
+async function openPicker(h: ReturnType<typeof mount>, returnScreen: ScreenName = 'inbox') {
   h.state.screen = returnScreen;
   h.state.lists[returnScreen] = [TASK];
   h.dispatch(select(0)); // -> task-actions
   h.dispatch(select(3)); // Change project -> project-picker
+  await h.settle();
   h.dispatch(select(2)); // Doing
+  await h.settle();
 }
 
 beforeEach(() => {
@@ -41,22 +43,31 @@ afterEach(() => {
 });
 
 describe('opening the project picker', () => {
-  it('lists "— No project —" first, then project status filters', () => {
+  it('lists "— No project —" first, then project status filters', async () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
     h.dispatch(select(0));
     h.dispatch(select(3));
+    await h.settle();
     expect(h.render()).toMatchObject({
       mode: 'list',
-      items: ['— No project —', 'All', 'Doing', 'Ongoing', 'Planned', 'On Hold', 'Done', 'Archived'],
+      items: [
+        '— No project —',
+        'All',
+        'Doing',
+        'Ongoing',
+        'Planned',
+        'On Hold',
+        'Done',
+        'Archived',
+      ],
     });
   });
 
   it('opens the selected status list and returns to the picker', async () => {
     const h = mount();
-    openPicker(h);
-    await h.settle();
+    await openPicker(h);
 
     expect(fetchDoingProjects).toHaveBeenCalled();
     expect(h.state.screen).toBe('projects-doing');
@@ -69,8 +80,7 @@ describe('opening the project picker', () => {
 describe('picking a project', () => {
   it('tapping a project opens the confirm dialog', async () => {
     const h = mount();
-    openPicker(h);
-    await h.settle();
+    await openPicker(h);
 
     h.dispatch(select(1)); // Groceries
 
@@ -87,8 +97,7 @@ describe('picking a project', () => {
 
   it('tapping "— No project —" opens the confirm dialog with a null project', async () => {
     const h = mount();
-    openPicker(h);
-    await h.settle();
+    await openPicker(h);
 
     h.dispatch(back());
     h.dispatch(select(0)); // the sentinel row
@@ -102,8 +111,7 @@ describe('picking a project', () => {
 
   it('Cancel dismisses back to the list the task was opened from', async () => {
     const h = mount();
-    openPicker(h);
-    await h.settle();
+    await openPicker(h);
     h.dispatch(select(1));
 
     h.dispatch(select(1)); // Cancel
@@ -117,8 +125,7 @@ describe('confirming a project change', () => {
   it('calls setPageProject, removes a now-assigned task from the Inbox, and shows the toast', async () => {
     vi.mocked(setPageProject).mockResolvedValue(undefined);
     const h = mount();
-    openPicker(h);
-    await h.settle();
+    await openPicker(h);
     h.dispatch(select(1)); // Groceries
 
     h.dispatch(select(0)); // Confirm
@@ -138,8 +145,7 @@ describe('confirming a project change', () => {
   it('does not remove the task from Today, which is not project-scoped', async () => {
     vi.mocked(setPageProject).mockResolvedValue(undefined);
     const h = mount();
-    openPicker(h, 'today');
-    await h.settle();
+    await openPicker(h, 'today');
     h.dispatch(select(1)); // Groceries
 
     h.dispatch(select(0)); // Confirm
@@ -158,7 +164,6 @@ describe('confirming a project change', () => {
     h.dispatch(select(3)); // Change project -> project-picker
     await h.settle();
 
-    h.dispatch(back());
     h.dispatch(select(0)); // the sentinel row -> confirm
     h.dispatch(select(0)); // Confirm
     await h.settle();
@@ -172,8 +177,7 @@ describe('confirming a project change', () => {
     try {
       vi.mocked(setPageProject).mockResolvedValue(undefined);
       const h = mount();
-      openPicker(h);
-      await h.settle();
+      await openPicker(h);
       h.dispatch(select(1));
       h.dispatch(select(0));
       await h.settle();
@@ -191,8 +195,7 @@ describe('confirming a project change', () => {
   it('on API failure, shows the error and stays on the confirm screen', async () => {
     vi.mocked(setPageProject).mockRejectedValue(new Error('offline'));
     const h = mount();
-    openPicker(h);
-    await h.settle();
+    await openPicker(h);
     h.dispatch(select(1));
 
     h.dispatch(select(0));
