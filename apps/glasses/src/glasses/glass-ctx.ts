@@ -17,7 +17,7 @@ import { openProjectPicker, pickProject } from './modules/_shared/project-picker
 import { enterNoteMetadata, openNoteActions } from './modules/notes/actions';
 import { openProjectDetail } from './modules/projects/actions';
 import { openTagNotes } from './modules/tags/actions';
-import { enterTaskMetadata, openTaskActions } from './modules/tasks/actions';
+import { enterTaskMetadata, openTaskActions, turnTaskMetadataPage } from './modules/tasks/actions';
 import {
   dueDatePickerBack,
   moveDueDateCursor,
@@ -59,6 +59,7 @@ export function createGlassCtx(): GlassCtx {
     dismissActionToast,
     openTaskActions,
     enterTaskMetadata: () => void enterTaskMetadata(),
+    turnTaskMetadataPage,
     openDueDatePicker,
     moveDueDateCursor,
     selectDueDateCell,

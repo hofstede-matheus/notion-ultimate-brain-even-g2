@@ -7,7 +7,7 @@ import { navigate, startSpinner, stopSpinner } from '../_shared/navigation';
 
 // ---------------------------------------------------------------------------
 // Task action menu — reached by tapping a task in any Tasks list screen.
-// Offers Load metadata / Mark as done / Delete task.
+// Offers Task Details / Mark as done / Delete task.
 // ---------------------------------------------------------------------------
 
 export function openTaskActions(
@@ -25,7 +25,7 @@ export async function enterTaskMetadata(): Promise<void> {
   const selected = state.selectedTask;
   if (!selected) return;
 
-  state.taskMetadata = { loading: true, project: null, due: null, error: '' };
+  state.taskMetadata = { loading: true, project: null, due: null, error: '', page: 0 };
   navigate('task-metadata');
 
   const spinner = startSpinner(() => void renderUpdate('task-metadata'));
@@ -33,7 +33,7 @@ export async function enterTaskMetadata(): Promise<void> {
   try {
     const { project, due } = await fetchPageMetadata(selected.taskId);
     trace.info('API', 'task metadata loaded', { id: selected.taskId, project, due });
-    state.taskMetadata = { loading: false, project, due, error: '' };
+    state.taskMetadata = { loading: false, project, due, error: '', page: 0 };
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
     trace.error('API', `task metadata failed: ${msg}`, { id: selected.taskId });
@@ -42,9 +42,18 @@ export async function enterTaskMetadata(): Promise<void> {
       project: null,
       due: null,
       error: msg,
+      page: 0,
     };
   } finally {
     stopSpinner(spinner);
     if (state.screen === 'task-metadata') void renderFull();
   }
+}
+
+export function turnTaskMetadataPage(delta: number, totalPages: number): void {
+  const metadata = state.taskMetadata;
+  if (!metadata || metadata.loading || metadata.error || totalPages < 2) return;
+
+  metadata.page = Math.max(0, Math.min(metadata.page + delta, totalPages - 1));
+  void renderFull();
 }

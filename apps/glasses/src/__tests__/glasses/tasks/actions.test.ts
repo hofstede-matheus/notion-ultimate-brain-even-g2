@@ -1,6 +1,6 @@
 /**
- * Tapping a task on a list screen — opens the task action menu, and Load
- * metadata fetches the task's project/due date.
+ * Tapping a task on a list screen — opens the task action menu, and Task
+ * Details fetches the task's project/due date.
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -33,7 +33,7 @@ describe('tapping a task on a list screen', () => {
     expect(display).toMatchObject({
       mode: 'list',
       items: [
-        'Load metadata',
+        'Task Details',
         'Open page',
         'Change due date',
         'Change project',
@@ -55,15 +55,15 @@ describe('tapping a task on a list screen', () => {
   });
 });
 
-describe('Load metadata', () => {
-  it('fetches project + due date and shows them', async () => {
+describe('Task Details', () => {
+  it('fetches and shows the task title, project, and due date', async () => {
     vi.mocked(fetchPageMetadata).mockResolvedValue({ project: 'Groceries', due: '2026-07-25' });
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
     h.dispatch(select(0)); // -> task-actions
 
-    h.dispatch(select(0)); // Load metadata
+    h.dispatch(select(0)); // Task Details
     await h.settle();
 
     expect(h.state.taskMetadata).toEqual({
@@ -78,7 +78,32 @@ describe('Load metadata', () => {
     if (display.mode === 'text') {
       expect(display.content).toContain('Project: Groceries');
       expect(display.content).toContain('Jul 25, 2026');
+      expect(display.content).toContain('Buy milk');
     }
+  });
+
+  it('paginates long task titles without truncating them', async () => {
+    const taskName = 'A detailed task title that is intentionally long enough to span multiple display pages '.repeat(
+      3,
+    );
+    vi.mocked(fetchPageMetadata).mockResolvedValue({ project: 'Groceries', due: '2026-07-25' });
+    const h = mount();
+    h.state.screen = 'inbox';
+    h.state.lists.inbox = [{ id: 't1', name: taskName }];
+    h.dispatch(select(0));
+    h.dispatch(select(0));
+    await h.settle();
+
+    const pages: string[] = [];
+    for (let page = 0; page < 3; page++) {
+      const display = h.render();
+      if (display.mode === 'text') pages.push(display.content);
+      h.dispatch(select());
+    }
+
+    expect(pages.join('').replaceAll(/\s/g, '')).toContain(taskName.replaceAll(/\s/g, ''));
+    expect(pages.join('\n')).toContain('Project: Groceries');
+    expect(pages.join('\n')).toContain('Jul 25, 2026');
   });
 
   it('shows the error message when the fetch fails', async () => {
@@ -99,7 +124,7 @@ describe('Load metadata', () => {
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
     h.dispatch(select(0));
-    h.dispatch(select(0)); // Load metadata (still loading — fine for this assertion)
+    h.dispatch(select(0)); // Task Details (still loading — fine for this assertion)
 
     h.dispatch(back());
 
