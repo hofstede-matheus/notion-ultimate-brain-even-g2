@@ -76,9 +76,25 @@ describe('Task Details', () => {
     const display = h.render();
     expect(display.mode).toBe('text');
     if (display.mode === 'text') {
+      expect(display.content).toContain('TASK DETAILS');
       expect(display.content).toContain('Task:\nBuy milk');
       expect(display.content).toContain('Project:\nGroceries');
       expect(display.content).toContain('Due:\nJul 25, 2026');
+    }
+  });
+
+  it('falls back to a placeholder title when no task is selected', () => {
+    const h = mount();
+    h.state.screen = 'task-details';
+    h.state.taskDetails = { loading: false, project: null, due: null, error: '' };
+    h.state.selectedTask = null;
+
+    const display = h.render();
+    expect(display.mode).toBe('text');
+    if (display.mode === 'text') {
+      expect(display.content).toContain('Task:\n(unknown task)');
+      expect(display.content).toContain('Project:\n(none)');
+      expect(display.content).toContain('Due:\n(none)');
     }
   });
 
