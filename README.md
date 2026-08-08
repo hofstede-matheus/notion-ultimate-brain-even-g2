@@ -275,10 +275,8 @@ pnpm --filter @notion-ub/server tf:apply
 ```
 
 CI (`.github/workflows/deploy-lambda.yml`) builds and applies automatically on push to
-`main` when `apps/server/**` changes. `.github/workflows/build-ehpk.yml` similarly builds
-and uploads the `.ehpk` artifact when `apps/glasses/**` changes — but only when that push
-also bumped `apps/glasses/package.json`'s version, so an unversioned change doesn't
-produce a duplicate build.
+`main` when `apps/server/**` changes. The glasses `.ehpk` is built on release instead —
+see [Releasing the glasses app](#releasing-the-glasses-app) below.
 
 **Advanced: deploying your own copy.** The Terraform stack and CI workflow above are wired
 to this project's own AWS account and Terraform Cloud workspace (`apps/server/terraform/versions.tf`).
@@ -286,6 +284,34 @@ To deploy your own fork, point that `cloud { organization / workspaces }` block 
 Terraform Cloud org, and replace the repo's `TF_API_TOKEN` GitHub Actions secret with your
 own Terraform Cloud API token — plus `AWS_DEPLOY_ROLE_ARN` (see the bootstrap note at the
 top of `terraform/github-oidc.tf`).
+
+## Releasing the glasses app
+
+Releases are automated with [release-please](https://github.com/googleapis/release-please)
+(`release-please-config.json`, `.release-please-manifest.json`). Nobody edits a version by
+hand.
+
+1. Land work on `main` with [Conventional Commit](https://www.conventionalcommits.org)
+   messages. PRs are squash-merged, so the **PR title** is the commit that counts —
+   `.github/workflows/pr-title.yml` blocks a title that isn't one, and `.husky/commit-msg`
+   catches bad messages locally before they leave your machine.
+2. `.github/workflows/release-please.yml` keeps a release PR open, titled
+   `chore(glasses): release X.Y.Z`. It bumps `apps/glasses/package.json` **and**
+   `apps/glasses/app.json` (the G2 hub manifest), and writes `apps/glasses/CHANGELOG.md`.
+   `feat` commits bump the minor, `fix` bumps the patch, `feat!`/`BREAKING CHANGE:` bumps
+   the major; anything else doesn't bump at all.
+3. Merging that PR tags `glasses-vX.Y.Z`, cuts a GitHub Release from the changelog, and
+   chains into `.github/workflows/build-ehpk.yml`, which builds the `.ehpk` and attaches it
+   to the Release as an asset (`gh release view glasses-vX.Y.Z`). That file is what gets
+   uploaded to the Even Hub store.
+
+Two things worth knowing:
+
+- release-please only counts commits that touch `apps/glasses/**`. A user-visible change
+  delivered entirely through `packages/contracts` won't trigger a release on its own — pair
+  it with a glasses-side commit, or add a `Release-As: X.Y.Z` footer to force one.
+- `apps/server`, the root `package.json`, and `apps/landing-page` are **not** managed by
+  release-please; their versions stay manual.
 
 ## Deploying the landing page
 

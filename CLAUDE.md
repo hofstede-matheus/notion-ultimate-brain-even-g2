@@ -85,6 +85,12 @@ version-specific, see `glasses/constants.ts`) with `pnpm --filter
 - **Formatting/linting is Biome** (`biome.json`), not ESLint/Prettier. Run `pnpm lint`
   before finishing.
 - **TypeScript strict** everywhere via the shared config. No new `any`.
+- **Commits and PR titles are Conventional Commits** — `type(scope): description`, imperative,
+  lowercase, ≤72 chars. Scopes are feature areas (`tasks`, `notes`, `projects`, `tags`,
+  `glasses`, `server`, `landing-page`, `contracts`), not package names. `.husky/commit-msg`
+  enforces it locally and `pr-title.yml` enforces it on PRs. This is not cosmetic: it drives
+  the release (see **Versions**). Full rules in
+  [.github/copilot-instructions.md](.github/copilot-instructions.md).
 - Never commit without explicit user consent for that specific commit.
 
 ## Gotchas
@@ -131,8 +137,12 @@ version-specific, see `glasses/constants.ts`) with `pnpm --filter
   before returning — don't add a log call after that point or it can be lost.
 - CI (`.github/workflows/ci.yml`) runs lint + `turbo run check-types test build` on PRs and
   pushes to `main`. `deploy-lambda.yml` deploys on push to `main` when `apps/server/**`
-  changes; `build-ehpk.yml` builds the `.ehpk` on `apps/glasses/**` changes **only if
-  `apps/glasses/package.json`'s version was bumped in that push**. `deploy-landing.yml`
+  changes. `release-please.yml` runs on every push to `main` and chains into
+  `build-ehpk.yml` — which is now a **reusable `workflow_call`**, not a push-triggered
+  workflow, and so only builds when a release is actually cut (plus `workflow_dispatch` for
+  a throwaway artifact). The chaining is deliberate: a tag pushed by `GITHUB_TOKEN` does not
+  start new workflow runs, so an `on: push: tags` build would silently never fire.
+  `deploy-landing.yml`
   deploys `apps/landing-page` to Firebase Hosting on push to `main` when it (or
   `firebase.json`/`.firebaserc`) changes; `firebase-hosting-pull-request.yml` builds a
   preview channel for PRs that touch the same paths.
@@ -148,5 +158,31 @@ version-specific, see `glasses/constants.ts`) with `pnpm --filter
 
 ## Versions
 
-`apps/glasses` and the glasses `app.json` version are bumped together (currently 2.5.1) —
-use the `bump-glasses-version` skill. The server / root version tracks separately (2.0.4).
+**Never edit a glasses version by hand.** `apps/glasses/package.json`,
+`apps/glasses/app.json`, `apps/glasses/CHANGELOG.md`, and `.release-please-manifest.json` are
+owned by release-please (`release-please-config.json`). The current version lives in the
+manifest — read it there rather than trusting a number written in prose.
+
+The flow: conventional commits land on `main` → release-please keeps a
+`chore(glasses): release X.Y.Z` PR open → merging it tags `glasses-vX.Y.Z`, cuts a GitHub
+Release, and attaches the `.ehpk` as an asset. `feat` → minor, `fix` → patch,
+`feat!`/`BREAKING CHANGE:` → major, everything else → no bump.
+
+Two traps:
+
+- release-please only counts commits touching `apps/glasses/**`. A user-visible change made
+  entirely in `packages/contracts` won't trigger a release — pair it with a glasses-side
+  commit, or add a `Release-As: X.Y.Z` footer.
+- `app.json` is updated through an `extra-files` **jsonpath** updater (`$.version`), not a
+  regex, because `min_app_version` and `min_sdk_version` are semver strings a regex updater
+  would clobber. Don't switch it to the `generic` updater.
+- **`apps/glasses/app.json` is exempt from the Biome formatter** (`overrides` in
+  `biome.json`) and is stored in `JSON.stringify(_, null, 2)` form — that is, with
+  `"supported_languages"` expanded over three lines. release-please rewrites the whole file
+  through `JSON.stringify`, which always expands short arrays, while Biome always collapses
+  them; without the exemption every release PR would fail `pnpm lint`. Don't re-collapse that
+  array and don't remove the override.
+
+The `glasses-release-notes` skill turns the newest CHANGELOG entry into plain-language notes
+for the Even Hub store listing. `apps/server`, the root `package.json` (2.0.4), and
+`apps/landing-page` are not managed by release-please — their versions stay manual.

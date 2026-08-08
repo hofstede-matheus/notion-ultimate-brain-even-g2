@@ -40,5 +40,11 @@
   },
   "assist": {
     "actions": { "source": { "organizeImports": "on" } }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/glasses/app.json"],
+      "formatter": { "enabled": false }
+    }
+  ]
 }

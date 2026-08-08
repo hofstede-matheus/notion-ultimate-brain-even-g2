@@ -13,7 +13,7 @@ export default defineConfig({
   define: {
     // Baked in at build time so the exported log (see logging/export.ts)
     // always names the app version that produced it — stays in step with
-    // package.json for free, including the bump-glasses-version skill.
+    // package.json for free, which release-please keeps authoritative.
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   resolve: {
