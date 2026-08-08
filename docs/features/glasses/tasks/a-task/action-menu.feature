@@ -11,7 +11,7 @@ Feature: What can be done with a task
     When I tap it
     Then the glasses show the task's name as the header
     And the choices are, in order:
-      | Load metadata   |
+      | Task Details    |
       | Open page       |
       | Change due date |
       | Change project  |
@@ -25,7 +25,7 @@ Feature: What can be done with a task
 
     Examples:
       | choice          | result                             |
-      | Load metadata   | the glasses show "TASK DETAILS"    |
+      | Task Details    | the glasses show "TASK DETAILS"    |
       | Open page       | the task opens in the page reader  |
       | Change due date | the due-date calendar opens        |
       | Change project  | the "MOVE TO" project picker opens |
@@ -36,6 +36,7 @@ Feature: What can be done with a task
     Given a task whose name is wider than the display
     When I open its action menu
     Then the header shows as much of the name as fits, ending with "…"
+    And "Task Details" shows the name in full
 
   Scenario: Backing out returns to the list the task came from
     Given I opened a task from one of the task lists
