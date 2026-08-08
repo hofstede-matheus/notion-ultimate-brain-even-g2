@@ -1,7 +1,7 @@
 import { getTextWidth, pxTruncate } from 'even-toolkit/pretext';
 import { buildHeaderLine } from 'even-toolkit/text-utils';
-import { markdownToLines, paginateLines } from '../../../content/markdown-to-pages';
 import { CONTAINER_PADDING, SCREEN_W } from '../../../constants';
+import { markdownToLines, paginateLines } from '../../../content/markdown-to-pages';
 import type { ScreenModule } from '../../../types';
 import { formatDueDate } from '../helpers';
 
@@ -50,12 +50,18 @@ export const taskMetadataScreen: ScreenModule = {
       };
     }
 
-    const pages = detailPages(state.selectedTask?.taskName ?? '(unknown task)', meta.project, meta.due);
+    const pages = detailPages(
+      state.selectedTask?.taskName ?? '(unknown task)',
+      meta.project,
+      meta.due,
+    );
     const pageIndex = Math.min(meta.page, pages.length - 1);
     const indicator = pages.length > 1 ? `${pageIndex + 1}/${pages.length}` : '';
     return {
       mode: 'text',
-      content: [buildHeaderLine('TASK DETAILS', indicator), '', ...(pages[pageIndex] ?? [])].join('\n'),
+      content: [buildHeaderLine('TASK DETAILS', indicator), '', ...(pages[pageIndex] ?? [])].join(
+        '\n',
+      ),
     };
   },
 
@@ -69,7 +75,11 @@ export const taskMetadataScreen: ScreenModule = {
     const meta = _state.taskMetadata;
     if (!meta || meta.loading || meta.error) return;
 
-    const pages = detailPages(_state.selectedTask?.taskName ?? '(unknown task)', meta.project, meta.due);
+    const pages = detailPages(
+      _state.selectedTask?.taskName ?? '(unknown task)',
+      meta.project,
+      meta.due,
+    );
     if (action.type === 'HIGHLIGHT_MOVE') {
       ctx.turnTaskMetadataPage(action.direction === 'down' ? 1 : -1, pages.length);
       return;

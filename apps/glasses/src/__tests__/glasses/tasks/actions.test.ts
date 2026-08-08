@@ -71,6 +71,7 @@ describe('Task Details', () => {
       project: 'Groceries',
       due: '2026-07-25',
       error: '',
+      page: 0,
     });
     expect(h.state.screen).toBe('task-metadata');
     const display = h.render();
@@ -83,9 +84,10 @@ describe('Task Details', () => {
   });
 
   it('paginates long task titles without truncating them', async () => {
-    const taskName = 'A detailed task title that is intentionally long enough to span multiple display pages '.repeat(
-      3,
-    );
+    const taskName =
+      'A detailed task title that is intentionally long enough to span multiple display pages '.repeat(
+        3,
+      );
     vi.mocked(fetchPageMetadata).mockResolvedValue({ project: 'Groceries', due: '2026-07-25' });
     const h = mount();
     h.state.screen = 'inbox';
@@ -101,7 +103,11 @@ describe('Task Details', () => {
       h.dispatch(select());
     }
 
-    expect(pages.join('').replaceAll(/\s/g, '')).toContain(taskName.replaceAll(/\s/g, ''));
+    const detailContent = pages
+      .map((page) => page.split('\n').slice(2).join(''))
+      .join('')
+      .replaceAll(/\s/g, '');
+    expect(detailContent).toContain(taskName.replaceAll(/\s/g, ''));
     expect(pages.join('\n')).toContain('Project: Groceries');
     expect(pages.join('\n')).toContain('Jul 25, 2026');
   });
