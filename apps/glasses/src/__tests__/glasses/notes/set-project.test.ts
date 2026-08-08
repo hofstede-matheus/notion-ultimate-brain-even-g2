@@ -84,6 +84,7 @@ it('refreshes the originating list 1.5s after the toast', async () => {
 
     expect(h.state.screen).toBe('set-project-toast');
 
+    vi.mocked(fetchInboxNotes).mockClear();
     vi.advanceTimersByTime(1500);
     await h.settle();
 
