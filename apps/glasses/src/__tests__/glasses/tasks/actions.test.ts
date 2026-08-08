@@ -80,6 +80,20 @@ describe('Task Details', () => {
       expect(display.content).toContain('Task:\nBuy milk');
       expect(display.content).toContain('Project:\nGroceries');
       expect(display.content).toContain('Due:\nJul 25, 2026');
+      expect(display.content).toContain('Double-tap to go back.');
+    }
+  });
+
+  it('shows the back hint while the details are still loading', () => {
+    const h = mount();
+    h.state.screen = 'task-details';
+    h.state.taskDetails = { loading: true, project: null, due: null, error: '' };
+
+    const display = h.render();
+    expect(display.mode).toBe('text');
+    if (display.mode === 'text') {
+      expect(display.content).toContain('Loading…');
+      expect(display.content).toContain('Double-tap to go back.');
     }
   });
 

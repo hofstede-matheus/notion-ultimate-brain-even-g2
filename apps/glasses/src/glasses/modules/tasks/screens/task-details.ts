@@ -5,6 +5,7 @@ import type { ScreenModule } from '../../../types';
 import { formatDueDate } from '../helpers';
 
 const TEXT_INNER_W = SCREEN_W - 2 * CONTAINER_PADDING;
+const BACK_HINT = 'Double-tap to go back.';
 
 export const taskDetailsScreen: ScreenModule = {
   display(state) {
@@ -13,7 +14,13 @@ export const taskDetailsScreen: ScreenModule = {
     if (!details || details.loading) {
       return {
         mode: 'text',
-        content: [buildHeaderLine('TASK DETAILS', state.spinnerFrame), '', 'Loading…'].join('\n'),
+        content: [
+          buildHeaderLine('TASK DETAILS', state.spinnerFrame),
+          '',
+          'Loading…',
+          '',
+          BACK_HINT,
+        ].join('\n'),
       };
     }
 
@@ -26,7 +33,7 @@ export const taskDetailsScreen: ScreenModule = {
           '',
           pxTruncate(details.error, TEXT_INNER_W),
           '',
-          'Double-tap to go back.',
+          BACK_HINT,
         ].join('\n'),
       };
     }
@@ -44,6 +51,8 @@ export const taskDetailsScreen: ScreenModule = {
         '',
         'Due:',
         formatDueDate(details.due),
+        '',
+        BACK_HINT,
       ].join('\n'),
     };
   },
