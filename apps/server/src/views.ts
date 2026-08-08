@@ -269,7 +269,11 @@ export const PROJECT_STATUS_OPTIONS = [
 
 export const PROJECT_VIEWS: ViewConfig[] = [
   {
+    // "All" means every status, not every project — archived ones are reached
+    // through the `archived` view's own row, and letting them leak in here
+    // would put finished work in front of the project picker.
     path: 'all',
+    filter: { property: 'Archived', checkbox: { equals: false } },
     sorts: [{ property: 'Meta', direction: 'ascending' }],
   },
   {

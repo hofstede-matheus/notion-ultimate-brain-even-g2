@@ -32,6 +32,27 @@ describe('PROJECT_VIEWS status filters', () => {
     expect([...PROJECT_STATUS_OPTIONS]).toEqual(['Planned', 'On Hold', 'Doing', 'Ongoing', 'Done']);
   });
 
+  /**
+   * "All" spans every status but still hides archived projects — `archived`
+   * has its own view, and the picker's All row would otherwise offer finished
+   * work as a destination.
+   */
+  it('excludes archived projects from the all view, without filtering by status', () => {
+    const view = PROJECT_VIEWS.find((v) => v.path === 'all');
+    expect(view?.filter).toEqual({ property: 'Archived', checkbox: { equals: false } });
+  });
+
+  it('keeps archived as the only view that opts into archived projects', () => {
+    const archived = PROJECT_VIEWS.find((v) => v.path === 'archived');
+    expect(archived?.filter).toEqual({ property: 'Archived', checkbox: { equals: true } });
+
+    const others = PROJECT_VIEWS.filter((v) => v.path !== 'archived');
+    for (const view of others) {
+      const clauses = view.filter?.and ?? (view.filter ? [view.filter] : []);
+      expect(clauses).toContainEqual({ property: 'Archived', checkbox: { equals: false } });
+    }
+  });
+
   it('filters each status view by its real option name', () => {
     const expectations = [
       ['doing', PROJECT_STATUS_DOING],
