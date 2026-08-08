@@ -94,7 +94,7 @@ describe('projects list screens', () => {
 
     expect(h.render()).toMatchObject({
       mode: 'list',
-      items: ['Doing', 'Ongoing', 'Planned', 'On Hold', 'Done', 'Archived'],
+      items: ['All', 'Doing', 'Ongoing', 'Planned', 'On Hold', 'Done', 'Archived'],
     });
   });
 
@@ -102,27 +102,32 @@ describe('projects list screens', () => {
     const h = mount();
     h.state.screen = 'projects-menu';
 
-    h.dispatch(select(0)); // Doing
+    h.dispatch(select(0)); // All
+    await h.settle();
+    expect(h.state.screen).toBe('projects-all');
+
+    h.state.screen = 'projects-menu';
+    h.dispatch(select(1)); // Doing
     await h.settle();
     expect(h.state.screen).toBe('projects-doing');
 
     h.state.screen = 'projects-menu';
-    h.dispatch(select(1)); // Ongoing
+    h.dispatch(select(2)); // Ongoing
     await h.settle();
     expect(h.state.screen).toBe('projects-ongoing');
 
     h.state.screen = 'projects-menu';
-    h.dispatch(select(2)); // Planned
+    h.dispatch(select(3)); // Planned
     await h.settle();
     expect(h.state.screen).toBe('projects-planned');
 
     h.state.screen = 'projects-menu';
-    h.dispatch(select(3)); // On Hold
+    h.dispatch(select(4)); // On Hold
     await h.settle();
     expect(h.state.screen).toBe('projects-on-hold');
 
     h.state.screen = 'projects-menu';
-    h.dispatch(select(4)); // Done
+    h.dispatch(select(5)); // Done
     await h.settle();
     expect(h.state.screen).toBe('projects-done');
   });

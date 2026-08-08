@@ -235,6 +235,10 @@ export function fetchNotesForProject(
 // Projects
 // ---------------------------------------------------------------------------
 
+export function fetchAllProjects(cursor?: string): Promise<PagedResult<Project>> {
+  return requestPage('/api/projects/all', 'projects', cursor);
+}
+
 export function fetchDoingProjects(cursor?: string): Promise<PagedResult<Project>> {
   return requestPage('/api/projects/doing', 'projects', cursor);
 }

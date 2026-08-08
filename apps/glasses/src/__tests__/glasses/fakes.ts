@@ -31,6 +31,7 @@ const LIST_FETCHERS = [
   'fetchVoiceNotes',
   'fetchJournalNotes',
   'fetchAllNotes',
+  'fetchAllProjects',
   'fetchDoingProjects',
   'fetchOngoingProjects',
   'fetchPlannedProjects',

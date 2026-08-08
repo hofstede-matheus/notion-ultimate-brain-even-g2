@@ -40,8 +40,8 @@ export interface ViewConfig {
 /**
  * Tasks DB `Status` option literals — confirmed against this tenant's actual
  * database. Notion's status filters need the real option name, not a group
- * label (see PROJECT_VIEWS's `active` view below for the same trap on the
- * Projects side): a task's Status is one of several "To Do"-group and
+ * label (see PROJECT_STATUS_OPTIONS below for the same trap on the Projects
+ * side): a task's Status is one of several "To Do"-group and
  * "In Progress"-group options in general, but this tenant only uses these two.
  */
 export const TASK_STATUS_TODO = 'To Do';
@@ -244,13 +244,44 @@ export const NOTE_VIEWS: ViewConfig[] = [
 // Projects views
 // ---------------------------------------------------------------------------
 
+/**
+ * Projects DB `Status` option literals — confirmed against this tenant's
+ * actual database (the Ultimate Brain template's five options, no others in
+ * use). Same trap as TASK_STATUS_TODO/DONE above, and this is where it last
+ * bit: `On Hold` was spelled `On hold` here, so Notion's exact-match status
+ * filter silently returned nothing and the On Hold screen looked empty.
+ * views.test.ts pins these against PROJECT_STATUS_OPTIONS.
+ */
+export const PROJECT_STATUS_PLANNED = 'Planned';
+export const PROJECT_STATUS_ON_HOLD = 'On Hold';
+export const PROJECT_STATUS_DOING = 'Doing';
+export const PROJECT_STATUS_ONGOING = 'Ongoing';
+export const PROJECT_STATUS_DONE = 'Done';
+
+/** Every option the Projects `Status` property actually offers. */
+export const PROJECT_STATUS_OPTIONS = [
+  PROJECT_STATUS_PLANNED,
+  PROJECT_STATUS_ON_HOLD,
+  PROJECT_STATUS_DOING,
+  PROJECT_STATUS_ONGOING,
+  PROJECT_STATUS_DONE,
+] as const;
+
 export const PROJECT_VIEWS: ViewConfig[] = [
+  {
+    // "All" means every status, not every project — archived ones are reached
+    // through the `archived` view's own row, and letting them leak in here
+    // would put finished work in front of the project picker.
+    path: 'all',
+    filter: { property: 'Archived', checkbox: { equals: false } },
+    sorts: [{ property: 'Meta', direction: 'ascending' }],
+  },
   {
     path: 'doing',
     filter: {
       and: [
         { property: 'Archived', checkbox: { equals: false } },
-        { property: 'Status', status: { equals: 'Doing' } },
+        { property: 'Status', status: { equals: PROJECT_STATUS_DOING } },
       ],
     },
     sorts: [{ property: 'Meta', direction: 'ascending' }],
@@ -260,7 +291,7 @@ export const PROJECT_VIEWS: ViewConfig[] = [
     filter: {
       and: [
         { property: 'Archived', checkbox: { equals: false } },
-        { property: 'Status', status: { equals: 'Ongoing' } },
+        { property: 'Status', status: { equals: PROJECT_STATUS_ONGOING } },
       ],
     },
     sorts: [{ property: 'Meta', direction: 'ascending' }],
@@ -270,7 +301,7 @@ export const PROJECT_VIEWS: ViewConfig[] = [
     filter: {
       and: [
         { property: 'Archived', checkbox: { equals: false } },
-        { property: 'Status', status: { equals: 'Planned' } },
+        { property: 'Status', status: { equals: PROJECT_STATUS_PLANNED } },
       ],
     },
     sorts: [{ property: 'Meta', direction: 'ascending' }],
@@ -280,7 +311,7 @@ export const PROJECT_VIEWS: ViewConfig[] = [
     filter: {
       and: [
         { property: 'Archived', checkbox: { equals: false } },
-        { property: 'Status', status: { equals: 'On Hold' } },
+        { property: 'Status', status: { equals: PROJECT_STATUS_ON_HOLD } },
       ],
     },
     sorts: [{ property: 'Meta', direction: 'ascending' }],
@@ -290,7 +321,7 @@ export const PROJECT_VIEWS: ViewConfig[] = [
     filter: {
       and: [
         { property: 'Archived', checkbox: { equals: false } },
-        { property: 'Status', status: { equals: 'Done' } },
+        { property: 'Status', status: { equals: PROJECT_STATUS_DONE } },
       ],
     },
     sorts: [{ property: 'Meta', direction: 'ascending' }],

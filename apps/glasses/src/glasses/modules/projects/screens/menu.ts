@@ -6,6 +6,7 @@ const projectsMenuDef: MenuDef = {
   title: 'PROJECTS',
   parent: 'menu',
   items: [
+    { label: 'All', target: 'projects-all' },
     { label: 'Doing', target: 'projects-doing' },
     { label: 'Ongoing', target: 'projects-ongoing' },
     { label: 'Planned', target: 'projects-planned' },
