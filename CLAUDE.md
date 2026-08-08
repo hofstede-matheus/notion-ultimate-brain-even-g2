@@ -111,7 +111,9 @@ version-specific, see `glasses/constants.ts`) with `pnpm --filter
   `READER_CHARS_PER_LINE` in `glasses/constants.ts`.
 - The offline voice model isn't in git. `pnpm dev`/`build` expect
   `apps/glasses/public/vosk/model.tar.gz`; fetch it with
-  `pnpm --filter @notion-ub/glasses fetch:voice-model`.
+  `pnpm --filter @notion-ub/glasses fetch:voice-model`. The script takes an optional
+  language key (default English) — see README's "Building with a different voice-input
+  language".
 - **Server logging.** `apps/server/src/lambda/logger.ts` wraps pino with no `transport`
   (pino-pretty/multi-target spawn a worker that loads a script by path, which doesn't
   survive the esbuild single-file bundle). Every request logs a summary; the full response

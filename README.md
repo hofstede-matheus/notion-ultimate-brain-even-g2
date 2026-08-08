@@ -189,6 +189,31 @@ pnpm --filter @notion-ub/glasses pack
 (Fetches the offline voice model on first run via `pnpm --filter @notion-ub/glasses fetch:voice-model`
 if it isn't present.)
 
+### Building with a different voice-input language
+
+Voice capture (`apps/glasses/src/stt.ts`) uses an offline [Vosk](https://alphacephei.com/vosk/)
+model that's baked into the build at package time — the app always loads it from the fixed
+path `/vosk/model.tar.gz`, so a build only ever contains one recognition language. It
+defaults to English. To build with a different one:
+
+```bash
+# see the supported language keys
+node apps/glasses/scripts/fetch-vosk-model.cjs --list
+
+# delete any previously fetched model, then fetch the one you want
+rm apps/glasses/public/vosk/model.tar.gz
+pnpm --filter @notion-ub/glasses fetch:voice-model -- fr   # note the `--`, needed for pnpm
+                                                             # to forward the arg to the script
+
+pnpm --filter @notion-ub/glasses pack   # or `build`, for a dev/sim run
+```
+
+Any Vosk model `.zip` URL can be passed instead of a key (e.g. a larger, more accurate
+model than the "small" tier) — see the full catalog at
+[alphacephei.com/vosk/models](https://alphacephei.com/vosk/models). The fetch script skips
+downloading if `public/vosk/model.tar.gz` already exists, so remove it first whenever you
+switch languages.
+
 ## Running the server on its own
 
 You don't need the glasses app or the landing page to run the API server — it's a normal
