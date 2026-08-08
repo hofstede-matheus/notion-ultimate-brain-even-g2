@@ -201,16 +201,16 @@ describe('renderFull — the bridge wiring', () => {
 
   it('renderUpdate sends a header-only upgrade and is a no-op if the screen changed', async () => {
     const h = mount();
-    h.state.screen = 'task-metadata';
-    h.state.taskMetadata = { loading: true, project: null, due: null, error: '', page: 0 };
+    h.state.screen = 'task-details';
+    h.state.taskDetails = { loading: true, project: null, due: null, error: '', page: 0 };
 
-    await renderUpdate('task-metadata');
+    await renderUpdate('task-details');
     expect(h.bridge.textContainerUpgrade).toHaveBeenCalledTimes(1);
     const arg = h.bridge.textContainerUpgrade.mock.calls[0]?.[0] as TextContainerUpgrade;
     expect(arg.content).toContain('Loading');
 
     h.state.screen = 'menu';
-    await renderUpdate('task-metadata'); // stale — user navigated away
+    await renderUpdate('task-details'); // stale — user navigated away
     expect(h.bridge.textContainerUpgrade).toHaveBeenCalledTimes(1); // unchanged
   });
 });
@@ -261,11 +261,11 @@ describe('renderFull — startup/rebuild/upgrade result codes are checked, not d
 
   it('textContainerUpgrade resolving false logs a warning without throwing', async () => {
     const h = mount();
-    h.state.screen = 'task-metadata';
-    h.state.taskMetadata = { loading: true, project: null, due: null, error: '', page: 0 };
+    h.state.screen = 'task-details';
+    h.state.taskDetails = { loading: true, project: null, due: null, error: '', page: 0 };
     h.bridge.textContainerUpgrade.mockResolvedValueOnce(false);
 
-    await expect(renderUpdate('task-metadata')).resolves.toBeUndefined();
+    await expect(renderUpdate('task-details')).resolves.toBeUndefined();
 
     const warnings = getLogSnapshot().filter((r) => r.level === 'warn');
     expect(warnings.some((r) => r.msg.includes('header textContainerUpgrade rejected'))).toBe(true);

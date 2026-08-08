@@ -9,7 +9,7 @@ import { navigate, startSpinner, stopSpinner } from '../_shared/navigation';
 // Note action menu — reached by tapping a note in any Notes list screen.
 // Offers Open page / Load metadata / Delete note. A note's metadata is just
 // its Project — Notes have no Due property, so note-metadata.ts (unlike
-// task-metadata.ts) never asks for one.
+// task-details.ts) never asks for one.
 // ---------------------------------------------------------------------------
 
 export function openNoteActions(noteId: string, noteName: string, returnTo: ScreenName): void {

@@ -54,7 +54,7 @@ import { next7DaysScreen } from './modules/tasks/screens/next-7-days';
 import { overdueScreen } from './modules/tasks/screens/overdue';
 import { taskActionsScreen } from './modules/tasks/screens/task-actions';
 import { taskDueDateScreen } from './modules/tasks/screens/task-due-date';
-import { taskMetadataScreen } from './modules/tasks/screens/task-metadata';
+import { taskDetailsScreen } from './modules/tasks/screens/task-details';
 import { todayScreen } from './modules/tasks/screens/today';
 import { tomorrowScreen } from './modules/tasks/screens/tomorrow';
 import type { AppGlassAction, GlassCtx, ScreenDisplay, ScreenModule } from './types';
@@ -104,7 +104,7 @@ export const SCREENS: Record<string, ScreenModule> = {
   'mark-done-confirm': markDoneConfirmScreen,
   'mark-done-toast': markDoneToastScreen,
   'task-actions': taskActionsScreen,
-  'task-metadata': taskMetadataScreen,
+  'task-details': taskDetailsScreen,
   'task-due-date': taskDueDateScreen,
   'due-date-confirm': dueDateConfirmScreen,
   'due-date-toast': dueDateToastScreen,

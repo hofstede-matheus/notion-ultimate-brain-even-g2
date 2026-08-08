@@ -11,7 +11,7 @@ type SelectedTask = NonNullable<AppState['selectedTask']>;
  * effects can't drift apart as entries are added.
  */
 const ACTIONS: Array<{ label: string; run: (task: SelectedTask, ctx: GlassCtx) => void }> = [
-  { label: 'Task Details', run: (_task, ctx) => ctx.enterTaskMetadata() },
+  { label: 'Task Details', run: (_task, ctx) => ctx.enterTaskDetails() },
   {
     label: 'Open page',
     run: (task, ctx) => ctx.openPage(task.taskId, task.taskName, 'task-actions'),

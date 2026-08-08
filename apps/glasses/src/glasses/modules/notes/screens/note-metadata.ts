@@ -8,7 +8,7 @@ const TEXT_INNER_W = SCREEN_W - 2 * CONTAINER_PADDING;
 const PROJECT_PREFIX = 'Project: ';
 
 /**
- * A note's metadata is just its Project — unlike task-metadata.ts, there's no
+ * A note's metadata is just its Project — unlike task-details.ts, there's no
  * Due date to show: Notes carry no Due property.
  */
 export const noteMetadataScreen: ScreenModule = {

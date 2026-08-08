@@ -24,18 +24,18 @@ function detailPages(taskName: string, project: string | null, due: string | nul
   );
 }
 
-export const taskMetadataScreen: ScreenModule = {
+export const taskDetailsScreen: ScreenModule = {
   display(state) {
-    const meta = state.taskMetadata;
+    const details = state.taskDetails;
 
-    if (!meta || meta.loading) {
+    if (!details || details.loading) {
       return {
         mode: 'text',
         content: [buildHeaderLine('TASK DETAILS', state.spinnerFrame), '', 'Loading…'].join('\n'),
       };
     }
 
-    if (meta.error) {
+    if (details.error) {
       // Unbounded server error — an overflowing line re-arms the firmware's
       // internal scroll (see constants.ts's reader-pagination comments).
       return {
@@ -43,7 +43,7 @@ export const taskMetadataScreen: ScreenModule = {
         content: [
           buildHeaderLine('TASK DETAILS', ''),
           '',
-          pxTruncate(meta.error, TEXT_INNER_W),
+          pxTruncate(details.error, TEXT_INNER_W),
           '',
           'Double-tap to go back.',
         ].join('\n'),
@@ -52,10 +52,10 @@ export const taskMetadataScreen: ScreenModule = {
 
     const pages = detailPages(
       state.selectedTask?.taskName ?? '(unknown task)',
-      meta.project,
-      meta.due,
+      details.project,
+      details.due,
     );
-    const pageIndex = Math.min(meta.page, pages.length - 1);
+    const pageIndex = Math.min(details.page, pages.length - 1);
     const indicator = pages.length > 1 ? `${pageIndex + 1}/${pages.length}` : '';
     return {
       mode: 'text',
@@ -72,19 +72,19 @@ export const taskMetadataScreen: ScreenModule = {
       return;
     }
 
-    const meta = _state.taskMetadata;
-    if (!meta || meta.loading || meta.error) return;
+    const details = _state.taskDetails;
+    if (!details || details.loading || details.error) return;
 
     const pages = detailPages(
       _state.selectedTask?.taskName ?? '(unknown task)',
-      meta.project,
-      meta.due,
+      details.project,
+      details.due,
     );
     if (action.type === 'HIGHLIGHT_MOVE') {
-      ctx.turnTaskMetadataPage(action.direction === 'down' ? 1 : -1, pages.length);
+      ctx.turnTaskDetailsPage(action.direction === 'down' ? 1 : -1, pages.length);
       return;
     }
 
-    if (action.type === 'SELECT_HIGHLIGHTED') ctx.turnTaskMetadataPage(1, pages.length);
+    if (action.type === 'SELECT_HIGHLIGHTED') ctx.turnTaskDetailsPage(1, pages.length);
   },
 };

@@ -23,7 +23,7 @@ export function resetState(): void {
   state.pendingAction = null;
   state.selectedTask = null;
   state.dueDatePicker = null;
-  state.taskMetadata = null;
+  state.taskDetails = null;
   state.selectedNote = null;
   state.noteMetadata = null;
   state.projectPicker = null;

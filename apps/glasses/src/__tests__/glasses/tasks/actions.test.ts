@@ -66,14 +66,14 @@ describe('Task Details', () => {
     h.dispatch(select(0)); // Task Details
     await h.settle();
 
-    expect(h.state.taskMetadata).toEqual({
+    expect(h.state.taskDetails).toEqual({
       loading: false,
       project: 'Groceries',
       due: '2026-07-25',
       error: '',
       page: 0,
     });
-    expect(h.state.screen).toBe('task-metadata');
+    expect(h.state.screen).toBe('task-details');
     const display = h.render();
     expect(display.mode).toBe('text');
     if (display.mode === 'text') {
@@ -122,7 +122,7 @@ describe('Task Details', () => {
     h.dispatch(select(0));
     await h.settle();
 
-    expect(h.state.taskMetadata).toMatchObject({ loading: false, error: 'offline' });
+    expect(h.state.taskDetails).toMatchObject({ loading: false, error: 'offline' });
   });
 
   it('GO_BACK from metadata returns to the task action menu', () => {

@@ -21,23 +21,23 @@ export function openTaskActions(
   navigate('task-actions');
 }
 
-export async function enterTaskMetadata(): Promise<void> {
+export async function enterTaskDetails(): Promise<void> {
   const selected = state.selectedTask;
   if (!selected) return;
 
-  state.taskMetadata = { loading: true, project: null, due: null, error: '', page: 0 };
-  navigate('task-metadata');
+  state.taskDetails = { loading: true, project: null, due: null, error: '', page: 0 };
+  navigate('task-details');
 
-  const spinner = startSpinner(() => void renderUpdate('task-metadata'));
+  const spinner = startSpinner(() => void renderUpdate('task-details'));
 
   try {
     const { project, due } = await fetchPageMetadata(selected.taskId);
     trace.info('API', 'task metadata loaded', { id: selected.taskId, project, due });
-    state.taskMetadata = { loading: false, project, due, error: '', page: 0 };
+    state.taskDetails = { loading: false, project, due, error: '', page: 0 };
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
     trace.error('API', `task metadata failed: ${msg}`, { id: selected.taskId });
-    state.taskMetadata = {
+    state.taskDetails = {
       loading: false,
       project: null,
       due: null,
@@ -46,14 +46,14 @@ export async function enterTaskMetadata(): Promise<void> {
     };
   } finally {
     stopSpinner(spinner);
-    if (state.screen === 'task-metadata') void renderFull();
+    if (state.screen === 'task-details') void renderFull();
   }
 }
 
-export function turnTaskMetadataPage(delta: number, totalPages: number): void {
-  const metadata = state.taskMetadata;
-  if (!metadata || metadata.loading || metadata.error || totalPages < 2) return;
+export function turnTaskDetailsPage(delta: number, totalPages: number): void {
+  const details = state.taskDetails;
+  if (!details || details.loading || details.error || totalPages < 2) return;
 
-  metadata.page = Math.max(0, Math.min(metadata.page + delta, totalPages - 1));
+  details.page = Math.max(0, Math.min(details.page + delta, totalPages - 1));
   void renderFull();
 }
