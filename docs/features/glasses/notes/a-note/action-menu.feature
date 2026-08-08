@@ -14,7 +14,7 @@ Feature: What can be done with a note
     Then the glasses show the note's name as the header
     And the choices are, in order:
       | Open page      |
-      | Load metadata  |
+      | Note Details   |
       | Change project |
       | Delete note    |
 
@@ -31,7 +31,7 @@ Feature: What can be done with a note
     Examples:
       | choice         | result                             |
       | Open page      | the note opens in the page reader  |
-      | Load metadata  | the glasses show "NOTE DETAILS"    |
+      | Note Details   | the glasses show "NOTE DETAILS"    |
       | Change project | the "MOVE TO" project picker opens |
       | Delete note    | the glasses show "DELETE?"         |
 
@@ -44,6 +44,7 @@ Feature: What can be done with a note
     Given a note whose name is wider than the display
     When I open its action menu
     Then the header shows as much of the name as fits, ending with "…"
+    And "Note Details" shows the name in full
 
   Scenario: Backing out returns to the list the note came from
     Given I opened a note from one of the note lists

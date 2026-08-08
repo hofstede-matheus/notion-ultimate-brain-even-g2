@@ -17,7 +17,7 @@ import { journalScreen } from './modules/notes/screens/journal';
 import { meetingsScreen } from './modules/notes/screens/meetings';
 import { notesMenuScreen } from './modules/notes/screens/menu';
 import { noteActionsScreen } from './modules/notes/screens/note-actions';
-import { noteMetadataScreen } from './modules/notes/screens/note-metadata';
+import { noteDetailsScreen } from './modules/notes/screens/note-details';
 import { notesListScreen } from './modules/notes/screens/notes';
 import { voiceNotesScreen } from './modules/notes/screens/voice';
 import { archivedScreen } from './modules/projects/screens/archived';
@@ -109,7 +109,7 @@ export const SCREENS: Record<string, ScreenModule> = {
   'due-date-confirm': dueDateConfirmScreen,
   'due-date-toast': dueDateToastScreen,
   'note-actions': noteActionsScreen,
-  'note-metadata': noteMetadataScreen,
+  'note-details': noteDetailsScreen,
   'page-content': pageContentScreen,
   'delete-confirm': deleteConfirmScreen,
   'delete-toast': deleteToastScreen,

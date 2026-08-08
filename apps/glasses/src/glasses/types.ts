@@ -70,8 +70,8 @@ export interface GlassCtx {
   /** Double-tap within the due-date picker — steps back a phase, or exits to task-actions from 'week'. */
   dueDatePickerBack(): void;
   openNoteActions(noteId: string, noteName: string, returnTo: ScreenName): void;
-  /** A note's metadata is just its Project — Notes have no Due date. */
-  enterNoteMetadata(): void;
+  /** A note's details are its name and Project — Notes have no Due date. */
+  enterNoteDetails(): void;
   /** Opens the project picker for a task or note, seeded from its action menu. */
   openProjectPicker(
     itemId: string,

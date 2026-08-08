@@ -121,7 +121,7 @@ notes/
   note-lists.feature                       the lists themselves
   a-note/
     action-menu.feature                    the four things a note can do
-    note-details.feature                   its project
+    note-details.feature                   its full title and project
     open-page/
       reading.feature                      reading it a screenful at a time
     change-project/

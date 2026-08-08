@@ -46,7 +46,7 @@ export type ScreenName =
   | 'due-date-confirm'
   | 'due-date-toast'
   | 'note-actions'
-  | 'note-metadata'
+  | 'note-details'
   | 'page-content'
   | 'delete-confirm'
   | 'delete-toast'
@@ -140,13 +140,13 @@ export interface AppState {
     error: string;
   } | null;
 
-  // The note the action menu / metadata / delete flow is operating on —
+  // The note the action menu / details / delete flow is operating on —
   // mirrors selectedTask/taskDetails, kept as its own pair rather than
   // merged with the task versions since the two menus offer different
-  // actions and a note's metadata has no Due date to carry.
+  // actions and a note's details have no Due date to carry.
   selectedNote: { noteId: string; noteName: string; returnTo: ScreenName } | null;
 
-  noteMetadata: {
+  noteDetails: {
     loading: boolean;
     project: string | null;
     error: string;
@@ -220,7 +220,7 @@ export const state: AppState = {
   dueDatePicker: null,
   taskDetails: null,
   selectedNote: null,
-  noteMetadata: null,
+  noteDetails: null,
   projectPicker: null,
   pageContent: null,
   actionToast: null,
