@@ -137,7 +137,7 @@ export function SettingsForm() {
           />
           <p className="text-[12px] text-text-dim mt-1">
             Enable Read, Update, and Insert content in Capabilities, then grant Content access only
-            to the Ultimate Brain page — not the whole workspace.
+            to the Ultimate Brain page — not the whole workspace — to keep the token scoped.
           </p>
         </div>
 
