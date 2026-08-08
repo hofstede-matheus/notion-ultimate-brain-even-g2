@@ -43,6 +43,10 @@ IDs via the `X-Notion-Config` header; the server stores no credentials.
   TenantConfig, NotionDatabaseSummary, Notion page shapes). Import cross-app types from
   here, not by reaching into another app.
 - `packages/typescript-config` — `base.json` + `dom.json` (glasses) + `node.json` (server).
+- `docs/features/` — Gherkin specs of every user-facing flow (glasses UI + phone webview),
+  documentation only, no runner. See [docs/README.md](docs/README.md) for the index and
+  conventions; read the relevant `.feature` file before changing behaviour it describes, and
+  update it in the same change if the behaviour moves.
 
 ## Commands (run from repo root; turbo fans out)
 

@@ -17,7 +17,7 @@ import { journalScreen } from './modules/notes/screens/journal';
 import { meetingsScreen } from './modules/notes/screens/meetings';
 import { notesMenuScreen } from './modules/notes/screens/menu';
 import { noteActionsScreen } from './modules/notes/screens/note-actions';
-import { noteMetadataScreen } from './modules/notes/screens/note-metadata';
+import { noteDetailsScreen } from './modules/notes/screens/note-details';
 import { notesListScreen } from './modules/notes/screens/notes';
 import { voiceNotesScreen } from './modules/notes/screens/voice';
 import { allProjectsScreen } from './modules/projects/screens/all';
@@ -54,8 +54,8 @@ import { tasksMenuScreen } from './modules/tasks/screens/menu';
 import { next7DaysScreen } from './modules/tasks/screens/next-7-days';
 import { overdueScreen } from './modules/tasks/screens/overdue';
 import { taskActionsScreen } from './modules/tasks/screens/task-actions';
+import { taskDetailsScreen } from './modules/tasks/screens/task-details';
 import { taskDueDateScreen } from './modules/tasks/screens/task-due-date';
-import { taskMetadataScreen } from './modules/tasks/screens/task-metadata';
 import { todayScreen } from './modules/tasks/screens/today';
 import { tomorrowScreen } from './modules/tasks/screens/tomorrow';
 import type { AppGlassAction, GlassCtx, ScreenDisplay, ScreenModule } from './types';
@@ -106,12 +106,12 @@ export const SCREENS: Record<string, ScreenModule> = {
   'mark-done-confirm': markDoneConfirmScreen,
   'mark-done-toast': markDoneToastScreen,
   'task-actions': taskActionsScreen,
-  'task-metadata': taskMetadataScreen,
+  'task-details': taskDetailsScreen,
   'task-due-date': taskDueDateScreen,
   'due-date-confirm': dueDateConfirmScreen,
   'due-date-toast': dueDateToastScreen,
   'note-actions': noteActionsScreen,
-  'note-metadata': noteMetadataScreen,
+  'note-details': noteDetailsScreen,
   'page-content': pageContentScreen,
   'delete-confirm': deleteConfirmScreen,
   'delete-toast': deleteToastScreen,

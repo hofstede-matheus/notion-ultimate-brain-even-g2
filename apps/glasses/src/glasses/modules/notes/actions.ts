@@ -7,9 +7,9 @@ import { navigate, startSpinner, stopSpinner } from '../_shared/navigation';
 
 // ---------------------------------------------------------------------------
 // Note action menu — reached by tapping a note in any Notes list screen.
-// Offers Open page / Load metadata / Delete note. A note's metadata is just
-// its Project — Notes have no Due property, so note-metadata.ts (unlike
-// task-metadata.ts) never asks for one.
+// Offers Open page / Note Details / Delete note. A note's details are its
+// name and Project — Notes have no Due property, so note-details.ts (unlike
+// task-details.ts) never shows one.
 // ---------------------------------------------------------------------------
 
 export function openNoteActions(noteId: string, noteName: string, returnTo: ScreenName): void {
@@ -18,29 +18,29 @@ export function openNoteActions(noteId: string, noteName: string, returnTo: Scre
   navigate('note-actions');
 }
 
-export async function enterNoteMetadata(): Promise<void> {
+export async function enterNoteDetails(): Promise<void> {
   const selected = state.selectedNote;
   if (!selected) return;
 
-  state.noteMetadata = { loading: true, project: null, error: '' };
-  navigate('note-metadata');
+  state.noteDetails = { loading: true, project: null, error: '' };
+  navigate('note-details');
 
-  const spinner = startSpinner(() => void renderUpdate('note-metadata'));
+  const spinner = startSpinner(() => void renderUpdate('note-details'));
 
   try {
     const { project } = await fetchPageMetadata(selected.noteId);
     trace.info('API', 'note metadata loaded', { id: selected.noteId, project });
-    state.noteMetadata = { loading: false, project, error: '' };
+    state.noteDetails = { loading: false, project, error: '' };
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
     trace.error('API', `note metadata failed: ${msg}`, { id: selected.noteId });
-    state.noteMetadata = {
+    state.noteDetails = {
       loading: false,
       project: null,
       error: msg,
     };
   } finally {
     stopSpinner(spinner);
-    if (state.screen === 'note-metadata') void renderFull();
+    if (state.screen === 'note-details') void renderFull();
   }
 }
