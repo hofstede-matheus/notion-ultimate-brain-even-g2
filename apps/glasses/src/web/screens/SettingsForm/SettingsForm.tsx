@@ -136,8 +136,8 @@ export function SettingsForm() {
             error={tokenError ?? (touched && !token.trim())}
           />
           <p className="text-[12px] text-text-dim mt-1">
-            In the integration's Content access tab, grant access to only the Ultimate Brain page —
-            not the whole workspace. This keeps the token scoped and the database lists below short.
+            Enable Read, Update, and Insert content in Capabilities, then grant Content access only
+            to the Ultimate Brain page — not the whole workspace — to keep the token scoped.
           </p>
         </div>
 
