@@ -57,10 +57,9 @@
               transmitted and never stored.</li>
             <li>There is <span class="font-normal">no analytics, telemetry, crash reporting, advertising, or
                 cookies</span> &mdash; not in the app, not on this website.</li>
-            <li>The one thing retained server-side is a request log &mdash; and right now <span
-                class="font-normal">it includes the content of responses</span>, so task and note titles pass
-              through it. Read &ldquo;What the server sees and what it logs&rdquo; below; it's the part of this page
-              that matters most.</li>
+            <li><span class="font-normal">No personal data is logged.</span> A successful request is not logged at
+              all; a failed one records only a status code, the route pattern, and an error category &mdash; no
+              titles, no page IDs, no content.</li>
           </ul>
 
           <h3 class="font-desktop-title-xsmall">Who runs this</h3>
@@ -105,30 +104,38 @@
           <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">While handling a request,
             the server necessarily sees your token and whatever Notion sends back &mdash; task titles, note titles,
             page content. That data lives in memory for the duration of the request and is not persisted.</p>
-          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">A log line is written for
-            every request. It contains the HTTP method, the request path, the response status, how long the request
-            took, and the response size. <span class="font-normal">The request path includes Notion page IDs</span>
-            &mdash; a URL like <code>/api/pages/&lt;id&gt;/markdown</code> reveals that a particular page was opened
-            and when. The IDs are opaque identifiers, not titles, but they are stable and they do identify specific
-            pages in your workspace.</p>
-          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Beyond that, the server has
-            a verbose logging mode, and <span class="font-normal">it is currently switched on</span>. While it is,
-            the full body of every response is written to the log as well &mdash; which means <span
-              class="font-normal">your task titles, note titles, project and tag names, and the text of any page you
-              open</span> pass through the log, not just the IDs. It was turned on for debugging and it should be
-            turned off; this page will be updated when it is. Until then, assume the server keeps a copy of what you
-            read and write through it.</p>
-          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">With verbose mode off,
-            response bodies are logged only when a request <span class="font-normal">fails</span> &mdash; a 4xx or
-            5xx &mdash; so that the error can be diagnosed.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large"><span
+              class="font-normal">No personal data is logged.</span> Not your token, not your task or note titles,
+            not page content, not Notion page IDs, not your IP address. A request that succeeds produces <span
+              class="font-normal">no log line at all</span>.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">When a request <span
+            class="font-normal">fails</span>, one line is written, and it holds four things:</p>
+          <ul class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">
+            <li>The HTTP method &mdash; <code>GET</code>, <code>POST</code> and so on.</li>
+            <li>The route <span class="font-normal">pattern</span>, such as
+              <code>/api/pages/:id/markdown</code>. Note the <code>:id</code>: the pattern is recorded, never the
+              real address, so which page you opened isn't in the log.
+            </li>
+            <li>The status code, such as <code>500</code>.</li>
+            <li>An error category from Notion, such as <code>object_not_found</code> or
+              <code>rate_limited</code> &mdash; the code only. Notion's error <span class="font-normal">messages</span>
+              quote page IDs and titles, so they are not logged either.
+            </li>
+          </ul>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">That is the entire log
+            record. It's enough to see that something broke and roughly where, and not enough to learn anything about
+            you. Request headers never reach the logging code at all, which is why the token can't end up there by
+            accident, and response bodies are never written &mdash; not even on an error.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">This is not a setting.
+            There is no environment variable, deploy option, or verbose mode that makes the server log more than the
+            four fields above &mdash; the deployed function is configured with no such switch, and the logging code
+            reads none. The behaviour is covered by tests that fail if a field is added, so widening it means
+            changing the tests on purpose rather than flipping something by accident.</p>
           <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Logs are written to AWS
-            CloudWatch in the <code>us-east-1</code> region and are readable only by the maintainer. No retention
-            period is currently enforced, which means they are kept by default rather than automatically expired.
-            They are not shared with anyone, sold, or used for advertising, training, or any purpose beyond fixing
-            bugs.</p>
-          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">If none of that sits well
-            with you &mdash; entirely reasonable &mdash; <a href="#own-server">run your own server</a>. Then there is
-            no log but yours.</p>
+            CloudWatch in the <code>us-east-1</code> region and are readable only by the maintainer. They are not
+            shared with anyone, sold, or used for advertising, training, or any purpose beyond fixing bugs.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">If you would rather no
+            third-party server saw your data even in passing, <a href="#own-server">run your own</a>.</p>
           <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">One more thing travels in
             the configuration header: <span class="font-normal">your device's time zone</span>, which the app needs
             so that &ldquo;today&rdquo; and &ldquo;this week&rdquo; mean the right thing for you. A time zone is a
@@ -236,8 +243,9 @@
             <li>Your Notion content is yours and is unaffected &mdash; deleting the app deletes no tasks or notes.
             </li>
           </ul>
-          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">For the server-side request
-            logs, which contain page IDs and no content, open a GitHub issue and they can be purged on request.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">There is nothing to delete
+            on the server side: it holds no account, no copy of your content, and its failure logs contain no data
+            that identifies you or your pages.</p>
 
           <h3 class="font-desktop-title-xsmall">Children</h3>
           <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">This app is not directed at

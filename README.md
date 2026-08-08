@@ -65,9 +65,14 @@ packages/
   `src/lambda/handler.ts` for production (bundled with esbuild, deployed via Terraform as
   an AWS Lambda Function URL — see `apps/server/terraform/`). Most routes sit behind the
   full tenant gate; `GET /api/databases` is the one token-only route, since the settings
-  form's database picker runs before any database ID is known. Requests are logged as
-  structured JSON via [pino](https://getpino.io) (`src/lambda/logger.ts`); set `DEBUG=true`
-  to include full response bodies on every call instead of only failed ones.
+  form's database picker runs before any database ID is known. Logging is deliberately
+  sparse and is a promise made publicly on the [privacy page](apps/landing-page/legal.html):
+  a successful request logs nothing, a failure logs only
+  `{ method, route, status, errorCode? }` via [pino](https://getpino.io)
+  (`src/lambda/logger.ts`), and `route` is the pattern (`/api/pages/:id`) rather than the
+  real path, which would carry Notion page IDs. No response bodies, no error messages, no
+  headers, and no flag to turn any of it back on — see "Server logging" in
+  [CLAUDE.md](CLAUDE.md) before changing it.
 - **`apps/landing-page`** — a static, script-free marketing site (markup derived from the
   Even Hub developer portal with its Nuxt/Vue runtime stripped out; see its own
   [README](apps/landing-page/README.md) for how it was built). `pnpm build` just copies
@@ -280,7 +285,7 @@ to this project's own AWS account and Terraform Cloud workspace (`apps/server/te
 To deploy your own fork, point that `cloud { organization / workspaces }` block at your own
 Terraform Cloud org, and replace the repo's `TF_API_TOKEN` GitHub Actions secret with your
 own Terraform Cloud API token — plus `AWS_DEPLOY_ROLE_ARN` (see the bootstrap note at the
-top of `terraform/github-oidc.tf`) and, optionally, the `DEBUG` repo variable.
+top of `terraform/github-oidc.tf`).
 
 ## Deploying the landing page
 

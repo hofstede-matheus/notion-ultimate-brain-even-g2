@@ -10,12 +10,18 @@ vi.mock('../notion-client', () => ({
 }));
 
 // Real pino I/O isn't needed here — these tests assert response shape, not
-// log output (that's covered by logger.test.ts's summarizeResult tests).
+// log output (that's covered by logger.test.ts's summarizeFailure tests).
+// `summarizeFailure` stays un-mocked so the assertions below see what would
+// really have been written.
+// vi.hoisted, not a plain const: vi.mock is hoisted above module-level
+// declarations, and this factory dereferences the spy immediately (unlike the
+// notion-client one above, which only touches `query` when called).
+const { logError } = vi.hoisted(() => ({ logError: vi.fn() }));
 vi.mock('../lambda/logger', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lambda/logger')>();
   return {
     ...actual,
-    logger: { info: vi.fn() },
+    logger: { error: logError, info: vi.fn() },
     flushLogger: vi.fn().mockResolvedValue(undefined),
   };
 });
@@ -120,5 +126,78 @@ describe('lambda handler', () => {
     const res = await handler(event({ rawPath: '/api/databases' }));
     expect(res.statusCode).toBe(401);
     expect(JSON.parse(res.body)).toEqual({ error: 'Missing or invalid Notion token' });
+  });
+
+  // What actually reaches CloudWatch. These guard the promise made on the
+  // public privacy page: nothing on success, and no user data on failure.
+  describe('logging', () => {
+    const PAGE_ID = '8a4b2c1d9e7f4a3b8c6d5e4f3a2b1c0d';
+
+    it('writes no log line at all for a successful request', async () => {
+      const res = await handler(event({ headers: { 'x-notion-config': tenantHeader() } }));
+      expect(res.statusCode).toBe(200);
+      expect(logError).not.toHaveBeenCalled();
+    });
+
+    it('logs the route pattern, not the path with the page ID in it', async () => {
+      await handler(
+        event({
+          requestContext: { http: { method: 'DELETE' } },
+          rawPath: `/api/pages/${PAGE_ID}`,
+        }),
+      );
+
+      expect(logError).toHaveBeenCalledTimes(1);
+      const [entry] = logError.mock.calls[0];
+      expect(entry).toEqual({ method: 'DELETE', route: '/api/pages/:id', status: 401 });
+      expect(JSON.stringify(entry)).not.toContain(PAGE_ID);
+    });
+
+    it('does not log the raw path of an unmatched request', async () => {
+      await handler(event({ rawPath: `/api/nope/${PAGE_ID}` }));
+
+      const [entry] = logError.mock.calls[0];
+      expect(entry).toEqual({ method: 'GET', route: 'unmatched', status: 404 });
+      expect(JSON.stringify(entry)).not.toContain(PAGE_ID);
+    });
+
+    it('does not log the response body on a 500', async () => {
+      query.mockRejectedValueOnce(new Error(`Could not find page "Therapy notes" (${PAGE_ID})`));
+
+      const res = await handler(event({ headers: { 'x-notion-config': tenantHeader() } }));
+      expect(res.statusCode).toBe(500);
+
+      // `/api/tasks/inbox` is a static route pattern — the view name is app
+      // vocabulary, not user data. Patterns that carry an identifier all use a
+      // `:param` placeholder (`/api/pages/:id`), which is what keeps page IDs
+      // out of the log.
+      const [entry] = logError.mock.calls[0];
+      expect(entry).toEqual({
+        method: 'GET',
+        route: '/api/tasks/inbox',
+        status: 500,
+        errorCode: 'unhandled_error',
+      });
+      const written = JSON.stringify(entry);
+      expect(written).not.toContain('Therapy notes');
+      expect(written).not.toContain(PAGE_ID);
+    });
+
+    it('never receives the tenant headers', async () => {
+      await handler(
+        event({
+          rawPath: `/api/pages/${PAGE_ID}`,
+          requestContext: { http: { method: 'DELETE' } },
+          headers: { 'x-notion-config': tenantHeader(), 'x-notion-token': 'ntn_supersecret' },
+        }),
+      );
+
+      for (const call of logError.mock.calls) {
+        const written = JSON.stringify(call);
+        expect(written).not.toContain('ntn_supersecret');
+        expect(written).not.toContain('secret');
+        expect(written).not.toContain(tenantHeader());
+      }
+    });
   });
 });

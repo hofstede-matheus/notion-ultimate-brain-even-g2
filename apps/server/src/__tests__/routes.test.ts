@@ -622,7 +622,13 @@ describe('GET /api/databases', () => {
 
     const res = await invokeRoute(route('GET', '/api/databases'), ctx(notion));
 
-    expect(res).toEqual({ status: 500, body: { error: 'notion down' } });
+    // The message goes back to the caller; `errorCode` is the log-safe half
+    // that never quotes IDs or titles (see lambda/logger.ts).
+    expect(res).toEqual({
+      status: 500,
+      body: { error: 'notion down' },
+      errorCode: 'unhandled_error',
+    });
   });
 });
 

@@ -1,5 +1,5 @@
 import { ROUTES, runRoute } from '../routes';
-import { flushLogger, logger, summarizeResult } from './logger';
+import { flushLogger, logger, summarizeFailure } from './logger';
 import { matchRoute } from './match-route';
 
 // Minimal shape of a Lambda Function URL event/response — avoids taking a
@@ -34,7 +34,6 @@ function parseBody(event: LambdaFunctionUrlEvent): unknown {
 export async function handler(event: LambdaFunctionUrlEvent): Promise<LambdaFunctionUrlResult> {
   const method = event.requestContext.http.method;
   const path = event.rawPath;
-  const start = Date.now();
 
   const match = matchRoute(ROUTES, method, path);
   const result = match
@@ -48,11 +47,23 @@ export async function handler(event: LambdaFunctionUrlEvent): Promise<LambdaFunc
       })
     : { status: 404, body: { error: `No route for ${method} ${path}` } };
 
-  // Never pass event.headers/tenantHeader/tokenHeader into the logger — only
-  // `result` carries the tenant's Notion token risk, and it never contains
-  // one (routes.ts never echoes the token back in a response body).
-  logger.info(summarizeResult(method, path, result, Date.now() - start), 'request');
-  await flushLogger();
+  // Two rules hold this together, and both are load-bearing:
+  //
+  // 1. Never pass event.headers/tenantHeader/tokenHeader to the logger. It
+  //    doesn't accept them, so this can't happen by accident — don't widen
+  //    the signature to make it possible.
+  // 2. Log `match.route.path` (the pattern) and never `path` itself. The raw
+  //    path embeds Notion page IDs; the pattern doesn't. An unmatched request
+  //    has no pattern to report, and its raw path is exactly the kind of thing
+  //    worth not writing down, so it logs as 'unmatched'.
+  //
+  // Successful requests log nothing at all; summarizeFailure returns undefined
+  // and there is no second call site that logs on the happy path.
+  const entry = summarizeFailure(method, match ? match.route.path : 'unmatched', result);
+  if (entry) {
+    logger.error(entry, 'request failed');
+    await flushLogger();
+  }
 
   return {
     statusCode: result.status,

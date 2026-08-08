@@ -55,6 +55,14 @@ export interface RouteContext {
 export interface RouteResult {
   status: number;
   body: unknown;
+  /**
+   * A Notion API error code (`object_not_found`, `rate_limited`, …) when the
+   * failure came from Notion. Log-only: both entry points serialize `body`
+   * alone, so this never reaches the client. It exists so a failure can be
+   * diagnosed from a category without logging the error *message*, which
+   * quotes page IDs and titles. See `lambda/logger.ts`.
+   */
+  errorCode?: string;
 }
 
 // Context for handlers behind the tenant gate: `notion` and `db` are the
@@ -124,8 +132,15 @@ export async function invokeRoute(route: Route, ctx: RouteContext): Promise<Rout
     return await route.handler(ctx);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`[server] ${route.method} ${route.path} error:`, message);
-    return { status: 500, body: { error: message } };
+    // The message goes back to the device, which is the user's own data
+    // returning to them. It must not be logged: Notion's error text quotes
+    // page IDs and titles. `errorCode` is the loggable half — see
+    // RouteResult.errorCode and lambda/logger.ts.
+    return {
+      status: 500,
+      body: { error: message },
+      errorCode: isNotionClientError(err) ? err.code : 'unhandled_error',
+    };
   }
 }
 

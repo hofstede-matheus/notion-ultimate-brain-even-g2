@@ -1,47 +1,80 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { summarizeResult } from '../lambda/logger';
+import { describe, expect, it } from 'vitest';
+import { summarizeFailure } from '../lambda/logger';
 import type { RouteResult } from '../routes';
 
-const ORIGINAL_DEBUG = process.env.DEBUG;
-afterEach(() => {
-  process.env.DEBUG = ORIGINAL_DEBUG;
-});
+describe('summarizeFailure', () => {
+  it('logs nothing at all for a successful call', () => {
+    const result: RouteResult = { status: 200, body: { tasks: [{ id: 'p1', name: 'Buy milk' }] } };
+    expect(summarizeFailure('GET', '/api/tasks/inbox', result)).toBeUndefined();
+  });
 
-describe('summarizeResult', () => {
-  it('omits the body for a successful call', () => {
-    const result: RouteResult = { status: 200, body: { tasks: [] } };
-    const entry = summarizeResult('GET', '/api/tasks/inbox', result, 12);
-    expect(entry).toEqual({
+  it('logs nothing for any 2xx/3xx', () => {
+    for (const status of [200, 201, 204, 304]) {
+      expect(summarizeFailure('GET', '/api/tasks/inbox', { status, body: {} })).toBeUndefined();
+    }
+  });
+
+  it('reports method, route and status for a failure', () => {
+    const result: RouteResult = { status: 404, body: { error: 'No route' } };
+    expect(summarizeFailure('GET', 'unmatched', result)).toEqual({
       method: 'GET',
-      path: '/api/tasks/inbox',
-      status: 200,
-      durationMs: 12,
-      bodyBytes: Buffer.byteLength(JSON.stringify(result.body), 'utf-8'),
+      route: 'unmatched',
+      status: 404,
     });
   });
 
-  it('includes the body for a failed call', () => {
-    const result: RouteResult = { status: 404, body: { error: 'No route for GET /api/nope' } };
-    const entry = summarizeResult('GET', '/api/nope', result, 3);
-    expect(entry).toMatchObject({ status: 404, body: result.body });
+  it('includes the Notion error code when there is one', () => {
+    const result: RouteResult = {
+      status: 500,
+      body: { error: 'Could not find page with ID: 8a4b…' },
+      errorCode: 'object_not_found',
+    };
+    expect(summarizeFailure('GET', '/api/pages/:id/markdown', result)).toEqual({
+      method: 'GET',
+      route: '/api/pages/:id/markdown',
+      status: 500,
+      errorCode: 'object_not_found',
+    });
   });
 
-  it('includes the body for a 5xx call', () => {
-    const result: RouteResult = { status: 500, body: { error: 'boom' } };
-    const entry = summarizeResult('POST', '/api/tasks', result, 5);
-    expect(entry).toMatchObject({ status: 500, body: result.body });
-  });
+  // The point of the whole module. If a change makes one of these fail, the
+  // fix is to stop logging the new thing — not to update the assertion.
+  describe('privacy contract', () => {
+    it('never logs the response body, even on a 5xx', () => {
+      const result: RouteResult = {
+        status: 500,
+        body: { error: 'Could not find page "Therapy notes" (id 8a4b)' },
+        errorCode: 'object_not_found',
+      };
+      const entry = summarizeFailure('GET', '/api/pages/:id/markdown', result);
+      expect(JSON.stringify(entry)).not.toContain('Therapy notes');
+      expect(JSON.stringify(entry)).not.toContain('8a4b');
+      expect(entry).not.toHaveProperty('body');
+    });
 
-  it('includes the body for a successful call when DEBUG=true', () => {
-    process.env.DEBUG = 'true';
-    const result: RouteResult = { status: 200, body: { tasks: [] } };
-    const entry = summarizeResult('GET', '/api/tasks/inbox', result, 12);
-    expect(entry).toMatchObject({ status: 200, body: result.body });
-  });
+    it('emits only the whitelisted keys', () => {
+      const entry = summarizeFailure('POST', '/api/tasks', {
+        status: 500,
+        body: { error: 'boom' },
+        errorCode: 'internal_server_error',
+      });
+      expect(Object.keys(entry ?? {}).sort()).toEqual(['errorCode', 'method', 'route', 'status']);
+    });
 
-  it('reports the byte length of the serialized body', () => {
-    const result: RouteResult = { status: 200, body: { name: 'café' } };
-    const entry = summarizeResult('POST', '/api/tasks', result, 1);
-    expect(entry.bodyBytes).toBe(Buffer.byteLength(JSON.stringify(result.body), 'utf-8'));
+    // No environment variable may widen what is logged — the promise on the
+    // landing page has to hold for the deployed function, whatever it's
+    // deployed with. DEBUG is the name most likely to be reached for.
+    it('ignores environment variables that might be meant to raise verbosity', () => {
+      const original = { ...process.env };
+      process.env.DEBUG = 'true';
+      process.env.LOG_LEVEL = 'debug';
+      process.env.VERBOSE = '1';
+      try {
+        const result: RouteResult = { status: 200, body: { name: 'Buy milk' } };
+        expect(summarizeFailure('GET', '/api/tasks/inbox', result)).toBeUndefined();
+      } finally {
+        process.env = original;
+      }
+    });
   });
 });

@@ -44,11 +44,11 @@ resource "aws_lambda_function" "notion_backend" {
 
   role = aws_iam_role.lambda.arn
 
-  environment {
-    variables = {
-      DEBUG = var.debug
-    }
-  }
+  # No environment variables, deliberately. The function's logging guarantee is
+  # published on the landing page's legal.html: nothing on success, and no user
+  # data on failure. Don't add a verbosity flag here — a promise that a deploy
+  # variable can switch off isn't a promise. If logging needs to change, that's
+  # a code change in src/lambda/logger.ts, with tests to argue with.
 }
 
 resource "aws_lambda_function_url" "notion_backend" {

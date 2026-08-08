@@ -114,11 +114,20 @@ version-specific, see `glasses/constants.ts`) with `pnpm --filter
   `pnpm --filter @notion-ub/glasses fetch:voice-model`. The script takes an optional
   language key (default English) — see README's "Building with a different voice-input
   language".
-- **Server logging.** `apps/server/src/lambda/logger.ts` wraps pino with no `transport`
-  (pino-pretty/multi-target spawn a worker that loads a script by path, which doesn't
-  survive the esbuild single-file bundle). Every request logs a summary; the full response
-  body is added when `status >= 400` or `DEBUG=true`. Lambda freezes the execution
-  environment right after the handler returns, so `handler.ts` awaits `flushLogger()`
+- **Server logging is a privacy contract, not a convenience.** `apps/server/src/lambda/logger.ts`
+  wraps pino with no `transport` (pino-pretty/multi-target spawn a worker that loads a script
+  by path, which doesn't survive the esbuild single-file bundle). What it logs is deliberately
+  minimal and is promised publicly on the landing page's `legal.html`:
+  **successful requests log nothing at all**, and a failure logs only
+  `{ method, route, status, errorCode? }`. `route` is the route **pattern**
+  (`/api/pages/:id`), never `event.rawPath` — the raw path embeds Notion page IDs. Response
+  bodies and error *messages* are never logged in any case (they're task/note titles and page
+  markdown); `RouteResult.errorCode` carries a Notion error *code* as the loggable substitute.
+  **No env var may widen this** — the lambda ships with no environment variables at all, and
+  adding a verbosity flag would break a published promise, so don't.
+  `__tests__/logger.test.ts` and the `logging` block in `__tests__/handler.test.ts`
+  assert the exact key set; if you add a field they fail on purpose. Lambda freezes the
+  execution environment right after the handler returns, so `handler.ts` awaits `flushLogger()`
   before returning — don't add a log call after that point or it can be lost.
 - CI (`.github/workflows/ci.yml`) runs lint + `turbo run check-types test build` on PRs and
   pushes to `main`. `deploy-lambda.yml` deploys on push to `main` when `apps/server/**`
