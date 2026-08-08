@@ -120,29 +120,6 @@ export function SettingsForm() {
   return (
     <Page>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <section
-          aria-labelledby="notion-access-checklist"
-          className="rounded-lg border border-border p-3 text-[12px] text-text-dim"
-        >
-          <h2 id="notion-access-checklist" className="text-[13px] text-text mb-1">
-            Before you connect
-          </h2>
-          <ol className="list-decimal pl-4 space-y-1">
-            <li>
-              In your Notion integration&apos;s <strong>Capabilities</strong>, enable{' '}
-              <strong>Read content</strong>, <strong>Update content</strong>, and{' '}
-              <strong>Insert content</strong>.
-            </li>
-            <li>
-              In <strong>Content access</strong>, add the Ultimate Brain parent page. Its child
-              databases and pages will be available to the app.
-            </li>
-          </ol>
-          <p className="mt-2">
-            These permissions let the app list and read your content, edit existing items, and
-            create tasks and notes. Do not grant access to the whole workspace.
-          </p>
-        </section>
         <div>
           <label
             htmlFor="settings-token"
@@ -159,8 +136,8 @@ export function SettingsForm() {
             error={tokenError ?? (touched && !token.trim())}
           />
           <p className="text-[12px] text-text-dim mt-1">
-            In the integration's Content access tab, grant access to only the Ultimate Brain page —
-            not the whole workspace. This keeps the token scoped and the database lists below short.
+            Enable Read, Update, and Insert content in Capabilities, then grant Content access only
+            to the Ultimate Brain page — not the whole workspace.
           </p>
         </div>
 
