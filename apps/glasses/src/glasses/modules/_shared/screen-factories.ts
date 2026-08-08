@@ -212,6 +212,7 @@ type SelectKind = 'task' | 'project' | 'note' | 'tag' | 'project-pick';
  * would otherwise be indistinguishable by shape alone.
  */
 const PROJECT_LIST_SCREENS: ScreenName[] = [
+  'projects-all',
   'projects-doing',
   'projects-ongoing',
   'projects-planned',
@@ -303,7 +304,7 @@ export interface ListScreenConfig {
    * selectKindFor's heuristics — used by Today/Overdue/Inbox, whose items are
    * always Tasks by construction.
    */
-  onSelect?: SelectKind;
+  onSelect?: SelectKind | ((state: AppState) => SelectKind);
 }
 
 /**
@@ -404,7 +405,9 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
           }
           const item = items[start + idx];
           if (item) {
-            const kind = config.onSelect ?? selectKindFor(config.screen);
+            const configuredKind =
+              typeof config.onSelect === 'function' ? config.onSelect(state) : config.onSelect;
+            const kind = configuredKind ?? selectKindFor(config.screen);
             trace.info('SEL', `${config.screen} row ${idx} "${item.name}"`, {
               id: item.id,
               kind: kind ?? 'unknown',

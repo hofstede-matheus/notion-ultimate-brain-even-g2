@@ -244,7 +244,14 @@ export const NOTE_VIEWS: ViewConfig[] = [
 // Projects views
 // ---------------------------------------------------------------------------
 
+const PROJECT_STATUS_ON_HOLD = 'On hold';
+const PROJECT_STATUS_DONE = 'Done';
+
 export const PROJECT_VIEWS: ViewConfig[] = [
+  {
+    path: 'all',
+    sorts: [{ property: 'Meta', direction: 'ascending' }],
+  },
   {
     path: 'doing',
     filter: {
@@ -280,7 +287,7 @@ export const PROJECT_VIEWS: ViewConfig[] = [
     filter: {
       and: [
         { property: 'Archived', checkbox: { equals: false } },
-        { property: 'Status', status: { equals: 'On Hold' } },
+        { property: 'Status', status: { equals: PROJECT_STATUS_ON_HOLD } },
       ],
     },
     sorts: [{ property: 'Meta', direction: 'ascending' }],
@@ -290,7 +297,7 @@ export const PROJECT_VIEWS: ViewConfig[] = [
     filter: {
       and: [
         { property: 'Archived', checkbox: { equals: false } },
-        { property: 'Status', status: { equals: 'Done' } },
+        { property: 'Status', status: { equals: PROJECT_STATUS_DONE } },
       ],
     },
     sorts: [{ property: 'Meta', direction: 'ascending' }],

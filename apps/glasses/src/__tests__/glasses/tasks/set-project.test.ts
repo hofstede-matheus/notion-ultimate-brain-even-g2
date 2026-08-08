@@ -10,7 +10,7 @@ vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
-import { fetchBoardProjects, setPageProject } from '../../../api';
+import { fetchDoingProjects, setPageProject } from '../../../api';
 import type { ScreenName } from '../../../state';
 import { back, mount, select } from '../harness';
 
@@ -25,10 +25,11 @@ function openPicker(h: ReturnType<typeof mount>, returnScreen: ScreenName = 'inb
   h.state.lists[returnScreen] = [TASK];
   h.dispatch(select(0)); // -> task-actions
   h.dispatch(select(3)); // Change project -> project-picker
+  h.dispatch(select(2)); // Doing
 }
 
 beforeEach(() => {
-  vi.mocked(fetchBoardProjects).mockResolvedValue({
+  vi.mocked(fetchDoingProjects).mockResolvedValue({
     items: PROJECTS,
     hasMore: false,
     nextCursor: null,
@@ -40,26 +41,28 @@ afterEach(() => {
 });
 
 describe('opening the project picker', () => {
-  it('lists "— No project —" first, then projects sorted by name', async () => {
+  it('lists "— No project —" first, then project status filters', () => {
     const h = mount();
-    openPicker(h);
-    await h.settle();
-
-    expect(h.state.screen).toBe('project-picker');
+    h.state.screen = 'inbox';
+    h.state.lists.inbox = [TASK];
+    h.dispatch(select(0));
+    h.dispatch(select(3));
     expect(h.render()).toMatchObject({
       mode: 'list',
-      items: ['— No project —', 'Errands', 'Groceries'],
+      items: ['— No project —', 'All', 'Doing', 'Ongoing', 'Planned', 'On Hold', 'Done', 'Archived'],
     });
   });
 
-  it('GO_BACK returns to task-actions', async () => {
+  it('opens the selected status list and returns to the picker', async () => {
     const h = mount();
     openPicker(h);
     await h.settle();
 
+    expect(fetchDoingProjects).toHaveBeenCalled();
+    expect(h.state.screen).toBe('projects-doing');
     h.dispatch(back());
 
-    expect(h.state.screen).toBe('task-actions');
+    expect(h.state.screen).toBe('project-picker');
   });
 });
 
@@ -69,7 +72,7 @@ describe('picking a project', () => {
     openPicker(h);
     await h.settle();
 
-    h.dispatch(select(2)); // Groceries (index 0 is the sentinel)
+    h.dispatch(select(1)); // Groceries
 
     expect(h.state.screen).toBe('set-project-confirm');
     expect(h.state.pendingAction).toMatchObject({
@@ -87,6 +90,7 @@ describe('picking a project', () => {
     openPicker(h);
     await h.settle();
 
+    h.dispatch(back());
     h.dispatch(select(0)); // the sentinel row
 
     expect(h.state.pendingAction).toMatchObject({
@@ -100,7 +104,7 @@ describe('picking a project', () => {
     const h = mount();
     openPicker(h);
     await h.settle();
-    h.dispatch(select(2));
+    h.dispatch(select(1));
 
     h.dispatch(select(1)); // Cancel
 
@@ -115,7 +119,7 @@ describe('confirming a project change', () => {
     const h = mount();
     openPicker(h);
     await h.settle();
-    h.dispatch(select(2)); // Groceries
+    h.dispatch(select(1)); // Groceries
 
     h.dispatch(select(0)); // Confirm
     await h.settle();
@@ -136,7 +140,7 @@ describe('confirming a project change', () => {
     const h = mount();
     openPicker(h, 'today');
     await h.settle();
-    h.dispatch(select(2)); // Groceries
+    h.dispatch(select(1)); // Groceries
 
     h.dispatch(select(0)); // Confirm
     await h.settle();
@@ -154,6 +158,7 @@ describe('confirming a project change', () => {
     h.dispatch(select(3)); // Change project -> project-picker
     await h.settle();
 
+    h.dispatch(back());
     h.dispatch(select(0)); // the sentinel row -> confirm
     h.dispatch(select(0)); // Confirm
     await h.settle();
@@ -169,7 +174,7 @@ describe('confirming a project change', () => {
       const h = mount();
       openPicker(h);
       await h.settle();
-      h.dispatch(select(2));
+      h.dispatch(select(1));
       h.dispatch(select(0));
       await h.settle();
       expect(h.state.screen).toBe('set-project-toast');
@@ -188,7 +193,7 @@ describe('confirming a project change', () => {
     const h = mount();
     openPicker(h);
     await h.settle();
-    h.dispatch(select(2));
+    h.dispatch(select(1));
 
     h.dispatch(select(0));
     await h.settle();

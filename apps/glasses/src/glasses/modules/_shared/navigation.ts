@@ -1,5 +1,6 @@
 import {
   fetchAllNotes,
+  fetchAllProjects,
   fetchArchivedProjects,
   fetchAreaTags,
   fetchAToZTags,
@@ -65,6 +66,7 @@ const VIEW_FETCHERS: Partial<
   'notes-voice': fetchVoiceNotes,
   'notes-journal': fetchJournalNotes,
   'notes-all': fetchAllNotes,
+  'projects-all': fetchAllProjects,
   'projects-doing': fetchDoingProjects,
   'projects-ongoing': fetchOngoingProjects,
   'projects-planned': fetchPlannedProjects,

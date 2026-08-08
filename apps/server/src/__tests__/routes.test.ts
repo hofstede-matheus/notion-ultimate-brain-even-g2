@@ -462,7 +462,7 @@ describe('GET /api/projects/* status filters', () => {
     );
   });
 
-  it('on-hold filters to the On Hold status option', async () => {
+  it('on-hold filters to the On hold status option', async () => {
     const notion = fakeNotion();
     notion.databases.query.mockResolvedValue({ results: [titlePage('p3', 'Backyard')] });
 
@@ -473,7 +473,7 @@ describe('GET /api/projects/* status filters', () => {
         filter: {
           and: [
             { property: 'Archived', checkbox: { equals: false } },
-            { property: 'Status', status: { equals: 'On Hold' } },
+            { property: 'Status', status: { equals: 'On hold' } },
           ],
         },
       }),

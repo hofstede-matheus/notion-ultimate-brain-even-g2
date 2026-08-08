@@ -23,6 +23,7 @@ export type ScreenName =
   | 'notes-voice'
   | 'notes-journal'
   | 'notes-all'
+  | 'projects-all'
   | 'projects-doing'
   | 'projects-ongoing'
   | 'projects-planned'

@@ -21,6 +21,7 @@ import { noteMetadataScreen } from './modules/notes/screens/note-metadata';
 import { notesListScreen } from './modules/notes/screens/notes';
 import { voiceNotesScreen } from './modules/notes/screens/voice';
 import { archivedScreen } from './modules/projects/screens/archived';
+import { allProjectsScreen } from './modules/projects/screens/all';
 import { boardScreen } from './modules/projects/screens/board';
 import { projectDetailScreen } from './modules/projects/screens/detail';
 import { doingScreen } from './modules/projects/screens/doing';
@@ -86,6 +87,7 @@ export const SCREENS: Record<string, ScreenModule> = {
   'notes-voice': voiceNotesScreen,
   'notes-journal': journalScreen,
   'notes-all': allNotesScreen,
+  'projects-all': allProjectsScreen,
   'projects-doing': doingScreen,
   'projects-ongoing': ongoingScreen,
   'projects-planned': plannedScreen,

@@ -10,7 +10,7 @@ vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
-import { fetchBoardProjects, setPageProject } from '../../../api';
+import { fetchDoingProjects, setPageProject } from '../../../api';
 import { back, mount, select } from '../harness';
 
 const NOTE = { id: 'n1', name: 'Meeting recap' };
@@ -21,10 +21,11 @@ function openPicker(h: ReturnType<typeof mount>) {
   h.state.lists['notes-inbox'] = [NOTE];
   h.dispatch(select(0)); // -> note-actions
   h.dispatch(select(2)); // Change project -> project-picker
+  h.dispatch(select(2)); // Doing
 }
 
 beforeEach(() => {
-  vi.mocked(fetchBoardProjects).mockResolvedValue({
+  vi.mocked(fetchDoingProjects).mockResolvedValue({
     items: PROJECTS,
     hasMore: false,
     nextCursor: null,
@@ -40,14 +41,14 @@ it('opens the picker and GO_BACK returns to note-actions', async () => {
   openPicker(h);
   await h.settle();
 
-  expect(h.state.screen).toBe('project-picker');
+  expect(h.state.screen).toBe('projects-doing');
   expect(h.render()).toMatchObject({
     mode: 'list',
-    items: ['— No project —', 'Q3 Planning'],
+    items: ['Q3 Planning'],
   });
 
   h.dispatch(back());
-  expect(h.state.screen).toBe('note-actions');
+  expect(h.state.screen).toBe('project-picker');
 });
 
 it('picking a project confirms, patches the note out of the Inbox, and shows the toast', async () => {
@@ -56,7 +57,7 @@ it('picking a project confirms, patches the note out of the Inbox, and shows the
   openPicker(h);
   await h.settle();
 
-  h.dispatch(select(1)); // Q3 Planning
+  h.dispatch(select(0)); // Q3 Planning
   expect(h.state.pendingAction).toMatchObject({
     kind: 'setProject',
     itemId: 'n1',
