@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy &amp; Terms | Notion Ultimate Brain</title>
+  <meta name="description"
+    content="Privacy policy and terms of use for Notion Ultimate Brain, a GTD task manager for Even Realities G2 smart glasses.">
+  <link rel="icon" href="img/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="css/inline-a.css">
+  <link rel="stylesheet" href="css/entry.css">
+  <link rel="stylesheet" href="css/button.css">
+  <link rel="stylesheet" href="css/index.css">
+  <link rel="stylesheet" href="css/inline-b.css">
+  <link rel="stylesheet" href="css/static.css">
+</head>
+
+<body>
+  <div class="isolate">
+    <div class="min-h-screen flex flex-col">
+      <main class="flex-1 bg-neutral-900 text-white">
+        <div class="legal-prose mx-auto max-w-2xl px-4 py-16">
+
+          <div class="flex mb-6">
+            <div
+              class="px-3 py-[6px] rounded-[2px] outline-1 outline-white/10 -outline-offset-1 flex justify-center items-center">
+              <a href="index.html" class="opacity-60 text-white font-desktop-body-small">&larr; Back to home</a>
+            </div>
+          </div>
+
+          <h1 class="font-desktop-headline-small tablet:font-desktop-headline-medium text-balance">Privacy &amp; Terms
+          </h1>
+          <p class="text-white/50 font-desktop-body-small mb-6">Last updated 8 August 2026</p>
+
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">This page covers both the
+            privacy policy and the terms of use for <span class="font-normal">Notion Ultimate Brain</span>, the
+            glasses app and its accompanying phone settings screen. It's written against what the code actually does
+            &mdash; the whole thing is <a
+              href="https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2">public on GitHub</a>, so
+            every claim below is checkable.</p>
+
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Jump to <a
+              href="#privacy">Privacy Policy</a> or <a href="#terms">Terms of Use</a>.</p>
+
+          <!-- ============================ PRIVACY ============================ -->
+
+          <h2 id="privacy" class="font-desktop-title-small">Privacy Policy</h2>
+
+          <h3 class="font-desktop-title-xsmall">The short version</h3>
+          <ul class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">
+            <li>There is <span class="font-normal">no account and no sign-up</span>. No user database exists, so
+              there is nothing to sign up to.</li>
+            <li>Your Notion token lives <span class="font-normal">on your device</span>. The server uses it to make
+              one call to Notion and then forgets it.</li>
+            <li>Voice input runs <span class="font-normal">entirely offline on the glasses</span>. Audio is never
+              transmitted and never stored.</li>
+            <li>There is <span class="font-normal">no analytics, telemetry, crash reporting, advertising, or
+                cookies</span> &mdash; not in the app, not on this website.</li>
+            <li>The one thing retained server-side is a request log &mdash; and right now <span
+                class="font-normal">it includes the content of responses</span>, so task and note titles pass
+              through it. Read &ldquo;What the server sees and what it logs&rdquo; below; it's the part of this page
+              that matters most.</li>
+          </ul>
+
+          <h3 class="font-desktop-title-xsmall">Who runs this</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">An individual developer, as
+            an unpaid side project. There is no company and no team.</p>
+
+          <h3 class="font-desktop-title-xsmall">What runs where</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Three pieces are involved:
+            the app on your glasses and phone, a small stateless proxy server, and your own Notion workspace.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">The proxy exists for one
+            boring technical reason: Notion's API rejects requests coming from app webviews, which is how the phone
+            interface is hosted. So requests take a detour through a server that attaches your token, calls Notion,
+            and hands the response straight back. It does not interpret, enrich, or retain what passes through.
+            Everything else &mdash; parsing, formatting, pagination, caching &mdash; happens on your device.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large"><span
+              class="font-normal">Your Notion workspace is the actual home of your data.</span> Tasks, notes,
+            projects and tags are read from and written to your Notion databases. This app is a viewer and editor,
+            not a store. Notion's own <a href="https://www.notion.so/privacy">privacy policy</a> governs what happens
+            to the content itself.</p>
+
+          <h3 class="font-desktop-title-xsmall">Your Notion credentials</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">You supply a Notion
+            integration token and four database IDs in the settings screen. These are saved in your device's local
+            app storage, as plain text. They are not encrypted by the app, and they are not backed up or synced
+            anywhere by it.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">On every API call, that
+            configuration is base64-encoded into a request header. <span class="font-normal">Base64 is encoding, not
+              encryption</span> &mdash; it is trivially reversible, and the actual confidentiality comes from the
+            connection being HTTPS. The server decodes the header, builds a Notion client for that one request, and
+            discards it when the request ends. Nothing is written to disk, no database exists, and there is no cache
+            of tokens.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">The token is never logged.
+            Request headers are structurally excluded from the logging code, so there is no path by which it can end
+            up in a log file.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Two practical
+            recommendations. Share your Notion integration with only the four databases the app needs, not your
+            whole workspace &mdash; the token can reach exactly what you've shared with it and nothing more. And if
+            you ever want to cut access off, revoke the integration in Notion; that invalidates the token
+            immediately, wherever copies of it exist.</p>
+
+          <h3 class="font-desktop-title-xsmall">What the server sees and what it logs</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">While handling a request,
+            the server necessarily sees your token and whatever Notion sends back &mdash; task titles, note titles,
+            page content. That data lives in memory for the duration of the request and is not persisted.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">A log line is written for
+            every request. It contains the HTTP method, the request path, the response status, how long the request
+            took, and the response size. <span class="font-normal">The request path includes Notion page IDs</span>
+            &mdash; a URL like <code>/api/pages/&lt;id&gt;/markdown</code> reveals that a particular page was opened
+            and when. The IDs are opaque identifiers, not titles, but they are stable and they do identify specific
+            pages in your workspace.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Beyond that, the server has
+            a verbose logging mode, and <span class="font-normal">it is currently switched on</span>. While it is,
+            the full body of every response is written to the log as well &mdash; which means <span
+              class="font-normal">your task titles, note titles, project and tag names, and the text of any page you
+              open</span> pass through the log, not just the IDs. It was turned on for debugging and it should be
+            turned off; this page will be updated when it is. Until then, assume the server keeps a copy of what you
+            read and write through it.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">With verbose mode off,
+            response bodies are logged only when a request <span class="font-normal">fails</span> &mdash; a 4xx or
+            5xx &mdash; so that the error can be diagnosed.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Logs are written to AWS
+            CloudWatch in the <code>us-east-1</code> region and are readable only by the maintainer. No retention
+            period is currently enforced, which means they are kept by default rather than automatically expired.
+            They are not shared with anyone, sold, or used for advertising, training, or any purpose beyond fixing
+            bugs.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">If none of that sits well
+            with you &mdash; entirely reasonable &mdash; <a href="#own-server">run your own server</a>. Then there is
+            no log but yours.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">One more thing travels in
+            the configuration header: <span class="font-normal">your device's time zone</span>, which the app needs
+            so that &ldquo;today&rdquo; and &ldquo;this week&rdquo; mean the right thing for you. A time zone is a
+            coarse location signal &mdash; it narrows you to a broad region, not a place. It is the only device
+            attribute sent automatically.</p>
+
+          <h3 class="font-desktop-title-xsmall">Voice input</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Dictating a task uses the
+            microphone in the glasses. Speech recognition runs <span class="font-normal">on the device, fully
+              offline</span>, using a Vosk model bundled inside the app package. There is no speech API, no API key,
+            and no network request involved in recognition.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Audio frames are converted,
+            fed to the recogniser, and discarded. <span class="font-normal">No recording is kept, and no audio ever
+              leaves your glasses.</span> The microphone closes automatically after a short silence, after fifteen
+            seconds at most, or when you stop it.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">What does leave the device
+            is the resulting text, once you confirm it &mdash; sent onward as the title of the task you just
+            created, exactly as if you had typed it.</p>
+
+          <h3 class="font-desktop-title-xsmall">What is stored on your device</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Three things, all in local
+            app storage:</p>
+          <ul class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">
+            <li><span class="font-normal">Your settings</span> &mdash; the Notion token and the four database IDs.
+            </li>
+            <li><span class="font-normal">A list cache</span> &mdash; the names, IDs, due dates and statuses of the
+              tasks, notes, projects and tags shown on each screen, so lists appear instantly instead of blanking on
+              every open. This cache has <span class="font-normal">no expiry</span>: an entry is replaced when that
+              screen is refetched, and otherwise stays until the app is uninstalled. In practice, task and note
+              titles you have viewed persist on the device.</li>
+            <li><span class="font-normal">A debug log</span> &mdash; the most recent thousand entries, covered
+              below.</li>
+          </ul>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">The body text of a note or
+            task you open is held in memory only and is never written to storage.</p>
+
+          <h3 class="font-desktop-title-xsmall">The debug log</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">The app keeps a rolling
+            local log to make bug reports possible. <span class="font-normal">It is never uploaded
+              automatically</span> &mdash; it leaves your device only if you press &ldquo;Copy log&rdquo; in settings
+            and paste it somewhere yourself.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Before you do, know what's
+            in it. Notion tokens are <span class="font-normal">automatically redacted</span> and cannot appear in a
+            copied log. But <span class="font-normal">task and note titles, Notion page IDs, your browser user agent,
+              and the server address are not redacted</span> &mdash; that context is what makes a log useful for
+            debugging. Give it a quick skim before pasting it into a public GitHub issue, and use the
+            &ldquo;Clear&rdquo; button whenever you want it gone.</p>
+
+          <h3 class="font-desktop-title-xsmall">No tracking</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">The app contains no
+            analytics, no telemetry, no crash-reporting service, no advertising, and no third-party SDK of any kind.
+            Nothing measures how you use it. Errors are captured into the local debug log described above and stay
+            there.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">This website is static
+            HTML and CSS. It runs <span class="font-normal">no JavaScript at all</span>, sets no cookies, embeds no
+            trackers or pixels, and has no forms. Its fonts are served from this domain, not from Google Fonts.
+            That's why there's no cookie banner &mdash; there are no cookies to consent to.</p>
+
+          <h3 class="font-desktop-title-xsmall">Other parties involved</h3>
+          <ul class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">
+            <li><a href="https://www.notion.so/privacy">Notion</a> &mdash; where your content actually lives, under
+              your own Notion account and their privacy policy.</li>
+            <li><a href="https://aws.amazon.com/privacy/">Amazon Web Services</a> &mdash; runs the proxy function and
+              stores its request logs, in <code>us-east-1</code>.</li>
+            <li><a href="https://firebase.google.com/support/privacy">Google Firebase Hosting</a> &mdash; serves this
+              website. Like any web host it keeps its own server-side request logs, which typically include IP
+              addresses and user agents. That's Google's processing, outside this project's control and not
+              accessible to the app.</li>
+            <li><a href="https://www.evenrealities.com/">Even Realities</a> &mdash; makes the glasses and the host
+              app the interface runs inside. Their software and its own data practices are theirs, not this
+              project's.</li>
+          </ul>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">No data is sold, rented, or
+            shared with anyone for advertising or any other purpose.</p>
+
+          <h3 class="font-desktop-title-xsmall">Device permissions</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">The app requests exactly
+            two: network access, and the glasses microphone. It does not request or use location, GPS, the camera,
+            your photo album, motion sensors, battery status, or wear detection &mdash; none of that appears
+            anywhere in the code.</p>
+
+          <h3 id="own-server" class="font-desktop-title-xsmall">Running your own server</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">If you would rather no
+            third party sat in the path at all, you can remove this one. The project is open source, and the server
+            address is a build-time setting.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Deploy the server yourself
+            &mdash; the Terraform stack for AWS Lambda is in the repository, and it also runs as a plain Node
+            process anywhere you like &mdash; then build your own app package pointed at it by setting
+            <code>VITE_API_BASE</code> and running the pack command. The <a
+              href="https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2#pointing-the-glasses-app-at-your-own-server">README</a>
+            has the exact commands.
+          </p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Do that and your token and
+            page data travel from your device to <span class="font-normal">your</span> server to Notion. This
+            project's infrastructure is out of the path entirely: no request logs here, no third party but Notion and
+            whoever hosts your server. It's the strongest privacy guarantee on offer, and it costs one deploy.</p>
+
+          <h3 class="font-desktop-title-xsmall">Deleting your data</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">There's no account to
+            close, because there's no account. To remove everything this app holds:</p>
+          <ul class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">
+            <li>Uninstall the app. That removes the settings, the list cache and the debug log from your device.</li>
+            <li>Revoke the integration in Notion, under Settings &rarr; Connections. The token stops working
+              instantly.</li>
+            <li>Your Notion content is yours and is unaffected &mdash; deleting the app deletes no tasks or notes.
+            </li>
+          </ul>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">For the server-side request
+            logs, which contain page IDs and no content, open a GitHub issue and they can be purged on request.</p>
+
+          <h3 class="font-desktop-title-xsmall">Children</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">This app is not directed at
+            children under 13, and no information is knowingly collected from them.</p>
+
+          <h3 class="font-desktop-title-xsmall">Changes to this page</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">The date at the top says
+            when this was last revised. Because the page tracks what the code does, meaningful changes arrive with
+            code changes, and the history is visible in the repository.</p>
+
+          <h3 class="font-desktop-title-xsmall">Contact</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Questions, corrections, or
+            a deletion request: open an issue at <a
+              href="https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues">github.com/hofstede-matheus/notion-ultimate-brain-even-g2</a>.
+            Found something on this page that doesn't match the code? That's a bug &mdash; please report it.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">GitHub issues are public,
+            so never include your Notion token, and don't paste personal task or note content into one.</p>
+
+          <!-- ============================= TERMS ============================= -->
+
+          <h2 id="terms" class="font-desktop-title-small">Terms of Use</h2>
+
+          <h3 class="font-desktop-title-xsmall">What this is</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">A free, open-source side
+            project, made by one person. The glasses app costs nothing and the hosted server is paid for out of
+            pocket. Using it means accepting the terms below.</p>
+
+          <h3 class="font-desktop-title-xsmall">No affiliation, and no trademark ownership</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">This is an independent,
+            unofficial project. It is <span class="font-normal">not affiliated with, endorsed by, or sponsored
+              by</span> Notion Labs, Inc., Even Realities, or Thomas Frank. To be explicit about who owns what:</p>
+          <ul class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">
+            <li><span class="font-normal">&ldquo;Notion&rdquo; is a trademark of Notion Labs, Inc.</span> The
+              maintainer of this project does not own it and claims no rights in it.</li>
+            <li><span class="font-normal">&ldquo;Ultimate Brain&rdquo; is a product and trademark of Thomas
+                Frank.</span> The maintainer of this project does not own it and claims no rights in it. This app is
+              an independent client for that template &mdash; it is not the template, is not sold with it, and
+              obtaining it is a separate matter with its author.</li>
+            <li><span class="font-normal">&ldquo;Even Realities&rdquo;, &ldquo;Even Hub&rdquo; and &ldquo;G2&rdquo;
+                are trademarks of Even Realities.</span> Same again: not owned here, no rights claimed.</li>
+          </ul>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">These names appear only to
+            describe what this software works with. That is the only claim being made.</p>
+
+          <h3 class="font-desktop-title-xsmall">Your Notion account is your responsibility</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">You provide your own Notion
+            integration token, and keeping it safe is up to you. The app can create, edit, complete and <span
+              class="font-normal">delete</span> pages in any database the integration can reach &mdash; that's what
+            it's for. Share the integration narrowly, and check what you're deleting.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">You're also responsible for
+            complying with Notion's own terms.</p>
+
+          <h3 class="font-desktop-title-xsmall">No warranty, no liability</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">The software and the hosted
+            server are provided <span class="font-normal">&ldquo;as is&rdquo;, without warranty of any kind</span>,
+            express or implied, including merchantability, fitness for a particular purpose, and non-infringement.
+            To the fullest extent permitted by law, the maintainer is not liable for any damages arising from use of
+            this software or service &mdash; including lost, altered or deleted data.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Practically: <span
+              class="font-normal">Notion is the system of record.</span> Anything that matters should be safe in
+            Notion, where its own version history protects it. Sections 7 and 8 of the Apache License already
+            disclaim warranty and liability for the code; this section covers the hosted server as well, which the
+            licence does not reach.</p>
+
+          <h3 class="font-desktop-title-xsmall">Availability</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">There is no uptime promise.
+            This is a personal project, and the hosted server may change, break, or be shut down at any time without
+            notice. If that would be a problem for you, run your own &mdash; see &ldquo;Running your own
+            server&rdquo; above. That path stays open regardless of what happens to this one.</p>
+
+          <h3 class="font-desktop-title-xsmall">Fair use of the shared server</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">The server is small and
+            paid for personally. Please use it as the app uses it: don't hammer it, don't build an unrelated service
+            on top of it, and don't use it to attack Notion's API or anyone else. Heavy or abusive traffic may be
+            blocked. If you need volume, self-host &mdash; that's what it's there for.</p>
+
+          <h3 class="font-desktop-title-xsmall">Licence</h3>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">The source is released
+            under the <a href="https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/blob/main/LICENSE">Apache
+              License 2.0</a>. Fork it, modify it, add features, bundle a different speech or language model, run it
+            privately, run it commercially, redistribute it. All of that is permitted and none of it needs anyone's
+            permission.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">There is one <span
+              class="font-normal">request</span>, and it is a request rather than a condition &mdash; the licence
+            above governs, and it doesn't restrict this. Please don't submit a fork for public listing on the Even
+            Hub store. Building your own copy is welcome, including private builds through your own Even Hub
+            developer account. The trouble is only with public listings: the app package keeps the same identifier
+            and name, so a listed fork sits alongside the original under the same identity, and users can't tell
+            which server they're trusting. If you've built something meaningfully different, give it its own
+            identifier and name and list it proudly.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Note also that section 6 of
+            the licence grants no trademark rights &mdash; including to this project's own name and branding.</p>
+
+        </div>
+      </main>
+
+      <footer class="site-footer border-t border-white/20 text-white">
+        <div class="site-footer-inner mx-auto w-full px-4 py-8 flex gap-6">
+          <div class="flex flex-col gap-2">
+            <span class="text-white/60 font-desktop-body-small">Notion Ultimate Brain for Even Realities G2</span>
+            <span class="text-white/50 font-desktop-body-small">An independent open-source project, not affiliated
+              with Notion Labs, Even Realities, or Thomas Frank. &ldquo;Notion&rdquo; and &ldquo;Ultimate Brain&rdquo;
+              are trademarks of their respective owners.</span>
+          </div>
+          <nav class="site-footer-nav flex gap-6">
+            <a href="index.html" class="text-white/60 font-desktop-body-small underline">Home</a>
+            <a href="https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2"
+              class="text-white/60 font-desktop-body-small underline">GitHub</a>
+          </nav>
+        </div>
+      </footer>
+
+    </div>
+  </div>
+  <div id="teleports"></div>
+</body>
+
+</html>

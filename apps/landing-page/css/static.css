@@ -132,3 +132,119 @@
     opacity: 1;
   }
 }
+
+/* Legal page (legal.html) long-form typography.
+
+   entry.css is a compiled Tailwind bundle containing only the utilities the
+   original site actually used — it has no `prose`, no `list-disc`, no
+   `space-y-*`, and no `leading-relaxed` (only `leading-none`). Rather than
+   hand-adding a dozen one-off utilities the way bp:grid-cols-2 was added
+   above, scope the whole thing to the page's wrapper: legal.html is the only
+   text-heavy page on the site and its markup is plain h2/h3/p/ul, so element
+   selectors under .legal-prose are simpler than classing every node.
+
+   Everything else on that page (colors, font sizes, max-width, padding) uses
+   real utilities that do exist in the bundle. Only the spacing and list
+   rendering needed adding. */
+/* The bundle's type scale jumps straight from headline-small (1.875rem) to
+   title-small (1.25rem), so the two top-level sections ("Privacy Policy",
+   "Terms of Use") and their subsections would sit only 0.125rem apart and read
+   as the same level. Promote h2 into that gap and give it a rule, so the two
+   halves of the page are obviously two halves. */
+.legal-prose h2 {
+  font-size: 1.5rem;
+  line-height: 1.75rem;
+  letter-spacing: -0.04em;
+  margin-top: 4rem;
+  margin-bottom: 1.25rem;
+  padding-top: 2rem;
+  border-top: 1px solid #3e3e3e;
+}
+.legal-prose h3 {
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+.legal-prose p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+.legal-prose ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 1rem;
+}
+.legal-prose li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+.legal-prose li::marker {
+  color: #656565;
+}
+
+/* The site's inline links use `underline hover:opacity-80`, but the bundle
+   never compiled hover:opacity-80 — it's a dead class on index.html. Handle
+   the hover here instead of adding the missing utility. */
+.legal-prose a {
+  text-decoration: underline;
+  transition: opacity 0.15s;
+}
+.legal-prose a:hover {
+  opacity: 0.7;
+}
+
+/* Anchor targets: the two top-level sections are linked from the page's own
+   contents list, so offset the jump enough that the heading doesn't land
+   flush against the viewport edge. */
+.legal-prose h2[id],
+.legal-prose h3[id] {
+  scroll-margin-top: 2rem;
+}
+
+/* Emphasis inside body copy. index.html marks key phrases with `font-normal`
+   against `text-white/60` body text — but the body classes are already weight
+   400, so on this page that class does nothing visible. Long-form copy needs
+   the emphasis to actually land, so lift it to full-strength text instead of
+   leaning on a weight change the font can't express here. */
+.legal-prose p .font-normal,
+.legal-prose li .font-normal {
+  color: #f4f4f4;
+}
+
+/* Inline <code> for env vars, regions and API paths. The bundle has no
+   font-mono utility and no code styling of its own. */
+.legal-prose code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875em;
+  background: #333;
+  border-radius: 2px;
+  padding: 0.1em 0.35em;
+  word-break: break-word;
+}
+
+/* Footer (index.html + legal.html). The page background is a radial gradient
+   bottoming out at #0a0a0a, so the footer needs its own solid fill to read as
+   a band rather than dissolving into the gradient's tail. bg-neutral-900 is
+   in the bundle but the gradient sits on an ancestor, so paint it here to
+   keep both pages identical regardless of what's behind them. */
+.site-footer {
+  background: #0a0a0a;
+}
+
+/* Stacked on phones, text-left / links-right from the site's 768px breakpoint.
+   Done here rather than with `bp:flex-row` + `bp:justify-between` because
+   bp:flex-row was never compiled into entry.css (bp:justify-between was) —
+   and splitting one layout across two mechanisms is worse than keeping it
+   whole. Same 768px value every other bp: rule in the bundle uses. */
+.site-footer-inner {
+  flex-direction: column;
+}
+.site-footer-nav {
+  flex-shrink: 0;
+}
+@media (min-width: 768px) {
+  .site-footer-inner {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}

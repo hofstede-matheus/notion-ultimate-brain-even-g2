@@ -12,7 +12,8 @@ python3 -m http.server 8000
 ## Layout
 
 ```
-index.html            single page, no <script> tags
+index.html            marketing page, no <script> tags
+legal.html            privacy policy + terms of use, served at /legal
 css/
   inline-a.css        the page's 4 inline <style> blocks (before the sheets)
   entry.css           main bundle (236 KB) — Tailwind utilities + theme
@@ -33,7 +34,20 @@ the original. Add top padding to the hero section if you want the old framing ba
 
 **Cascade order matters.** The original interleaves inline `<style>` blocks with
 its external sheets; `inline-a` / `inline-b` preserve that exact order. Reordering
-the `<link>` tags will change the rendering.
+the `<link>` tags will change the rendering. Every page carries the same six links
+in the same order.
+
+**Adding a page?** `build` in `package.json` names its HTML files literally
+(`cp -R index.html legal.html css fonts img dist/`), so a new page that isn't added
+to that list silently never reaches `dist/` — and the deploy succeeds anyway. Asset
+paths are relative, so pages must also stay at the app root, not in a subdirectory.
+
+**`entry.css` is a compiled bundle: you can't invent Tailwind classes.** It only
+contains the utilities the original Even Realities site happened to use, so a class
+that looks obviously fine (`mb-8`, `bp:flex-row`, `prose`, `list-disc`,
+`hover:opacity-80`) may simply not exist and will do nothing. Grep `entry.css`
+before relying on a class, and add anything genuinely missing to `static.css` —
+that's why `bp:grid-cols-2` and the `.legal-prose` / `.site-footer` blocks live there.
 
 ## How it was derived
 
@@ -56,7 +70,10 @@ Also note:
 - `data-v-*` attributes are load-bearing — the scoped CSS selects on them. Don't strip them.
 - `srcset` was removed; it pointed at server-side IPX image variants that don't exist locally.
 - `/hub` (auth-gated console) and `/docs` (separate VitePress app) are not mirrored;
-  the footer links point at the live site.
+  links to them point at the live site.
+- The original Nuxt footer didn't survive either (`<!--v-if-->` marks where it rendered).
+  The current footer is this project's own — plain markup shared verbatim by both pages,
+  styled by `.site-footer*` in `static.css`. Edit it in both files or they'll drift.
 
 ## Provenance
 

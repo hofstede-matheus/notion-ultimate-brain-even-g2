@@ -290,3 +290,22 @@ top of `terraform/github-oidc.tf`) and, optionally, the `DEBUG` repo variable.
 `main` when `apps/landing-page/**`, `firebase.json`, or `.firebaserc` change.
 `.github/workflows/firebase-hosting-pull-request.yml` builds a preview channel for PRs
 touching those same paths.
+
+The landing page also hosts the project's [Privacy Policy & Terms](apps/landing-page/legal.html)
+(`legal.html`, served at `/legal`), written against what the code actually does — worth
+re-reading when you change how data is stored, logged, or transmitted.
+
+## License
+
+[Apache License 2.0](LICENSE). Fork it, modify it, add features, bundle a different speech or
+language model, use it privately or commercially — all permitted, no permission needed.
+
+Two things that aren't license conditions but are worth reading: the request about public Even
+Hub listings (see [Pointing the glasses app at your own server](#pointing-the-glasses-app-at-your-own-server)
+above) and the trademark disclaimer. Both live in [NOTICE](NOTICE), which the License requires
+redistributors to carry along.
+
+This is an independent, unofficial project. "Notion" is a trademark of Notion Labs, Inc.;
+"Ultimate Brain" is a product and trademark of Thomas Frank; "Even Realities", "Even Hub" and
+"G2" are trademarks of Even Realities. No affiliation or endorsement is claimed, and the
+copyright holder claims no rights in any of those marks.

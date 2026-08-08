@@ -1,0 +1,53 @@
+Notion Ultimate Brain for Even Realities G2
+Copyright 2026 Matheus Hofstede
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+A REQUEST, NOT A LICENSE CONDITION
+
+Please don't submit a fork of this app for public listing on the Even Realities
+Even Hub store.
+
+Building your own copy is welcome -- including adding it to your own Even Hub
+developer account and installing private builds for yourself. The concern is
+only public listings: apps/glasses/app.json keeps the original package_id and
+name ("Ultimate Brain"), so a public listing of a fork sits alongside the
+original under the same identity. Someone could install a build talking to
+your server thinking it's the maintainer's, and the store fills up with
+listings that look identical.
+
+This is a request and nothing more. The License above governs, and it permits
+what it permits: fork it, modify it, add features, bundle a different speech
+or language model, run it privately, run it commercially, redistribute it.
+None of that requires anyone's permission.
+
+If you've built something meaningfully different and want it listed, change the
+package_id and name so it stands on its own -- or open an issue and let's talk.
+
+
+TRADEMARKS
+
+This project is an independent, unofficial client. It is not affiliated with,
+endorsed by, or sponsored by any of the following, and the copyright holder
+claims no rights in any of their marks:
+
+  * "Notion" is a trademark of Notion Labs, Inc.
+  * "Ultimate Brain" is a product and trademark of Thomas Frank. This app is a
+    client for that template; it is not the template, and obtaining the
+    template is a separate matter with its author.
+  * "Even Realities", "Even Hub" and "G2" are trademarks of Even Realities.
+
+These names are used nominatively -- to describe what this software
+interoperates with. Per section 6 of the License, no trademark rights are
+granted, including rights to this project's own name and branding.
