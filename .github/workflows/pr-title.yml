@@ -1,0 +1,78 @@
+name: Lint PR Title
+
+# PRs are squash-merged, so the PR title becomes the commit subject on main and
+# is what release-please reads to build the changelog. Linting it here is the
+# real gate; the local .husky/commit-msg hook is just the early warning.
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Check PR title against Conventional Commits
+        id: lint
+        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          # Scopes here are feature-level (tasks, notes, projects, glasses,
+          # server, landing-page), not package names, so they are not enumerated.
+          requireScope: false
+          wip: true
+
+      - name: Explain the failure on the PR
+        if: always() && steps.lint.outputs.error_message != null
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
+        with:
+          header: pr-title-lint-error
+          message: |
+            **This PR title is not a Conventional Commit.**
+
+            PRs here are squash-merged, so the title becomes the commit message on
+            `main` — and release-please reads those commits to decide the next
+            glasses version and write the changelog. A non-conventional title is
+            silently dropped from the release notes.
+
+            ```
+            ${{ steps.lint.outputs.error_message }}
+            ```
+
+            Format: `type(scope): description`
+
+            - `feat(tasks): add due-date picker` → next minor
+            - `fix(glasses): stop swallowing reader swipes` → next patch
+            - `feat(notes)!: drop the legacy note format` → next major
+            - Also valid: `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+
+            Scope is optional. Prefix the title with `WIP:` to silence this check
+            while the PR is still in progress.
+
+      - name: Clear the failure comment
+        if: steps.lint.outputs.error_message == null
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
+        with:
+          header: pr-title-lint-error
+          delete: true

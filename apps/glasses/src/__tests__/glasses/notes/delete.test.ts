@@ -83,8 +83,12 @@ describe('confirming delete', () => {
     await h.settle();
 
     h.dispatch(back());
-
     expect(h.state.actionToast).toBeNull();
+
+    // "Immediately" means without waiting out the 1.5s timer — real timers are
+    // in play here, so settle drains microtasks only. enterView awaits its
+    // cached-list read before navigating, hence the settle.
+    await h.settle();
     expect(h.state.screen).toBe('notes-inbox');
   });
 });

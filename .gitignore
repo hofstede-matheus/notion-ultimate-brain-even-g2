@@ -30,7 +30,12 @@ yarn-error.log*
 .DS_Store
 
 # Editor
-.vscode/
+# .vscode is shared, not personal: settings.json carries the Biome formatter wiring
+# and the Copilot conventional-commit instructions, extensions.json the recommendation.
+# Everything else in there (launch.json, tasks.json, per-user state) stays ignored.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 .idea/
 *.swp
 

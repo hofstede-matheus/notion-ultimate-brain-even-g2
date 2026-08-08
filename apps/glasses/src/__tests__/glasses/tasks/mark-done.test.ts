@@ -110,8 +110,11 @@ describe('confirming mark-done', () => {
       expect(h.state.screen).toBe('mark-done-toast');
 
       vi.advanceTimersByTime(1500);
-
       expect(h.state.actionToast).toBeNull();
+
+      // enterView awaits its cached-list read before navigating, so the
+      // return lands a microtask after the timer fires, not synchronously.
+      await h.settle();
       expect(h.state.screen).toBe('inbox');
     } finally {
       vi.useRealTimers();
@@ -127,13 +130,17 @@ describe('confirming mark-done', () => {
       h.dispatch(select(0));
       await h.settle();
 
+      // Returns without the 1.5s timer ever firing — settle only drains
+      // microtasks, it doesn't advance fake time.
       h.dispatch(back());
+      await h.settle();
       expect(h.state.screen).toBe('inbox');
 
       // The 1.5s timer must have been cleared — advancing it must not blow up
       // or re-navigate away from wherever the user is now.
       h.state.screen = 'tasks-menu';
       vi.advanceTimersByTime(1500);
+      await h.settle();
       expect(h.state.screen).toBe('tasks-menu');
     } finally {
       vi.useRealTimers();

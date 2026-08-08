@@ -1,0 +1,30 @@
+{
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "quickfix.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "text": "Use Conventional Commits: type(scope): description. Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert. Scope is optional and is the feature area, not the package name — tasks, notes, projects, tags, glasses, server, landing-page, contracts. Description is imperative mood, lowercase, no trailing period, max 72 characters. Breaking changes get a ! after the scope and a BREAKING CHANGE footer. Example: feat(tasks): add due-date picker to the task detail screen"
+    }
+  ],
+  "github.copilot.chat.pullRequestDescriptionGeneration.instructions": [
+    {
+      "text": "The PR title must itself be a Conventional Commit (type(scope): description) — PRs are squash-merged, so the title becomes the commit on main and feeds release-please's changelog. Use feat for user-visible capabilities (minor bump), fix for user-visible bug fixes (patch bump), and docs/refactor/test/chore/ci for everything else. Write the body as prose explaining what changed and why; do not restate the diff file by file."
+    }
+  ]
+}

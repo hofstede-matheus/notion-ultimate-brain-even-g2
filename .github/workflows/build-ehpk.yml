@@ -1,50 +1,26 @@
 name: Build ehpk
 
+# Releases are driven by release-please: this workflow is called by
+# release-please.yml once a glasses release is cut, and can also be run by hand
+# to get a throwaway .ehpk artifact off main.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/glasses/**'
-      - 'packages/**'
-      - 'pnpm-lock.yaml'
-      - '.github/workflows/build-ehpk.yml'
+  workflow_call:
+    inputs:
+      tag_name:
+        description: 'Release tag to attach the .ehpk to. Empty means artifact-only.'
+        type: string
+        required: false
+        default: ''
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  check-version:
-    runs-on: ubuntu-latest
-    outputs:
-      bumped: ${{ steps.check.outputs.bumped }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          fetch-depth: 2
-
-      - name: Check if version was bumped
-        id: check
-        run: |
-          if [ "${{ github.event_name }}" != "push" ]; then
-            echo "bumped=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          OLD_VERSION=$(git show HEAD^:apps/glasses/package.json | jq -r .version)
-          NEW_VERSION=$(jq -r .version apps/glasses/package.json)
-
-          if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
-            echo "bumped=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "bumped=false" >> "$GITHUB_OUTPUT"
-          fi
-
   build:
-    needs: check-version
-    if: needs.check-version.outputs.bumped == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -75,3 +51,11 @@ jobs:
           name: notion-ultimate-brain-even-g2-ehpk
           path: apps/glasses/notion-ultimate-brain-even-g2.ehpk
           retention-days: 30
+
+      - name: Attach .ehpk to the release
+        if: inputs.tag_name != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ inputs.tag_name }}" \
+            apps/glasses/notion-ultimate-brain-even-g2.ehpk --clobber
