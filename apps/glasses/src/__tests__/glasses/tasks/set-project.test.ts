@@ -10,7 +10,7 @@ vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
-import { fetchDoingProjects, setPageProject } from '../../../api';
+import { fetchDoingProjects, fetchInboxTasks, setPageProject } from '../../../api';
 import type { ScreenName } from '../../../state';
 import { back, mount, select } from '../harness';
 
@@ -172,7 +172,7 @@ describe('confirming a project change', () => {
     expect(h.state.lists['project-tasks-todo']).toEqual([]);
   });
 
-  it('auto-returns to the list 1.5s after the toast', async () => {
+  it('refreshes the originating list 1.5s after the toast', async () => {
     vi.useFakeTimers();
     try {
       vi.mocked(setPageProject).mockResolvedValue(undefined);
@@ -184,9 +184,11 @@ describe('confirming a project change', () => {
       expect(h.state.screen).toBe('set-project-toast');
 
       vi.advanceTimersByTime(1500);
+      await h.settle();
 
       expect(h.state.actionToast).toBeNull();
       expect(h.state.screen).toBe('inbox');
+      expect(fetchInboxTasks).toHaveBeenCalledOnce();
     } finally {
       vi.useRealTimers();
     }

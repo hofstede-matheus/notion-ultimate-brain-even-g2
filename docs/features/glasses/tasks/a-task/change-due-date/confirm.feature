@@ -21,7 +21,7 @@ Feature: Saving a new due date
 
       Returning...
       """
-    And after 1.5 seconds the list the task came from reopens
+    And after 1.5 seconds the list the task came from refreshes and reopens
 
   Scenario: The date is written out in full
     Given 2026-12-25 is selected

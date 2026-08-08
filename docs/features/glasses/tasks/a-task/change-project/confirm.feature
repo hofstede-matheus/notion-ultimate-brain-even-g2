@@ -18,7 +18,7 @@ Feature: Filing a task under a project
     Then the glasses show "MOVED"
     And "✓ " followed by the project's name
     And "Returning..."
-    And after 1.5 seconds the list the task came from reopens
+    And after 1.5 seconds the list the task came from refreshes and reopens
 
   Scenario: Taking a task out of every project
     When I tap "— No project —"

@@ -7,6 +7,7 @@ import { renderUpdate } from '../../render';
 import {
   cacheKeyForListView,
   DATA_KEY_OVERRIDES,
+  enterView,
   navigate,
   startSpinner,
   stopSpinner,
@@ -177,7 +178,7 @@ export async function confirmAction(): Promise<void> {
     actionToastTimeout = setTimeout(() => {
       actionToastTimeout = null;
       state.actionToast = null;
-      navigate(returnTo);
+      void enterView(returnTo);
     }, 1500);
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
@@ -197,5 +198,5 @@ export function dismissActionToast(): void {
   const returnTo = state.actionToast?.returnTo ?? 'tasks-menu';
   trace.info('ACT', `toast dismissed -> ${returnTo}`);
   state.actionToast = null;
-  navigate(returnTo);
+  void enterView(returnTo);
 }

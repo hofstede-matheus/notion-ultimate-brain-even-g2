@@ -9,7 +9,7 @@ vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
-import { setTaskDueDate } from '../../../api';
+import { fetchInboxTasks, setTaskDueDate } from '../../../api';
 import { back, mount, move, select } from '../harness';
 
 const TASK: { id: string; name: string; dueDate?: string } = { id: 't1', name: 'Buy milk' };
@@ -229,7 +229,7 @@ describe('confirming a reschedule', () => {
     if (display.mode === 'list') expect(display.header).toContain('FAILED: offline');
   });
 
-  it('auto-returns to the list 1.5s after the toast', async () => {
+  it('refreshes the originating list 1.5s after the toast', async () => {
     vi.mocked(setTaskDueDate).mockResolvedValue(undefined);
     const h = mount();
     openDueDateConfirm(h);
@@ -239,8 +239,10 @@ describe('confirming a reschedule', () => {
     expect(h.state.screen).toBe('due-date-toast');
 
     vi.advanceTimersByTime(1500);
+    await h.settle();
 
     expect(h.state.actionToast).toBeNull();
     expect(h.state.screen).toBe('inbox');
+    expect(fetchInboxTasks).toHaveBeenCalledOnce();
   });
 });
