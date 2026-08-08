@@ -10,7 +10,7 @@ vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
-import { fetchDoingProjects, setPageProject } from '../../../api';
+import { fetchDoingProjects, fetchInboxNotes, setPageProject } from '../../../api';
 import { back, mount, select } from '../harness';
 
 const NOTE = { id: 'n1', name: 'Meeting recap' };
@@ -70,4 +70,27 @@ it('picking a project confirms, patches the note out of the Inbox, and shows the
   expect(setPageProject).toHaveBeenCalledWith('n1', 'p1');
   expect(h.state.lists['notes-inbox']).toEqual([]);
   expect(h.state.screen).toBe('set-project-toast');
+});
+
+it('refreshes the originating list 1.5s after the toast', async () => {
+  vi.useFakeTimers();
+  try {
+    const h = mount();
+    await openPicker(h);
+
+    h.dispatch(select(0)); // Q3 Planning -> confirm
+    h.dispatch(select(0)); // Confirm -> toast
+    await h.settle();
+
+    expect(h.state.screen).toBe('set-project-toast');
+
+    vi.advanceTimersByTime(1500);
+    await h.settle();
+
+    expect(h.state.actionToast).toBeNull();
+    expect(h.state.screen).toBe('notes-inbox');
+    expect(fetchInboxNotes).toHaveBeenCalledOnce();
+  } finally {
+    vi.useRealTimers();
+  }
 });

@@ -18,7 +18,7 @@ Feature: Filing a note under a project
     Then the glasses show "MOVED"
     And "✓ " followed by the project's name
     And "Returning..."
-    And after 1.5 seconds the list the note came from reopens
+    And after 1.5 seconds the list the note came from refreshes and reopens
 
   Scenario: Taking a note out of every project
     When I tap "— No project —"
