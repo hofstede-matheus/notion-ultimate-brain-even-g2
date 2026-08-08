@@ -1,6 +1,6 @@
 /**
- * Tapping a note on a list screen — opens the note action menu, and Load
- * metadata fetches the note's project (notes have no due date).
+ * Tapping a note on a list screen — opens the note action menu, and Note
+ * Details fetches the note's project (notes have no due date).
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -30,7 +30,7 @@ describe('tapping a note on a list screen', () => {
     expect(h.state.screen).toBe('note-actions');
     expect(h.render()).toMatchObject({
       mode: 'list',
-      items: ['Open page', 'Load metadata', 'Change project', 'Delete note'],
+      items: ['Open page', 'Note Details', 'Change project', 'Delete note'],
     });
   });
 
@@ -46,24 +46,70 @@ describe('tapping a note on a list screen', () => {
   });
 });
 
-describe('Load metadata', () => {
-  it('fetches the project and shows it, with no due date', async () => {
+describe('Note Details', () => {
+  it('fetches the project and shows it with the note name, and no due date', async () => {
     vi.mocked(fetchPageMetadata).mockResolvedValue({ project: 'Q3 Planning', due: null });
     const h = mount();
     h.state.screen = 'notes-inbox';
     h.state.lists['notes-inbox'] = [NOTE];
     h.dispatch(select(0));
 
-    h.dispatch(select(1)); // Load metadata
+    h.dispatch(select(1)); // Note Details
     await h.settle();
 
-    expect(h.state.noteMetadata).toEqual({ loading: false, project: 'Q3 Planning', error: '' });
-    expect(h.state.screen).toBe('note-metadata');
+    expect(h.state.noteDetails).toEqual({ loading: false, project: 'Q3 Planning', error: '' });
+    expect(h.state.screen).toBe('note-details');
     const display = h.render();
     expect(display.mode).toBe('text');
     if (display.mode === 'text') {
-      expect(display.content).toContain('Project: Q3 Planning');
+      expect(display.content).toContain('NOTE DETAILS');
+      expect(display.content).toContain('Note:\nMeeting recap');
+      expect(display.content).toContain('Project:\nQ3 Planning');
+      expect(display.content).toContain('Double-tap to go back.');
       expect(display.content).not.toContain('Due:');
+    }
+  });
+
+  it('keeps a long note name in the scrollable text container', async () => {
+    const noteName = 'A note title that is intentionally long enough to overflow a row '.repeat(3);
+    vi.mocked(fetchPageMetadata).mockResolvedValue({ project: 'Q3 Planning', due: null });
+    const h = mount();
+    h.state.screen = 'notes-inbox';
+    h.state.lists['notes-inbox'] = [{ id: 'n1', name: noteName }];
+    h.dispatch(select(0));
+
+    h.dispatch(select(1));
+    await h.settle();
+
+    const display = h.render();
+    expect(display.mode).toBe('text');
+    if (display.mode === 'text') expect(display.content).toContain(noteName);
+  });
+
+  it('falls back to a placeholder title when no note is selected', () => {
+    const h = mount();
+    h.state.screen = 'note-details';
+    h.state.noteDetails = { loading: false, project: null, error: '' };
+    h.state.selectedNote = null;
+
+    const display = h.render();
+    expect(display.mode).toBe('text');
+    if (display.mode === 'text') {
+      expect(display.content).toContain('Note:\n(unknown note)');
+      expect(display.content).toContain('Project:\n(none)');
+    }
+  });
+
+  it('shows the back hint while the details are still loading', () => {
+    const h = mount();
+    h.state.screen = 'note-details';
+    h.state.noteDetails = { loading: true, project: null, error: '' };
+
+    const display = h.render();
+    expect(display.mode).toBe('text');
+    if (display.mode === 'text') {
+      expect(display.content).toContain('Loading…');
+      expect(display.content).toContain('Double-tap to go back.');
     }
   });
 
@@ -77,10 +123,10 @@ describe('Load metadata', () => {
     h.dispatch(select(1));
     await h.settle();
 
-    expect(h.state.noteMetadata).toMatchObject({ loading: false, error: 'offline' });
+    expect(h.state.noteDetails).toMatchObject({ loading: false, error: 'offline' });
   });
 
-  it('GO_BACK from metadata returns to the note action menu', () => {
+  it('GO_BACK from the details screen returns to the note action menu', () => {
     const h = mount();
     h.state.screen = 'notes-inbox';
     h.state.lists['notes-inbox'] = [NOTE];

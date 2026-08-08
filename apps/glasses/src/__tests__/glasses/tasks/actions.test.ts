@@ -1,6 +1,6 @@
 /**
- * Tapping a task on a list screen — opens the task action menu, and Load
- * metadata fetches the task's project/due date.
+ * Tapping a task on a list screen — opens the task action menu, and Task
+ * Details fetches the task's project/due date.
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -33,7 +33,7 @@ describe('tapping a task on a list screen', () => {
     expect(display).toMatchObject({
       mode: 'list',
       items: [
-        'Load metadata',
+        'Task Details',
         'Open page',
         'Change due date',
         'Change project',
@@ -55,29 +55,82 @@ describe('tapping a task on a list screen', () => {
   });
 });
 
-describe('Load metadata', () => {
-  it('fetches project + due date and shows them', async () => {
+describe('Task Details', () => {
+  it('fetches and shows the task title, project, and due date', async () => {
     vi.mocked(fetchPageMetadata).mockResolvedValue({ project: 'Groceries', due: '2026-07-25' });
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
     h.dispatch(select(0)); // -> task-actions
 
-    h.dispatch(select(0)); // Load metadata
+    h.dispatch(select(0)); // Task Details
     await h.settle();
 
-    expect(h.state.taskMetadata).toEqual({
+    expect(h.state.taskDetails).toEqual({
       loading: false,
       project: 'Groceries',
       due: '2026-07-25',
       error: '',
     });
-    expect(h.state.screen).toBe('task-metadata');
+    expect(h.state.screen).toBe('task-details');
     const display = h.render();
     expect(display.mode).toBe('text');
     if (display.mode === 'text') {
-      expect(display.content).toContain('Project: Groceries');
-      expect(display.content).toContain('Jul 25, 2026');
+      expect(display.content).toContain('TASK DETAILS');
+      expect(display.content).toContain('Task:\nBuy milk');
+      expect(display.content).toContain('Project:\nGroceries');
+      expect(display.content).toContain('Due:\nJul 25, 2026');
+      expect(display.content).toContain('Double-tap to go back.');
+    }
+  });
+
+  it('shows the back hint while the details are still loading', () => {
+    const h = mount();
+    h.state.screen = 'task-details';
+    h.state.taskDetails = { loading: true, project: null, due: null, error: '' };
+
+    const display = h.render();
+    expect(display.mode).toBe('text');
+    if (display.mode === 'text') {
+      expect(display.content).toContain('Loading…');
+      expect(display.content).toContain('Double-tap to go back.');
+    }
+  });
+
+  it('falls back to a placeholder title when no task is selected', () => {
+    const h = mount();
+    h.state.screen = 'task-details';
+    h.state.taskDetails = { loading: false, project: null, due: null, error: '' };
+    h.state.selectedTask = null;
+
+    const display = h.render();
+    expect(display.mode).toBe('text');
+    if (display.mode === 'text') {
+      expect(display.content).toContain('Task:\n(unknown task)');
+      expect(display.content).toContain('Project:\n(none)');
+      expect(display.content).toContain('Due:\n(none)');
+    }
+  });
+
+  it('keeps long task and project names in the scrollable text container', async () => {
+    const taskName = 'A detailed task title that is intentionally long enough to overflow '.repeat(
+      3,
+    );
+    const project = 'A project name that is intentionally long enough to overflow '.repeat(3);
+    vi.mocked(fetchPageMetadata).mockResolvedValue({ project, due: '2026-07-25' });
+    const h = mount();
+    h.state.screen = 'inbox';
+    h.state.lists.inbox = [{ id: 't1', name: taskName }];
+    h.dispatch(select(0));
+    h.dispatch(select(0));
+    await h.settle();
+
+    const display = h.render();
+    expect(display.mode).toBe('text');
+    if (display.mode === 'text') {
+      expect(display.content).toContain(taskName);
+      expect(display.content).toContain(project);
+      expect(display.content).not.toContain('1/2');
     }
   });
 
@@ -91,7 +144,7 @@ describe('Load metadata', () => {
     h.dispatch(select(0));
     await h.settle();
 
-    expect(h.state.taskMetadata).toMatchObject({ loading: false, error: 'offline' });
+    expect(h.state.taskDetails).toMatchObject({ loading: false, error: 'offline' });
   });
 
   it('GO_BACK from metadata returns to the task action menu', () => {
@@ -99,7 +152,7 @@ describe('Load metadata', () => {
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
     h.dispatch(select(0));
-    h.dispatch(select(0)); // Load metadata (still loading — fine for this assertion)
+    h.dispatch(select(0)); // Task Details (still loading — fine for this assertion)
 
     h.dispatch(back());
 

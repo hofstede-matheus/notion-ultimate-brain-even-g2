@@ -42,12 +42,12 @@ export type ScreenName =
   | 'mark-done-confirm'
   | 'mark-done-toast'
   | 'task-actions'
-  | 'task-metadata'
+  | 'task-details'
   | 'task-due-date'
   | 'due-date-confirm'
   | 'due-date-toast'
   | 'note-actions'
-  | 'note-metadata'
+  | 'note-details'
   | 'page-content'
   | 'delete-confirm'
   | 'delete-toast'
@@ -105,7 +105,7 @@ export interface AppState {
     project?: { id: string | null; name: string };
   } | null;
 
-  // The task the action menu / metadata / delete flow is operating on.
+  // The task the action menu / details / delete flow is operating on.
   // `dueDate` (if known from the list row that led here) seeds the due-date
   // picker's initial cursor and "current due" marker without an extra fetch.
   selectedTask: {
@@ -133,21 +133,21 @@ export interface AppState {
     dueIso: string | null;
   } | null;
 
-  // Metadata screen data (fetched on demand).
-  taskMetadata: {
+  // Details screen data (fetched on demand).
+  taskDetails: {
     loading: boolean;
     project: string | null;
     due: string | null;
     error: string;
   } | null;
 
-  // The note the action menu / metadata / delete flow is operating on —
-  // mirrors selectedTask/taskMetadata, kept as its own pair rather than
+  // The note the action menu / details / delete flow is operating on —
+  // mirrors selectedTask/taskDetails, kept as its own pair rather than
   // merged with the task versions since the two menus offer different
-  // actions and a note's metadata has no Due date to carry.
+  // actions and a note's details have no Due date to carry.
   selectedNote: { noteId: string; noteName: string; returnTo: ScreenName } | null;
 
-  noteMetadata: {
+  noteDetails: {
     loading: boolean;
     project: string | null;
     error: string;
@@ -219,9 +219,9 @@ export const state: AppState = {
   pendingAction: null,
   selectedTask: null,
   dueDatePicker: null,
-  taskMetadata: null,
+  taskDetails: null,
   selectedNote: null,
-  noteMetadata: null,
+  noteDetails: null,
   projectPicker: null,
   pageContent: null,
   actionToast: null,
