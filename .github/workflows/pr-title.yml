@@ -19,6 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      # `wip: true` below makes the action POST a commit status (pending while
+      # a title is WIP or invalid, success once it's clean), which needs
+      # `statuses: write` — the action's README only mentions
+      # `pull-requests: write` and is wrong on this point. Without it every run
+      # dies on "Resource not accessible by integration". Drop this only if you
+      # also drop `wip: true`.
+      statuses: write
     steps:
       - name: Check PR title against Conventional Commits
         id: lint
