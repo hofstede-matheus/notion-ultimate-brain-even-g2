@@ -102,7 +102,7 @@ tasks/
   task-lists.feature                       the five lists, and what they mean
   a-task/
     action-menu.feature                    the six things a task can do
-    task-details.feature                   its project and due date
+    task-details.feature                   its full name, project and due date
     open-page/
       reading.feature                      reading it a screenful at a time
     change-due-date/
@@ -121,7 +121,7 @@ notes/
   note-lists.feature                       the lists themselves
   a-note/
     action-menu.feature                    the four things a note can do
-    note-details.feature                   its project
+    note-details.feature                   its full title and project
     open-page/
       reading.feature                      reading it a screenful at a time
     change-project/

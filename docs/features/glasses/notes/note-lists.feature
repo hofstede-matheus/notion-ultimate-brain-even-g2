@@ -75,7 +75,7 @@ Feature: The ten note lists
   Scenario: A note only shows its name
     Given "ALL NOTES" holds notes with icons, tags and projects in Notion
     Then each row shows the note's name only
-    # Where it is filed is one tap away, under "Load metadata".
+    # Its full name and where it is filed are one tap away, under "Note Details".
 
   Scenario: A note can appear in more than one list
     Given a voice note that is also marked favourite

@@ -14,7 +14,7 @@ const ACTIONS: Array<{ label: string; run: (note: SelectedNote, ctx: GlassCtx) =
     label: 'Open page',
     run: (note, ctx) => ctx.openPage(note.noteId, note.noteName, 'note-actions'),
   },
-  { label: 'Load metadata', run: (_note, ctx) => ctx.enterNoteMetadata() },
+  { label: 'Note Details', run: (_note, ctx) => ctx.enterNoteDetails() },
   {
     label: 'Change project',
     run: (note, ctx) =>

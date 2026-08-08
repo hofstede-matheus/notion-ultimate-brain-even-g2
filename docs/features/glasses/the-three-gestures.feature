@@ -31,9 +31,14 @@ Feature: The three gestures
     Then the previous choice is highlighted
 
   Scenario: Swiping does nothing where there is nothing to move through
-    Given a screen that only shows me something
+    Given a screen that only shows me something, and it all fits
     When I swipe
     Then nothing happens
+
+  Scenario: Swiping moves through what does not fit
+    Given a screen that only shows me something, and it runs past the bottom
+    When I swipe
+    Then the rest of it comes into view
 
   Scenario: Swiping quickly moves one step at a time
     When I swipe several times in quick succession
