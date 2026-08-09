@@ -1,4 +1,4 @@
-import { fetchPageMetadata } from '../../../api';
+import { fetchPageDetails } from '../../../api';
 import { trace } from '../../../logging/trace';
 import type { ScreenName } from '../../../state';
 import { state } from '../../../state';
@@ -31,12 +31,12 @@ export async function enterTaskDetails(): Promise<void> {
   const spinner = startSpinner(() => void renderUpdate('task-details'));
 
   try {
-    const { project, due } = await fetchPageMetadata(selected.taskId);
-    trace.info('API', 'task metadata loaded', { id: selected.taskId, project, due });
+    const { project, due } = await fetchPageDetails(selected.taskId);
+    trace.info('API', 'task details loaded', { id: selected.taskId, project, due });
     state.taskDetails = { loading: false, project, due, error: '' };
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
-    trace.error('API', `task metadata failed: ${msg}`, { id: selected.taskId });
+    trace.error('API', `task details failed: ${msg}`, { id: selected.taskId });
     state.taskDetails = {
       loading: false,
       project: null,

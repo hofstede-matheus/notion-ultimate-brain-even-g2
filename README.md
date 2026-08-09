@@ -12,10 +12,10 @@ database IDs (entered in the app's Settings screen), sent with every request via
 ## What you can do from the glasses
 
 - **Tasks** — Inbox, Today, Tomorrow, Next 7 days. Open a task's action menu to load its
-  metadata (project + due date), read its page, **change the due date** on a bitmap-drawn
+  details (project + due date), read its page, **change the due date** on a bitmap-drawn
   month calendar, **change its project**, mark it done, or delete it.
 - **Notes** — Inbox, Favorites, By tag, By project, Meetings, Web clips, Voice notes,
-  Journal, All. Same action menu, minus due dates: open page, load metadata, change
+  Journal, All. Same action menu, minus due dates: open page, load details, change
   project, delete.
 - **Projects** — Doing, Ongoing, Planned, On hold, Done, Board, Archived. Drill into a
   project to see its open/done tasks and its notes.

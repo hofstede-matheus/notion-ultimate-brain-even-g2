@@ -1,4 +1,4 @@
-import { fetchPageMetadata } from '../../../api';
+import { fetchPageDetails } from '../../../api';
 import { trace } from '../../../logging/trace';
 import type { ScreenName } from '../../../state';
 import { state } from '../../../state';
@@ -28,12 +28,12 @@ export async function enterNoteDetails(): Promise<void> {
   const spinner = startSpinner(() => void renderUpdate('note-details'));
 
   try {
-    const { project } = await fetchPageMetadata(selected.noteId);
-    trace.info('API', 'note metadata loaded', { id: selected.noteId, project });
+    const { project } = await fetchPageDetails(selected.noteId);
+    trace.info('API', 'note details loaded', { id: selected.noteId, project });
     state.noteDetails = { loading: false, project, error: '' };
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
-    trace.error('API', `note metadata failed: ${msg}`, { id: selected.noteId });
+    trace.error('API', `note details failed: ${msg}`, { id: selected.noteId });
     state.noteDetails = {
       loading: false,
       project: null,

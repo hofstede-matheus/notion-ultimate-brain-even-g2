@@ -6,7 +6,7 @@ const ok = async () => ({ status: 200, body: {} });
 
 const routes: Route[] = [
   { method: 'GET', path: '/api/tasks/inbox', handler: ok },
-  { method: 'GET', path: '/api/tasks/:id/metadata', handler: ok },
+  { method: 'GET', path: '/api/tasks/:id/details', handler: ok },
   { method: 'POST', path: '/api/tasks', handler: ok },
   { method: 'GET', path: '/api/tasks', handler: ok },
 ];
@@ -24,13 +24,13 @@ describe('matchRoute', () => {
   });
 
   it('extracts a named param', () => {
-    const m = matchRoute(routes, 'GET', '/api/tasks/abc123/metadata');
-    expect(m?.route.path).toBe('/api/tasks/:id/metadata');
+    const m = matchRoute(routes, 'GET', '/api/tasks/abc123/details');
+    expect(m?.route.path).toBe('/api/tasks/:id/details');
     expect(m?.params).toEqual({ id: 'abc123' });
   });
 
   it('decodes percent-encoded segments', () => {
-    expect(matchRoute(routes, 'GET', '/api/tasks/a%20b/metadata')?.params).toEqual({ id: 'a b' });
+    expect(matchRoute(routes, 'GET', '/api/tasks/a%20b/details')?.params).toEqual({ id: 'a b' });
   });
 
   it('returns undefined on segment-count mismatch', () => {

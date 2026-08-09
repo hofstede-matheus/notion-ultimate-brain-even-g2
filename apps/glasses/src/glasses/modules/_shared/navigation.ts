@@ -115,7 +115,7 @@ export const DATA_KEY_OVERRIDES: Partial<Record<ScreenName, ScreenName>> = {
 
 // ---------------------------------------------------------------------------
 // Spinner — animates while a background fetch is in flight. Shared by every
-// flow that runs a background fetch (list views, task/note metadata, the
+// flow that runs a background fetch (list views, task/note details, the
 // page reader) — there's only one spinner, tracked by owner so the flow that
 // finishes first doesn't kill another flow's still-running spinner.
 // ---------------------------------------------------------------------------

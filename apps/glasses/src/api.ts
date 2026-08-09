@@ -140,11 +140,11 @@ export function fetchProjectTasksDone(
 
 // ---------------------------------------------------------------------------
 // Pages — generic over tasks, notes and projects, so the reader, the
-// metadata screens, and delete all share these regardless of which kind of
+// details screens, and delete all share these regardless of which kind of
 // item the user is looking at.
 // ---------------------------------------------------------------------------
 
-export interface PageMetadata {
+export interface PageDetails {
   project: string | null;
   due: string | null;
 }
@@ -154,8 +154,8 @@ export interface PageMetadata {
  * Project relation; only tasks carry Due — for anything else `due` just comes
  * back null, and it's up to the caller whether to show it.
  */
-export function fetchPageMetadata(id: string): Promise<PageMetadata> {
-  return request(`/api/pages/${id}/metadata`);
+export function fetchPageDetails(id: string): Promise<PageDetails> {
+  return request(`/api/pages/${id}/details`);
 }
 
 /** Moves a page (task, note, or anything else) to the Notion Bin. */

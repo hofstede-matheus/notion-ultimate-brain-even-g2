@@ -67,7 +67,7 @@ export function apiMock(): ApiModule {
     setTaskDueDate: vi.fn().mockResolvedValue(undefined),
     setPageProject: vi.fn().mockResolvedValue(undefined),
     deletePage: vi.fn().mockResolvedValue(undefined),
-    fetchPageMetadata: vi.fn().mockResolvedValue({ project: null, due: null }),
+    fetchPageDetails: vi.fn().mockResolvedValue({ project: null, due: null }),
     fetchPageMarkdown: vi.fn().mockResolvedValue({ markdown: '', truncated: false }),
     fetchPage: vi.fn().mockResolvedValue({ properties: {} }),
   } as unknown as ApiModule;

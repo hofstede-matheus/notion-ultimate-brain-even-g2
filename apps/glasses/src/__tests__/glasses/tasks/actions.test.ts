@@ -9,7 +9,7 @@ vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
-import { fetchPageMetadata } from '../../../api';
+import { fetchPageDetails } from '../../../api';
 import { back, mount, select } from '../harness';
 
 afterEach(() => {
@@ -57,7 +57,7 @@ describe('tapping a task on a list screen', () => {
 
 describe('Task Details', () => {
   it('fetches and shows the task title, project, and due date', async () => {
-    vi.mocked(fetchPageMetadata).mockResolvedValue({ project: 'Groceries', due: '2026-07-25' });
+    vi.mocked(fetchPageDetails).mockResolvedValue({ project: 'Groceries', due: '2026-07-25' });
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
@@ -117,7 +117,7 @@ describe('Task Details', () => {
       3,
     );
     const project = 'A project name that is intentionally long enough to overflow '.repeat(3);
-    vi.mocked(fetchPageMetadata).mockResolvedValue({ project, due: '2026-07-25' });
+    vi.mocked(fetchPageDetails).mockResolvedValue({ project, due: '2026-07-25' });
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: taskName }];
@@ -135,7 +135,7 @@ describe('Task Details', () => {
   });
 
   it('shows the error message when the fetch fails', async () => {
-    vi.mocked(fetchPageMetadata).mockRejectedValue(new Error('offline'));
+    vi.mocked(fetchPageDetails).mockRejectedValue(new Error('offline'));
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
@@ -147,7 +147,7 @@ describe('Task Details', () => {
     expect(h.state.taskDetails).toMatchObject({ loading: false, error: 'offline' });
   });
 
-  it('GO_BACK from metadata returns to the task action menu', () => {
+  it('GO_BACK from details returns to the task action menu', () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
