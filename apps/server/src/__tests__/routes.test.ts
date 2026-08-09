@@ -288,7 +288,7 @@ describe('DELETE /api/pages/:id', () => {
   });
 });
 
-describe('GET /api/pages/:id/metadata', () => {
+describe('GET /api/pages/:id/details', () => {
   it('resolves the project relation name and due date', async () => {
     const notion = fakeNotion();
     notion.pages.retrieve
@@ -300,7 +300,7 @@ describe('GET /api/pages/:id/metadata', () => {
       })
       .mockResolvedValueOnce(titlePage('p1', 'Website'));
 
-    const res = await route('GET', '/api/pages/:id/metadata').handler(
+    const res = await route('GET', '/api/pages/:id/details').handler(
       ctx(notion, { params: { id: 't1' } }),
     );
 
@@ -314,7 +314,7 @@ describe('GET /api/pages/:id/metadata', () => {
       properties: { Due: { date: { start: '2026-07-01' } }, Project: { relation: [] } },
     });
 
-    const res = await route('GET', '/api/pages/:id/metadata').handler(
+    const res = await route('GET', '/api/pages/:id/details').handler(
       ctx(notion, { params: { id: 't1' } }),
     );
 
@@ -328,7 +328,7 @@ describe('GET /api/pages/:id/metadata', () => {
       .mockResolvedValueOnce({ properties: { Project: { relation: [{ id: 'p1' }] } } })
       .mockResolvedValueOnce(titlePage('p1', 'Website'));
 
-    const res = await route('GET', '/api/pages/:id/metadata').handler(
+    const res = await route('GET', '/api/pages/:id/details').handler(
       ctx(notion, { params: { id: 'n1' } }),
     );
 

@@ -400,16 +400,16 @@ const setTaskDueRoute: Route = {
 };
 
 // ---------------------------------------------------------------------------
-// GET /api/pages/:id/metadata
+// GET /api/pages/:id/details
 // Fetch a page's Project (resolved name) and Due date, on demand. Generic
 // over tasks and notes: both databases carry a Project relation, only tasks
 // carry Due — reading a note's non-existent Due property just yields
 // undefined, which the query below already treats as "no date" (`due: null`).
 // The glasses app decides which fields to show for which kind of item.
 // ---------------------------------------------------------------------------
-const pageMetadataRoute: Route = {
+const pageDetailsRoute: Route = {
   method: 'GET',
-  path: '/api/pages/:id/metadata',
+  path: '/api/pages/:id/details',
   handler: authed(async ({ params, notion }) => {
     const { id } = params;
     if (!id) {
@@ -574,7 +574,7 @@ export const ROUTES: Route[] = [
   createTaskRoute,
   markTaskDoneRoute,
   setTaskDueRoute,
-  pageMetadataRoute,
+  pageDetailsRoute,
   setPageProjectRoute,
   deletePageRoute,
   pageMarkdownRoute,

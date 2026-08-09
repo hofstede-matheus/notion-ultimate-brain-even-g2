@@ -9,7 +9,7 @@ vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
-import { fetchPageMetadata } from '../../../api';
+import { fetchPageDetails } from '../../../api';
 import { back, mount, select } from '../harness';
 
 const NOTE = { id: 'n1', name: 'Meeting recap' };
@@ -48,7 +48,7 @@ describe('tapping a note on a list screen', () => {
 
 describe('Note Details', () => {
   it('fetches the project and shows it with the note name, and no due date', async () => {
-    vi.mocked(fetchPageMetadata).mockResolvedValue({ project: 'Q3 Planning', due: null });
+    vi.mocked(fetchPageDetails).mockResolvedValue({ project: 'Q3 Planning', due: null });
     const h = mount();
     h.state.screen = 'notes-inbox';
     h.state.lists['notes-inbox'] = [NOTE];
@@ -72,7 +72,7 @@ describe('Note Details', () => {
 
   it('keeps a long note name in the scrollable text container', async () => {
     const noteName = 'A note title that is intentionally long enough to overflow a row '.repeat(3);
-    vi.mocked(fetchPageMetadata).mockResolvedValue({ project: 'Q3 Planning', due: null });
+    vi.mocked(fetchPageDetails).mockResolvedValue({ project: 'Q3 Planning', due: null });
     const h = mount();
     h.state.screen = 'notes-inbox';
     h.state.lists['notes-inbox'] = [{ id: 'n1', name: noteName }];
@@ -114,7 +114,7 @@ describe('Note Details', () => {
   });
 
   it('shows the error message when the fetch fails', async () => {
-    vi.mocked(fetchPageMetadata).mockRejectedValue(new Error('offline'));
+    vi.mocked(fetchPageDetails).mockRejectedValue(new Error('offline'));
     const h = mount();
     h.state.screen = 'notes-inbox';
     h.state.lists['notes-inbox'] = [NOTE];

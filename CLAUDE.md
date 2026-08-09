@@ -79,7 +79,7 @@ version-specific, see `glasses/constants.ts`) with `pnpm --filter
   before DB ids are known, i.e. the settings form's database picker (`GET /api/databases`).
   Use the `authed()` / `tokenAuthed()` wrappers rather than non-null assertions.
 - **Page-level actions are generic over tasks and notes.** `PATCH /api/pages/:id/project`,
-  `DELETE /api/pages/:id`, `GET /api/pages/:id/metadata` don't care which database the page
+  `DELETE /api/pages/:id`, `GET /api/pages/:id/details` don't care which database the page
   is in; on the client, `modules/_shared/item-actions.ts` runs one confirm→toast flow for
   markDone/delete/setDue/setProject. Add a new item action there, not per-module.
 - **Formatting/linting is Biome** (`biome.json`), not ESLint/Prettier. Run `pnpm lint`
