@@ -115,6 +115,8 @@ export async function boot(): Promise<void> {
         cfgSource = 'env';
       }
       if (!cfg) {
+        await holdSplash(splashAt);
+        await showGlassesScreen('setup-needed');
         setStatus('Enter your Notion settings to continue.');
         cfgSource = 'prompted';
         await reconfigure();

@@ -3,6 +3,7 @@ import type { Note, Project, Tag, Task } from '@notion-ub/contracts';
 
 export type ScreenName =
   | 'booting'
+  | 'setup-needed'
   | 'menu'
   | 'tasks-menu'
   | 'notes-menu'

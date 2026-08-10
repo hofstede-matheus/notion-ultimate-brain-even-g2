@@ -2,8 +2,8 @@
 Feature: Setting the app up for the first time
 
   Every pair of glasses carries its own Notion token and its own four databases. Nothing is stored
-  centrally, so setting the app up is the first thing that has to happen — without it there is
-  nothing for the glasses to show.
+  centrally, so setting the app up is the first thing that has to happen. While setup is open,
+  the glasses explain that setup is needed and direct me to continue on the phone.
 
   That is why the first-run form has no way out. There is no back button and no skip: the only way
   past it is a complete, working setup.
@@ -14,6 +14,7 @@ Feature: Setting the app up for the first time
     Then the phone shows "Notion Settings"
     And there is no back button
     And there is no settings button
+    And the glasses explain that setup is needed
 
   Scenario: Setting up end to end
     Given the app has never been set up

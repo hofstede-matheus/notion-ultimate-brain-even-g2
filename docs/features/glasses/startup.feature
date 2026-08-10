@@ -15,3 +15,16 @@ Feature: Starting the app
     Given the startup screen is showing
     When I double-tap
     Then the app closes and the glasses return to the Even Hub launcher
+
+  Scenario: The glasses explain first-run setup
+    Given the app has not been set up
+    When it starts on the glasses
+    Then the glasses show:
+      """
+      ULTIMATE BRAIN
+
+      Setup needed.
+      Continue on your phone to add
+      your Notion token and databases.
+      """
+    And the message remains while I enter settings on my phone

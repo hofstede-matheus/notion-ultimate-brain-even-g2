@@ -10,3 +10,7 @@ function makeBootScreen(content: string): ScreenModule {
 }
 
 export const bootingScreen = makeBootScreen('ULTIMATE BRAIN\n\nStarted.\nLoading your menu…');
+
+export const setupNeededScreen = makeBootScreen(
+  'ULTIMATE BRAIN\n\nSetup needed.\nContinue on your phone to add\nyour Notion token and databases.',
+);
