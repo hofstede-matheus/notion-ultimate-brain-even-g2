@@ -56,6 +56,7 @@ export function pageToTag(page: NotionPage): Tag {
 export interface NotionDatabase {
   id: string;
   title?: NotionText[];
+  properties?: Record<string, { type?: string } | undefined>;
 }
 
 export function databaseTitle(db: NotionDatabase): string {
@@ -67,6 +68,19 @@ export function databaseTitle(db: NotionDatabase): string {
   );
 }
 
+/**
+ * Property name -> Notion property type, for the settings picker's client-side fit check
+ * (see @notion-ub/contracts's evaluateRoles). A straight relabel of what Notion's search
+ * result already carries — no business logic here, see routes.ts's header comment on why
+ * this server stays a proxy.
+ */
+function databaseProperties(db: NotionDatabase): Record<string, string> | undefined {
+  if (!db.properties) return undefined;
+  return Object.fromEntries(
+    Object.entries(db.properties).map(([name, prop]) => [name, prop?.type ?? 'unknown']),
+  );
+}
+
 export function databaseToSummary(db: NotionDatabase): NotionDatabaseSummary {
-  return { id: db.id, name: databaseTitle(db) };
+  return { id: db.id, name: databaseTitle(db), properties: databaseProperties(db) };
 }

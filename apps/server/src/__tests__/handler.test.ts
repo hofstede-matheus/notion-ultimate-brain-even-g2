@@ -1,3 +1,4 @@
+import { APIErrorCode, APIResponseError } from '@notionhq/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the Notion client factory so an authorized request never touches the
@@ -181,6 +182,29 @@ describe('lambda handler', () => {
       const written = JSON.stringify(entry);
       expect(written).not.toContain('Therapy notes');
       expect(written).not.toContain(PAGE_ID);
+    });
+
+    it('passes through a 400 validation_error rather than flattening it to 500', async () => {
+      query.mockRejectedValueOnce(
+        new APIResponseError({
+          code: APIErrorCode.ValidationError,
+          status: 400,
+          message: 'Could not find sort property with name or id: Meta',
+          headers: new Headers(),
+          rawBodyText: '',
+        }),
+      );
+
+      const res = await handler(event({ headers: { 'x-notion-config': tenantHeader() } }));
+      expect(res.statusCode).toBe(400);
+
+      const [entry] = logError.mock.calls[0];
+      expect(entry).toEqual({
+        method: 'GET',
+        route: '/api/tasks/inbox',
+        status: 400,
+        errorCode: 'validation_error',
+      });
     });
 
     it('never receives the tenant headers', async () => {

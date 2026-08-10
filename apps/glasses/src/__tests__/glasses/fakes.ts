@@ -70,6 +70,18 @@ export function apiMock(): ApiModule {
     fetchPageDetails: vi.fn().mockResolvedValue({ project: null, due: null }),
     fetchPageMarkdown: vi.fn().mockResolvedValue({ markdown: '', truncated: false }),
     fetchPage: vi.fn().mockResolvedValue({ properties: {} }),
+    // Not stubbed with vi.fn() — config-health.ts's `err instanceof ApiError` check needs the
+    // real class identity, and a plain `class extends Error` has no behaviour worth mocking.
+    ApiError: class ApiError extends Error {
+      constructor(
+        message: string,
+        readonly status: number,
+        readonly code?: string,
+      ) {
+        super(message);
+        this.name = 'ApiError';
+      }
+    },
   } as unknown as ApiModule;
 }
 

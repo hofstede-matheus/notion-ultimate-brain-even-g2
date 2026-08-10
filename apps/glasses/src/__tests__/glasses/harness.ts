@@ -37,6 +37,8 @@ export function resetState(): void {
   state.loading = false;
   state.spinnerFrame = '';
   state.errorMessage = '';
+  state.listStatus = {};
+  state.configSuspect = false;
 }
 
 /**

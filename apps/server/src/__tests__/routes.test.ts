@@ -1,4 +1,4 @@
-import { APIErrorCode, APIResponseError, type Client } from '@notionhq/client';
+import { APIErrorCode, APIResponseError, type Client, RequestTimeoutError } from '@notionhq/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Route, RouteContext } from '../routes';
 import { invokeRoute, ROUTES } from '../routes';
@@ -97,7 +97,87 @@ describe('view routes', () => {
     const res = await invokeRoute(route('GET', '/api/tasks/inbox'), ctx(notion));
 
     expect(res.status).toBe(500);
-    expect(res.body).toEqual({ error: 'notion down' });
+    expect(res.body).toEqual({ error: 'notion down', code: 'unhandled_error' });
+  });
+});
+
+describe('invokeRoute status passthrough', () => {
+  it('keeps a 400 validation_error as 400, not 500', async () => {
+    const notion = fakeNotion();
+    notion.databases.query.mockRejectedValue(
+      new APIResponseError({
+        code: APIErrorCode.ValidationError,
+        status: 400,
+        message: 'Could not find sort property with name or id: Meta',
+        headers: new Headers(),
+        rawBodyText: '',
+      }),
+    );
+
+    const res = await invokeRoute(route('GET', '/api/projects/all'), ctx(notion));
+
+    expect(res).toEqual({
+      status: 400,
+      body: {
+        error: 'Could not find sort property with name or id: Meta',
+        code: 'validation_error',
+      },
+      errorCode: 'validation_error',
+    });
+  });
+
+  it('keeps a 404 object_not_found as 404', async () => {
+    const notion = fakeNotion();
+    notion.databases.query.mockRejectedValue(
+      new APIResponseError({
+        code: APIErrorCode.ObjectNotFound,
+        status: 404,
+        message: 'Could not find database',
+        headers: new Headers(),
+        rawBodyText: '',
+      }),
+    );
+
+    const res = await invokeRoute(route('GET', '/api/projects/all'), ctx(notion));
+
+    expect(res.status).toBe(404);
+    expect(res.errorCode).toBe('object_not_found');
+  });
+
+  it('keeps a 429 rate_limited as 429', async () => {
+    const notion = fakeNotion();
+    notion.databases.query.mockRejectedValue(
+      new APIResponseError({
+        code: APIErrorCode.RateLimited,
+        status: 429,
+        message: 'Too many requests',
+        headers: new Headers(),
+        rawBodyText: '',
+      }),
+    );
+
+    const res = await invokeRoute(route('GET', '/api/projects/all'), ctx(notion));
+
+    expect(res.status).toBe(429);
+  });
+
+  it('falls back to 500 for a plain Error with no HTTP status', async () => {
+    const notion = fakeNotion();
+    notion.databases.query.mockRejectedValue(new Error('boom'));
+
+    const res = await invokeRoute(route('GET', '/api/projects/all'), ctx(notion));
+
+    expect(res.status).toBe(500);
+    expect(res.errorCode).toBe('unhandled_error');
+  });
+
+  it('falls back to 500 for a Notion client error with no HTTP status (timeout)', async () => {
+    const notion = fakeNotion();
+    notion.databases.query.mockRejectedValue(new RequestTimeoutError('timed out'));
+
+    const res = await invokeRoute(route('GET', '/api/projects/all'), ctx(notion));
+
+    expect(res.status).toBe(500);
   });
 });
 
@@ -626,7 +706,7 @@ describe('GET /api/databases', () => {
     // that never quotes IDs or titles (see lambda/logger.ts).
     expect(res).toEqual({
       status: 500,
-      body: { error: 'notion down' },
+      body: { error: 'notion down', code: 'unhandled_error' },
       errorCode: 'unhandled_error',
     });
   });

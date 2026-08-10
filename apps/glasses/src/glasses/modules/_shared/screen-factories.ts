@@ -273,6 +273,15 @@ function selectKindFor(screen: ScreenName): SelectKind | undefined {
   return undefined;
 }
 
+/** Cold-failure text (no cache, refresh failed) — distinct from `emptyMessage` so a genuinely
+ *  empty view can never be mistaken for an unreachable one. See navigation.ts's enterView. */
+const LOAD_FAILED_MESSAGE = "Couldn't load. Check your phone, then try again.";
+/** Same case, but the failure looked config-shaped (see config-health.ts's reportApiFailure) —
+ *  points at Settings instead of a generic retry. */
+const CONFIG_SUSPECT_MESSAGE = 'Setup needs attention. Continue on your phone.';
+/** Warm-stale header indicator — a refresh failed but these are still last session's items. */
+const STALE_INDICATOR = 'old';
+
 export interface ListScreenConfig {
   /** This screen's own name — used to key state.lists (unless `selectItems` is given). */
   screen: ScreenName;
@@ -350,12 +359,21 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
 
       const items = selectItems(state);
       if (items.length === 0) {
+        // A refresh failure with no cache to fall back on looks exactly like a genuinely
+        // empty list unless flagged — see navigation.ts's enterView catch, which is the only
+        // writer of listStatus.
+        const failed = state.listStatus[config.screen] === 'failed';
+        const message = failed
+          ? state.configSuspect
+            ? CONFIG_SUSPECT_MESSAGE
+            : LOAD_FAILED_MESSAGE
+          : emptyMessage;
         return {
           mode: 'text',
           content: [
             buildHeaderLine(title, state.spinnerFrame),
             '',
-            emptyMessage,
+            message,
             '',
             'Double-tap to go back.',
           ].join('\n'),
@@ -367,11 +385,16 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
         state.listPages[config.screen] ?? 0,
       );
       const headerTitle = countInHeader ? `${title} (${items.length})` : title;
-      // The spinner (background refresh) and the page indicator share the
-      // header's second slot — a live spinner tick always takes priority,
-      // matching the page reader's own header layout.
+      // The spinner (background refresh) and the page indicator share the header's second
+      // slot — a live spinner tick always takes priority, matching the page reader's own
+      // header layout. A 'stale' listStatus (cached items on screen, last refresh failed —
+      // see navigation.ts's enterView) composes with the page indicator rather than
+      // replacing it, so "old 1/3" stays legible on a paged list.
+      const stale = state.listStatus[config.screen] === 'stale';
+      const pageIndicator = totalPages > 1 ? `${clampedPage + 1}/${totalPages}` : '';
       const indicator =
-        state.spinnerFrame || (totalPages > 1 ? `${clampedPage + 1}/${totalPages}` : '');
+        state.spinnerFrame ||
+        [stale ? STALE_INDICATOR : '', pageIndicator].filter(Boolean).join(' ');
       const header = buildHeaderLine(headerTitle, indicator);
       const listItems: string[] = [];
       if (hasPrev) listItems.push(PREV_PAGE_LABEL);

@@ -138,6 +138,23 @@ describe('databaseToSummary', () => {
     expect(databaseToSummary({ id: 'd1', title: [{ plain_text: 'Tasks' }] })).toEqual({
       id: 'd1',
       name: 'Tasks',
+      properties: undefined,
     });
+  });
+
+  it('reduces each property to its type, for the settings picker fit check', () => {
+    expect(
+      databaseToSummary({
+        id: 'd1',
+        title: [{ plain_text: 'Projects' }],
+        properties: { Name: { type: 'title' }, Meta: { type: 'formula' } },
+      }).properties,
+    ).toEqual({ Name: 'title', Meta: 'formula' });
+  });
+
+  it('leaves properties undefined when the search result carried none', () => {
+    expect(
+      databaseToSummary({ id: 'd1', title: [{ plain_text: 'Tasks' }] }).properties,
+    ).toBeUndefined();
   });
 });

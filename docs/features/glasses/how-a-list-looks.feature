@@ -48,3 +48,22 @@ Feature: How a list looks
     Then the header shows the spinner rather than "1/3"
     When the refresh finishes
     Then the header shows "1/3" again
+
+  Scenario: A list whose refresh failed marks itself stale
+    Given a list showing what it held last time
+    When its background refresh fails, with those items still on screen
+    Then the header shows "old" instead of a page number
+    # See opening-a-list-again.feature for when this applies.
+
+  Scenario: The stale mark shares the header slot with the page number, not the spinner
+    Given a list long enough to span 3 pages, currently marked "old"
+    Then the header shows "old 1/3"
+    When it starts refreshing again
+    Then the header shows the spinner instead, until the refresh finishes
+
+  Scenario: A first-ever visit that fails shows a load-failed message, not the empty-list message
+    Given a list with nothing cached, whose first fetch fails
+    Then the glasses show a message that it couldn't load and to check the phone
+    And below that, "Double-tap to go back."
+    # Distinct from "An empty list explains itself" above — a failure must never look like a
+    # genuinely empty view.

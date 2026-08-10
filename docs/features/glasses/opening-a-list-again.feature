@@ -4,9 +4,9 @@ Feature: Opening a list and reopening it
   A list opened before comes straight back, showing what it held last time while it quietly checks
   for changes. Only the first visit waits.
 
-  The cost is that a failed check is invisible: nothing anywhere in the app says "couldn't
-  refresh". What is on screen is either up to date or a little old, and there is no way to tell
-  which.
+  A failed check is never invisible: a first visit that can't load says so instead of looking
+  empty, and a reopened list whose refresh failed marks itself "old" rather than silently passing
+  off yesterday's data as current.
 
   What each list says while it waits is described with that list.
 
@@ -32,23 +32,27 @@ Feature: Opening a list and reopening it
     Then the header counts 6
     And the spinner stops
 
-  @known-gap
-  Scenario: A first visit that fails looks like an empty list
+  Scenario: A first visit that fails says so, instead of looking empty
     Given I have never opened this list on these glasses
     And it cannot be loaded
     When I open it
-    Then the glasses say there is nothing in it
-    And nothing says it could not be loaded
-    # There is no way to tell an empty list from an unreachable one.
+    Then the glasses say the list couldn't load and to check the phone
+    And that message is not the list's own "nothing in it" message
+    And "Double-tap to go back." still appears below it
 
-  @known-gap
-  Scenario: A failed refresh silently leaves old items on screen
+  Scenario: A failed refresh marks the old items as unconfirmed, rather than hiding the failure
     Given I opened a list earlier and it held 7 items
     And it can no longer be loaded
     When I open it again
     Then those 7 items stay on screen
     And the spinner stops
-    And nothing says they may be out of date
+    And the header marks the list "old" once the failed refresh finishes
+
+  Scenario: A later successful refresh clears the "old" mark
+    Given a list is currently marked "old" from a previous failed refresh
+    When I open it again and the refresh succeeds this time
+    Then the "old" mark is gone
+    And the header shows the normal count or page indicator
 
   Scenario: Each list is remembered on its own
     Given I opened one list earlier

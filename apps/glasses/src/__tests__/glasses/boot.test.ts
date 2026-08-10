@@ -51,6 +51,12 @@ vi.mock('../../stt', () => ({
   preloadVoskModel: vi.fn(),
 }));
 
+const mockFetchDatabases = vi.fn();
+vi.mock('../../web/services/databases', () => ({
+  fetchDatabases: mockFetchDatabases,
+  InvalidTokenError: class InvalidTokenError extends Error {},
+}));
+
 const { boot } = await import('../../boot');
 
 const tenantConfig = (suffix: string): TenantConfig => ({
@@ -71,6 +77,19 @@ afterEach(() => {
 });
 
 describe('boot', () => {
+  it('never calls /api/databases during boot — config-health only runs lazily on failure', async () => {
+    vi.useFakeTimers();
+    const bridge = makeMockBridge();
+    mocks.bridge = bridge;
+    mocks.loadStoredConfig.mockResolvedValue(tenantConfig('stored'));
+
+    await boot();
+    await vi.advanceTimersByTimeAsync(BOOT_SPLASH_MIN_MS);
+
+    expect(state.screen).toBe('menu');
+    expect(mockFetchDatabases).not.toHaveBeenCalled();
+  });
+
   it('creates the startup containers before stored config resolves', async () => {
     vi.useFakeTimers();
     const bridge = makeMockBridge();
@@ -118,6 +137,8 @@ describe('boot', () => {
     // Simulate stale data left over from browsing before settings changed.
     state.lists = { menu: [] };
     state.listPages = { menu: 3 };
+    state.listStatus = { 'projects-all': 'stale' };
+    state.configSuspect = true;
     bridge.rebuildPageContainer.mockClear();
     vi.mocked(promptForConfig).mockResolvedValueOnce(tenantConfig('updated'));
 
@@ -128,6 +149,8 @@ describe('boot', () => {
 
     expect(state.lists).toEqual({});
     expect(state.listPages).toEqual({});
+    expect(state.listStatus).toEqual({});
+    expect(state.configSuspect).toBe(false);
     expect(state.screen).toBe('menu');
     expect(bridge.rebuildPageContainer).toHaveBeenCalled();
   });

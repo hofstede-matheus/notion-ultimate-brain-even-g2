@@ -13,6 +13,24 @@ import { getTenantHeader } from './tenant-config';
 const ERROR_BODY_PREVIEW_BYTES = 500;
 
 /**
+ * A failed API request, carrying the HTTP status and — when the server sent one — Notion's
+ * error code (`validation_error`, `object_not_found`, …; see apps/server/src/routes.ts's
+ * invokeRoute). config-health.ts's reportApiFailure reads `status`/`code` to tell a
+ * config-shaped failure (400 validation_error: the chosen database is missing a property the
+ * view needs) apart from a transient one, without parsing the message text.
+ */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+/**
  * API client for the Ultimate Brain backend server.
  *
  * In development, Vite proxies /api/* to the backend (localhost:3210).
@@ -47,7 +65,16 @@ async function request<T>(path: string, init: RequestInit = {}, resultKey?: stri
       .then((t) => t.slice(0, ERROR_BODY_PREVIEW_BYTES))
       .catch(() => '<unreadable body>');
     trace.error('API', `${path} ${res.status} ${res.statusText}`, { body });
-    throw new Error(`Request failed with status ${res.status}`);
+    // `code` is Notion's error code when the server preserved one (see routes.ts's
+    // invokeRoute) — best-effort parse, since `body` is truncated and may not be JSON at all.
+    const code = (() => {
+      try {
+        return (JSON.parse(body) as { code?: string }).code;
+      } catch {
+        return undefined;
+      }
+    })();
+    throw new ApiError(`Request failed with status ${res.status}`, res.status, code);
   }
   trace.info('API', `${path} ${res.status} ${res.statusText}`);
   const data = await res.json();

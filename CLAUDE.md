@@ -98,6 +98,16 @@ version-specific, see `glasses/constants.ts`) with `pnpm --filter
 - **Notion status filters need the real option name, not the group label.** Tasks use
   `Done` (not "Complete"); Projects use `Doing`/`Ongoing` (not "In progress"). Group labels
   silently match nothing. Same trap on Tags' `Type` (`Area`/`Resource`/`Entity`).
+- **A Notion workspace commonly holds more than one database with the same title** — Notion's
+  stock "Projects"/"Tasks" templates alongside the real Ultimate Brain ones, all sharing a name
+  in the settings picker. `packages/contracts/src/db-roles.ts`'s `ROLE_REQUIREMENTS` /
+  `evaluateRoles()` is what tells them apart, by checking each database's actual properties
+  (returned free by `notion.search()`, see `apps/server/src/mappers.ts`'s `databaseToSummary`)
+  against what `apps/server/src/views.ts` filters/sorts by for that role — computed client-side
+  in `apps/glasses/src/web/screens/SettingsForm/dbSelection.ts`, not the server, per "server is
+  a proxy" above. **`ROLE_REQUIREMENTS` must stay in sync with `views.ts`/`routes.ts`/
+  `mappers.ts`** — `apps/server/src/__tests__/db-roles-drift.test.ts` fails on purpose when a
+  new filter or sort names a property the table doesn't list yet.
 - **Byte-vs-char truncation.** The glasses display truncates by display width; watch the
   byte-vs-char distinction when cutting strings for the SDK. Native list caps live in
   `glasses/constants.ts`: `MAX_LIST_ITEMS` (20) and `MAX_ITEM_BYTES` (63 **UTF-8 bytes**,

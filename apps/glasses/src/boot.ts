@@ -30,9 +30,11 @@ import { getDevEnvConfig, getTenantConfig, setTenantConfig } from './tenant-conf
 /**
  * Prompts for config (pre-filled with `prefill`), persists it, and applies it.
  * When `prefill` is present the form is cancellable (a back button appears);
- * backing out keeps the existing config untouched.
+ * backing out keeps the existing config untouched. Exported for
+ * config-health.ts's reportApiFailure, which reopens Settings the same way
+ * the gear icon does when a saved database stops working.
  */
-async function reconfigure(prefill?: TenantConfig | null): Promise<boolean> {
+export async function reconfigure(prefill?: TenantConfig | null): Promise<boolean> {
   try {
     const cfg = await promptForConfig(prefill, prefill != null);
     await saveStoredConfig(cfg);
@@ -183,6 +185,8 @@ export async function boot(): Promise<void> {
         if (!(await reconfigure(getTenantConfig()))) return;
         state.lists = {};
         state.listPages = {};
+        state.listStatus = {};
+        state.configSuspect = false;
         if (state.startupRendered) await showGlassesScreen('menu');
       })(),
   );

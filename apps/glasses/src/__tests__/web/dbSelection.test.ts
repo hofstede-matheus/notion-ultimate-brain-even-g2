@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  autoSelect,
   availableOptionsFor,
+  compatibleOptionsFor,
   EMPTY_SELECTION,
+  fitsSlot,
   isSelectionComplete,
   reconcileSelection,
+  unfitReason,
+  unfitSlots,
 } from '../../web/screens/SettingsForm/dbSelection';
 
 const databases = [
@@ -11,6 +16,31 @@ const databases = [
   { id: 'd2', name: 'Notes' },
   { id: 'd3', name: 'Projects' },
 ];
+
+// A real Ultimate Brain Projects schema (fits the projects role) alongside the stock-template
+// decoy that caused the incident this feature exists to prevent (doesn't fit any role).
+const REAL_PROJECTS_DB = {
+  id: 'real-projects',
+  name: 'Projects',
+  properties: {
+    Name: 'title',
+    Archived: 'checkbox',
+    Status: 'status',
+    Meta: 'formula',
+    'Latest Activity': 'formula',
+    'Target Deadline': 'date',
+  },
+};
+const DECOY_PROJECTS_DB = {
+  id: 'decoy-projects',
+  name: 'Projects',
+  properties: {
+    'Project name': 'title',
+    Status: 'status',
+    Priority: 'select',
+  },
+};
+const UNKNOWN_SCHEMA_DB = { id: 'unknown', name: 'Something' }; // no `properties` — older server
 
 describe('availableOptionsFor', () => {
   it('offers every database when nothing else is chosen', () => {
@@ -71,5 +101,109 @@ describe('reconcileSelection', () => {
       projectsDb: 'd3',
       tagsDb: '',
     });
+  });
+});
+
+describe('fitsSlot', () => {
+  it('fits a database with the right schema to its role', () => {
+    expect(fitsSlot(REAL_PROJECTS_DB, 'projectsDb')).toBe(true);
+  });
+
+  it('rejects a same-named database with the wrong schema', () => {
+    expect(fitsSlot(DECOY_PROJECTS_DB, 'projectsDb')).toBe(false);
+  });
+
+  it('fails open when the database carries no properties (older server)', () => {
+    expect(fitsSlot(UNKNOWN_SCHEMA_DB, 'projectsDb')).toBe(true);
+  });
+});
+
+describe('unfitReason', () => {
+  it('is null when the database fits', () => {
+    expect(unfitReason(REAL_PROJECTS_DB, 'projectsDb')).toBeNull();
+  });
+
+  it('is null when fitness is unknown (no properties)', () => {
+    expect(unfitReason(UNKNOWN_SCHEMA_DB, 'projectsDb')).toBeNull();
+  });
+
+  it('names the missing properties for an unfit database', () => {
+    const reason = unfitReason(DECOY_PROJECTS_DB, 'projectsDb');
+    expect(reason).toContain('Meta');
+    expect(reason).toContain('missing');
+  });
+});
+
+describe('compatibleOptionsFor', () => {
+  it('excludes databases whose schema does not fit the slot', () => {
+    const dbs = [REAL_PROJECTS_DB, DECOY_PROJECTS_DB];
+    const options = compatibleOptionsFor('projectsDb', dbs, EMPTY_SELECTION);
+    expect(options.map((d) => d.id)).toEqual(['real-projects']);
+  });
+
+  it('still respects the cross-slot exclusivity availableOptionsFor already applies', () => {
+    const dbs = [REAL_PROJECTS_DB, DECOY_PROJECTS_DB];
+    const selection = { ...EMPTY_SELECTION, tasksDb: 'real-projects' };
+    expect(compatibleOptionsFor('projectsDb', dbs, selection).map((d) => d.id)).toEqual([]);
+  });
+});
+
+describe('autoSelect', () => {
+  it('fills an empty slot with its one compatible candidate', () => {
+    const dbs = [REAL_PROJECTS_DB, DECOY_PROJECTS_DB];
+    expect(autoSelect(dbs, EMPTY_SELECTION).projectsDb).toBe('real-projects');
+  });
+
+  it('does not auto-select when two candidates fit the same slot', () => {
+    const other = { ...REAL_PROJECTS_DB, id: 'real-projects-2' };
+    const dbs = [REAL_PROJECTS_DB, other, DECOY_PROJECTS_DB];
+    expect(autoSelect(dbs, EMPTY_SELECTION).projectsDb).toBe('');
+  });
+
+  it('never overrides a slot that already has a value, fitting or not', () => {
+    const dbs = [REAL_PROJECTS_DB, DECOY_PROJECTS_DB];
+    const selection = { ...EMPTY_SELECTION, projectsDb: 'decoy-projects' };
+    expect(autoSelect(dbs, selection).projectsDb).toBe('decoy-projects');
+  });
+
+  it('resolves to a fixed point across slots — filling one frees a candidate for another', () => {
+    // Two databases, each fitting exactly one distinct role: resolving tasksDb first must not
+    // stop projectsDb from also being resolved in the same call.
+    const taskDb = {
+      id: 't1',
+      name: 'Tasks',
+      properties: {
+        Name: 'title',
+        Status: 'status',
+        Due: 'date',
+        Snooze: 'date',
+        Project: 'relation',
+        Created: 'created_time',
+        'Sub-Task Sorter': 'formula',
+      },
+    };
+    const dbs = [REAL_PROJECTS_DB, taskDb];
+    const result = autoSelect(dbs, EMPTY_SELECTION);
+    expect(result.projectsDb).toBe('real-projects');
+    expect(result.tasksDb).toBe('t1');
+  });
+});
+
+describe('unfitSlots', () => {
+  it('is empty when every selected database fits its slot', () => {
+    const dbs = [REAL_PROJECTS_DB];
+    const selection = { ...EMPTY_SELECTION, projectsDb: 'real-projects' };
+    expect(unfitSlots(selection, dbs)).toEqual([]);
+  });
+
+  it('flags a slot whose selected database no longer fits — without clearing it', () => {
+    const dbs = [DECOY_PROJECTS_DB];
+    const selection = { ...EMPTY_SELECTION, projectsDb: 'decoy-projects' };
+    expect(unfitSlots(selection, dbs)).toEqual(['projectsDb']);
+    expect(selection.projectsDb).toBe('decoy-projects'); // untouched
+  });
+
+  it('ignores an empty slot', () => {
+    expect(unfitSlots(EMPTY_SELECTION, [DECOY_PROJECTS_DB])).toEqual([]);
   });
 });
