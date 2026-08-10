@@ -1,3 +1,4 @@
+import { APP_DISPLAY_NAME } from '../app-info';
 import { getSnapshot } from './sink';
 
 /** Builds the full clipboard payload: a header block + every buffered line. */
@@ -6,7 +7,7 @@ export function buildLogText(): string {
   const previousCount = entries.filter((r) => r.previousSession).length;
 
   const header = [
-    `GlassTask log — ${new Date().toISOString()}`,
+    `${APP_DISPLAY_NAME} log — ${new Date().toISOString()}`,
     `app ${__APP_VERSION__} · api ${import.meta.env.VITE_API_BASE || '(same-origin)'}`,
     `ua: ${navigator.userAgent}`,
     `${entries.length} lines${previousCount > 0 ? ` (${previousCount} from previous session)` : ''}`,

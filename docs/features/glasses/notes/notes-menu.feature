@@ -48,4 +48,4 @@ Feature: The Notes menu
   Scenario: Returning to the root menu
     Given I am on the "NOTES" menu
     When I double-tap
-    Then the glasses show the header "Ultimate Brain for Even G2"
+    Then the glasses show the header "Ultimate Brain"

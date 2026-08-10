@@ -13,7 +13,7 @@ import { getTenantHeader } from './tenant-config';
 const ERROR_BODY_PREVIEW_BYTES = 500;
 
 /**
- * API client for the GlassTask backend server.
+ * API client for the Ultimate Brain backend server.
  *
  * In development, Vite proxies /api/* to the backend (localhost:3210).
  * In production, VITE_API_BASE is baked in at build time to point at the

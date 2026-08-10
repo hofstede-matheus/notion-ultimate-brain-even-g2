@@ -8,7 +8,7 @@ Feature: Connecting the app to the glasses
 
   Scenario: The app opens already trying to connect
     When I open the app
-    Then the phone shows "GlassTask"
+    Then the phone shows "Ultimate Brain"
     And the status reads "Connecting..."
     And a "Connect" button is shown
 

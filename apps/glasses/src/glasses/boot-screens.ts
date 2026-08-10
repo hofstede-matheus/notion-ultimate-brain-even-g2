@@ -1,3 +1,4 @@
+import { APP_DISPLAY_NAME } from '../app-info';
 import type { ScreenModule } from './types';
 
 function makeBootScreen(content: string): ScreenModule {
@@ -9,12 +10,14 @@ function makeBootScreen(content: string): ScreenModule {
   };
 }
 
-export const bootingScreen = makeBootScreen('ULTIMATE BRAIN\n\nStarted.\nLoading your menu…');
+export const bootingScreen = makeBootScreen(
+  `${APP_DISPLAY_NAME.toUpperCase()}\n\nStarted.\nLoading your menu…`,
+);
 
 export const setupNeededScreen = makeBootScreen(
-  'ULTIMATE BRAIN\n\nSetup needed.\nContinue on your phone to add\nyour Notion token and databases.',
+  `${APP_DISPLAY_NAME.toUpperCase()}\n\nSetup needed.\nContinue on your phone to add\nyour Notion token and databases.`,
 );
 
 export const bootErrorScreen = makeBootScreen(
-  "ULTIMATE BRAIN\n\nCan't connect.\nCheck the Even Hub app on your\nphone, then retry.",
+  `${APP_DISPLAY_NAME.toUpperCase()}\n\nCan't connect.\nCheck the Even Hub app on your\nphone, then retry.`,
 );

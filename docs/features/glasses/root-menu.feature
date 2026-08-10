@@ -6,7 +6,7 @@ Feature: The root menu
 
   Scenario: The app opens on the root menu
     When the glasses connect and the app starts
-    Then the glasses show the header "Ultimate Brain for Even G2"
+    Then the glasses show the header "Ultimate Brain"
     And the rows are:
       | Tasks    |
       | Notes    |
@@ -27,7 +27,7 @@ Feature: The root menu
   Scenario Outline: Every section returns to the root menu
     Given I am on the "<header>" menu
     When I double-tap
-    Then the glasses show the header "Ultimate Brain for Even G2"
+    Then the glasses show the header "Ultimate Brain"
 
     Examples:
       | header   |

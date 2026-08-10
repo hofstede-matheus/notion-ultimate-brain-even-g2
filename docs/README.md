@@ -1,4 +1,4 @@
-# GlassTask behaviour specs
+# Ultimate Brain behaviour specs
 
 Gherkin specifications for every user-facing flow in this app: what the glasses show, what each
 gesture does, and what the phone asks for during setup.
