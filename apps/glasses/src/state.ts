@@ -2,6 +2,7 @@ import type { EvenAppBridge } from '@evenrealities/even_hub_sdk';
 import type { Note, Project, Tag, Task } from '@notion-ub/contracts';
 
 export type ScreenName =
+  | 'booting'
   | 'menu'
   | 'tasks-menu'
   | 'notes-menu'

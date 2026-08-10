@@ -14,7 +14,11 @@ vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
-import { startGlasses } from '../../../glasses/events';
+import {
+  attachGlassesListeners,
+  showGlassesScreen,
+  startGlasses,
+} from '../../../glasses/events';
 import { clear as clearLog } from '../../../logging/sink';
 import { mount } from '../harness';
 
@@ -33,6 +37,18 @@ afterEach(() => {
 });
 
 describe('startGlasses', () => {
+  it('attaches listeners before rendering a requested screen', async () => {
+    const h = mount();
+    h.state.startupRendered = true;
+
+    attachGlassesListeners();
+    await showGlassesScreen('booting');
+
+    expect(h.bridge.onEvenHubEvent).toHaveBeenCalledTimes(1);
+    expect(h.state.screen).toBe('booting');
+    expect(h.bridge.rebuildPageContainer).toHaveBeenCalledTimes(1);
+  });
+
   it('subscribes to onEvenHubEvent and renders the initial menu screen', async () => {
     const h = mount();
     h.state.startupRendered = true;

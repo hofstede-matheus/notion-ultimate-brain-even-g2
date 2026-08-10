@@ -12,8 +12,8 @@ import {
   showRetry,
 } from '@web/providers/uiController';
 import { loadStoredConfig, saveStoredConfig } from '@web/services/config';
-import { VOSK_MODEL_URL } from './glasses/constants';
-import { startGlasses } from './glasses/events';
+import { BOOT_SPLASH_MIN_MS, VOSK_MODEL_URL } from './glasses/constants';
+import { attachGlassesListeners, showGlassesScreen } from './glasses/events';
 import { StartupRejectedError } from './glasses/render';
 import { loadPreviousSession, startPersisting } from './logging/persist';
 import { trace } from './logging/trace';
@@ -47,6 +47,13 @@ async function reconfigure(prefill?: TenantConfig | null): Promise<void> {
   }
 }
 
+async function holdSplash(splashAt: number): Promise<void> {
+  const remaining = BOOT_SPLASH_MIN_MS - (Date.now() - splashAt);
+  if (remaining > 0) {
+    await new Promise<void>((resolve) => setTimeout(resolve, remaining));
+  }
+}
+
 export async function boot(): Promise<void> {
   trace.info('BOOT', 'session start', {
     app: __APP_VERSION__,
@@ -68,6 +75,9 @@ export async function boot(): Promise<void> {
       const bridge = await waitForEvenAppBridge();
       setBridge(bridge);
       trace.info('BOOT', 'bridge acquired');
+      attachGlassesListeners();
+      await showGlassesScreen('booting');
+      const splashAt = Date.now();
 
       // Real glasses link state, independent of whether startup rendering
       // succeeded — a second connect() (via the retry button) must not stack
@@ -113,8 +123,8 @@ export async function boot(): Promise<void> {
       }
       trace.info('BOOT', `config source = ${cfgSource}`);
 
-      // Wire event listener + render the initial menu screen
-      await startGlasses();
+      await holdSplash(splashAt);
+      await showGlassesScreen('menu');
       trace.info('BOOT', 'glasses started');
 
       setStatus('Connected! Use your glasses.');

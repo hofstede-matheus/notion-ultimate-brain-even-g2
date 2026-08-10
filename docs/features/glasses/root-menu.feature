@@ -1,8 +1,8 @@
 @glasses @navigation
 Feature: The root menu
 
-  The first thing the glasses show, and the only screen a double-tap exits from. Everything else
-  in the app is reached from these four rows.
+  The main screen after startup, and the only menu screen a double-tap exits from. Everything
+  else in the app is reached from these four rows.
 
   Scenario: The app opens on the root menu
     When the glasses connect and the app starts

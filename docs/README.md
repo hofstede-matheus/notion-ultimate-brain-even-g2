@@ -89,6 +89,7 @@ root menu downward, wherever you happen to be.
 
 ```
 root-menu.feature                          Tasks · Notes · Projects · Tags
+startup.feature                            the message shown while the app starts
 the-three-gestures.feature                 tap, double-tap, swipe
 how-a-list-looks.feature                   headers, counts, long names, empty lists
 paging-a-long-list.feature                 when there is more than a screenful

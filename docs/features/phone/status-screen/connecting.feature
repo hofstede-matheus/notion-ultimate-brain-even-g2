@@ -21,6 +21,7 @@ Feature: Connecting the app to the glasses
     Given the app was set up on a previous run
     When it connects
     Then the settings form is not shown
+    And the glasses briefly show that Ultimate Brain started
     And the glasses show their menu
     And the status reads "Connected! Use your glasses."
     And the "Connect" button disappears
