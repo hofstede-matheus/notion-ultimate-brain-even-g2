@@ -7,18 +7,56 @@
  * in _shared/navigation.test.ts, driven through the injected fake cache.)
  */
 
+import type { TenantConfig } from '@notion-ub/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { loadCachedList, saveCachedList } from '../../cache';
+import { cacheKeyForScreen, loadCachedList, saveCachedList } from '../../cache';
 
 const { storageGet, storageSet } = vi.hoisted(() => ({
   storageGet: vi.fn(),
   storageSet: vi.fn().mockResolvedValue(undefined),
 }));
 
+const { getTenantConfig } = vi.hoisted(() => ({
+  getTenantConfig: vi.fn<() => TenantConfig | null>(),
+}));
+
 vi.mock('even-toolkit/storage', () => ({ storageGet, storageSet }));
+vi.mock('../../tenant-config', () => ({ getTenantConfig }));
+
+const tenantConfig = (tasksDb: string): TenantConfig => ({
+  token: 'token',
+  tasksDb,
+  notesDb: 'notes',
+  projectsDb: 'projects',
+  tagsDb: 'tags',
+});
 
 afterEach(() => {
   vi.clearAllMocks();
+});
+
+describe('cacheKeyForScreen', () => {
+  it('namespaces the key by the first 8 characters of the tenant tasks database id', () => {
+    getTenantConfig.mockReturnValue(tenantConfig('abcdefgh12345'));
+
+    expect(cacheKeyForScreen('today')).toBe('notionultimatebrain:abcdefgh:today');
+  });
+
+  it('falls back to "unconfigured" when there is no tenant config', () => {
+    getTenantConfig.mockReturnValue(null);
+
+    expect(cacheKeyForScreen('today')).toBe('notionultimatebrain:unconfigured:today');
+  });
+
+  it('produces different keys for different tenants, so switching workspaces does not reuse cached lists', () => {
+    getTenantConfig.mockReturnValue(tenantConfig('aaa-workspace-db'));
+    const keyA = cacheKeyForScreen('today');
+
+    getTenantConfig.mockReturnValue(tenantConfig('bbb-workspace-db'));
+    const keyB = cacheKeyForScreen('today');
+
+    expect(keyA).not.toBe(keyB);
+  });
 });
 
 describe('loadCachedList', () => {
