@@ -37,16 +37,13 @@ Feature: Changing settings later
     When I reopen settings
     Then a back button is shown
 
-  @known-gap
-  Scenario: Lists from the old workspace linger after switching
+  Scenario: Switching workspaces does not reuse old lists
     Given I have browsed several views
     When I point the app at a different Notion workspace
-    Then the glasses keep showing the old workspace's lists at first
-    And each one corrects itself once it checks for changes
+    Then the glasses show lists from the new workspace
 
-  @known-gap
-  Scenario: Changing settings does not refresh what is already on the glasses
+  Scenario: Saving settings returns to a fresh menu
     Given the glasses are showing a list
     When I save different settings
-    Then that screen stays as it is
-    And it only updates once I navigate away and back
+    Then the glasses show their menu
+    And opening a list loads data for the new settings

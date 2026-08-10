@@ -36,16 +36,17 @@ import { getDevEnvConfig, getTenantConfig, setTenantConfig } from './tenant-conf
  * When `prefill` is present the form is cancellable (a back button appears);
  * backing out keeps the existing config untouched.
  */
-async function reconfigure(prefill?: TenantConfig | null): Promise<void> {
+async function reconfigure(prefill?: TenantConfig | null): Promise<boolean> {
   try {
     const cfg = await promptForConfig(prefill, prefill != null);
     await saveStoredConfig(cfg);
     setTenantConfig(cfg);
     trace.info('BOOT', 'tenant config saved');
+    return true;
   } catch (err) {
     if (err instanceof SettingsCancelledError) {
       trace.info('BOOT', 'settings cancelled, keeping existing config');
-      return;
+      return false;
     }
     throw err;
   }
@@ -180,5 +181,12 @@ export async function boot(): Promise<void> {
   onConnectClick(() => void connect());
 
   // Settings button — always available, independent of connection state
-  onSettingsClick(() => void reconfigure(getTenantConfig()));
+  onSettingsClick(() =>
+    void (async () => {
+      if (!(await reconfigure(getTenantConfig()))) return;
+      state.lists = {};
+      state.listPages = {};
+      if (state.startupRendered) await showGlassesScreen('menu');
+    })(),
+  );
 }
