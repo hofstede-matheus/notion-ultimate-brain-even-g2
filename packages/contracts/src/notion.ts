@@ -30,4 +30,12 @@ export interface NotionPageObject {
 export interface NotionDatabaseSummary {
   id: string;
   name: string;
+  /**
+   * Property name -> Notion property type (e.g. `"Meta": "formula"`), straight from what
+   * Notion's search API already returns for each database — see db-roles.ts's evaluateRoles(),
+   * which the settings picker calls against this to decide fit per role. Absent when the
+   * server hasn't shipped this field yet (or Notion returned a partial result with no
+   * properties) — callers must treat that as "unknown, allow", never "fits nothing".
+   */
+  properties?: Record<string, string>;
 }

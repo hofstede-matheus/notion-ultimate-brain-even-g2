@@ -212,6 +212,20 @@ export interface AppState {
   loading: boolean; // true = no cache yet, first fetch in flight
   spinnerFrame: string; // current spinner char ('|','/','-','\\'); empty = not spinning
   errorMessage: string;
+
+  // Outcome of the most recent refresh per list screen — see
+  // _shared/navigation.ts's enterView(). Absent = fresh, or never tried.
+  // 'stale' = the refresh failed but cached items are still on screen.
+  // 'failed' = the refresh failed with nothing to show.
+  // Written under both the screen name and its underlying data key (Overdue
+  // and Today share one fetch, keyed by 'today' — see DATA_KEY_OVERRIDES),
+  // so screen-factories.ts can read `config.screen` alone.
+  listStatus: Partial<Record<ScreenName, 'stale' | 'failed'>>;
+
+  // True once a list refresh has failed with a config-shaped error (see
+  // config-health.ts's reportApiFailure) — upgrades the next cold-failure
+  // screen's text from a generic load error to a setup-specific one.
+  configSuspect: boolean;
 }
 
 export const state: AppState = {
@@ -236,6 +250,8 @@ export const state: AppState = {
   loading: false,
   spinnerFrame: '',
   errorMessage: '',
+  listStatus: {},
+  configSuspect: false,
 };
 
 let _bridge: EvenAppBridge | null = null;

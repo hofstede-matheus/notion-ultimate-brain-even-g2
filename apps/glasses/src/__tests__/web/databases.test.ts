@@ -32,6 +32,22 @@ describe('fetchDatabases', () => {
     expect(init.headers['X-Notion-Token']).toBe('ntn_abc123');
   });
 
+  it('passes the properties map through untouched, for the settings picker fit check', async () => {
+    const properties = { Name: 'title', Meta: 'formula' };
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(200, { databases: [{ id: 'd1', name: 'Tasks', properties }] }),
+        ),
+    );
+
+    const result = await fetchDatabases('ntn_abc123');
+
+    expect(result[0].properties).toEqual(properties);
+  });
+
   it('throws InvalidTokenError on a 401', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(401, { error: 'nope' })));
 

@@ -34,6 +34,7 @@ import {
   type PagedResult,
 } from '../../../api';
 import { cacheKeyForScreen, loadCachedList, saveCachedList } from '../../../cache';
+import { reportApiFailure } from '../../../config-health';
 import { trace } from '../../../logging/trace';
 import type { ListItem, ScreenName } from '../../../state';
 import { getBridge, state } from '../../../state';
@@ -259,15 +260,21 @@ export async function enterView(screen: ScreenName): Promise<void> {
     trace.info('API', `loaded ${dataKey}`, { items: fresh.length, ms });
     state.lists[dataKey] = fresh;
     state.loading = false;
+    delete state.listStatus[dataKey];
+    delete state.listStatus[screen];
     void saveCachedList(cacheKey, fresh);
   } catch (e) {
     const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
-    trace.error('NAV', `enterView('${screen}') fetch failed — showing empty list`, {
-      dataKey,
-      error: msg,
-    });
+    // 'failed' (no cache, nothing to show) vs 'stale' (cache is on screen, now unconfirmed) —
+    // read before state.loading is cleared below, since that's the only record of which case
+    // this was. screen-factories.ts's makeListScreen renders each differently.
+    const outcome = state.loading ? 'failed' : 'stale';
+    trace.error('NAV', `enterView('${screen}') refresh ${outcome}`, { dataKey, error: msg });
     if (state.loading) state.lists[dataKey] = []; // no cache — show empty
     state.loading = false;
+    state.listStatus[dataKey] = outcome;
+    state.listStatus[screen] = outcome;
+    reportApiFailure(e);
   } finally {
     stopSpinner(spinner);
     // The fetched list may differ from what's on screen — there's no

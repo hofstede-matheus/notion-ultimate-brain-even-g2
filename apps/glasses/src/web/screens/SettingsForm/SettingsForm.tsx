@@ -10,12 +10,16 @@ import { resolveSettings } from '../../providers/uiController';
 import { fetchDatabases, InvalidTokenError } from '../../services/databases';
 import { LogConsole } from './components/LogConsole';
 import {
+  autoSelect,
   availableOptionsFor,
+  compatibleOptionsFor,
   DB_SLOTS,
   type DbSelection,
   EMPTY_SELECTION,
   isSelectionComplete,
   reconcileSelection,
+  unfitReason,
+  unfitSlots,
 } from './dbSelection';
 
 /** How long to wait after the token stops changing before fetching its databases. */
@@ -56,6 +60,14 @@ export function SettingsForm() {
   const [loading, setLoading] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
+  // Escape hatch for a customised Ultimate Brain whose property was renamed — the
+  // requirement table in @notion-ub/contracts is a guess about *other people's* schemas, so
+  // hiding is the default but never the only option.
+  const [showAll, setShowAll] = useState(false);
+  // An unfit selection warns instead of blocking outright — Save once to see the warning,
+  // again to confirm it. Reset whenever the selection changes so a stale confirmation can't
+  // silently wave through a later, different mistake.
+  const [confirmUnfit, setConfirmUnfit] = useState(false);
   const requestId = useRef(0);
 
   useEffect(() => {
@@ -64,6 +76,8 @@ export function SettingsForm() {
     setDatabases(null);
     setTokenError(null);
     setTouched(false);
+    setShowAll(false);
+    setConfirmUnfit(false);
   }, [ui.settingsPrefill]);
 
   // Auto-load: once the token looks complete, debounce then fetch its
@@ -87,7 +101,7 @@ export function SettingsForm() {
         .then((dbs) => {
           if (requestId.current !== id) return;
           setDatabases(dbs);
-          setSelection((sel) => reconcileSelection(sel, dbs));
+          setSelection((sel) => autoSelect(dbs, reconcileSelection(sel, dbs)));
         })
         .catch((err) => {
           if (requestId.current !== id) return;
@@ -110,6 +124,16 @@ export function SettingsForm() {
 
     const trimmedToken = token.trim();
     if (!trimmedToken || !isSelectionComplete(selection)) return;
+
+    // An unfit selection warns rather than blocks — the requirement table is a guess about
+    // someone else's schema, and refusing to save on a possibly-wrong guess would make the
+    // form unusable for a legitimately customised Ultimate Brain. First Save surfaces the
+    // warning (via the per-slot messages already on screen); a second Save goes through.
+    const unfit = databases ? unfitSlots(selection, databases) : [];
+    if (unfit.length > 0 && !confirmUnfit) {
+      setConfirmUnfit(true);
+      return;
+    }
 
     resolveSettings({ token: trimmedToken, ...selection });
   }
@@ -158,31 +182,60 @@ export function SettingsForm() {
 
         {ready &&
           databases.length > 0 &&
-          DB_SLOTS.map((slot) => (
-            <div key={slot.key}>
-              <label
-                htmlFor={`settings-${slot.key}`}
-                className="text-[13px] tracking-[-0.13px] text-text-dim mb-1 block"
-              >
-                {slot.label}
-              </label>
-              <Select
-                value={selection[slot.key]}
-                onValueChange={(value) => setSelection((sel) => ({ ...sel, [slot.key]: value }))}
-                options={availableOptionsFor(slot.key, databases, selection).map((db) => ({
-                  value: db.id,
-                  label: `${db.name} (…${db.id.slice(-8)})`,
-                }))}
-                placeholder="Select a database..."
-                error={touched && !selection[slot.key]}
-              />
-              {!selection[slot.key] && prefillSelection[slot.key] && (
-                <p className="text-[12px] text-negative mt-1">
-                  The previously selected database is no longer available — pick another.
-                </p>
-              )}
-            </div>
-          ))}
+          DB_SLOTS.map((slot) => {
+            const options = showAll
+              ? availableOptionsFor(slot.key, databases, selection)
+              : compatibleOptionsFor(slot.key, databases, selection);
+            const currentDb = databases.find((db) => db.id === selection[slot.key]);
+            const currentUnfitReason = currentDb ? unfitReason(currentDb, slot.key) : null;
+
+            return (
+              <div key={slot.key}>
+                <label
+                  htmlFor={`settings-${slot.key}`}
+                  className="text-[13px] tracking-[-0.13px] text-text-dim mb-1 block"
+                >
+                  {slot.label}
+                </label>
+                <Select
+                  value={selection[slot.key]}
+                  onValueChange={(value) => {
+                    setSelection((sel) => ({ ...sel, [slot.key]: value }));
+                    setConfirmUnfit(false);
+                  }}
+                  options={options.map((db) => ({
+                    value: db.id,
+                    label: `${db.name} (…${db.id.slice(-8)})`,
+                  }))}
+                  placeholder="Select a database..."
+                  error={currentUnfitReason ?? (touched && !selection[slot.key])}
+                />
+                {!selection[slot.key] && prefillSelection[slot.key] && (
+                  <p className="text-[12px] text-negative mt-1">
+                    The previously selected database is no longer available — pick another.
+                  </p>
+                )}
+                {!selection[slot.key] && options.length === 0 && !showAll && (
+                  <p className="text-[12px] text-negative mt-1">
+                    None of your shared databases can be the {slot.label.replace(' Database', '')}{' '}
+                    database. Share your Ultimate Brain {slot.label.replace(' Database', '')}{' '}
+                    database with the integration.
+                  </p>
+                )}
+              </div>
+            );
+          })}
+
+        {ready && databases.length > 0 && (
+          <label className="flex items-center gap-2 text-[13px] text-text-dim">
+            <input
+              type="checkbox"
+              checked={showAll}
+              onChange={(e) => setShowAll(e.target.checked)}
+            />
+            Show all databases
+          </label>
+        )}
 
         <p className="text-[12px] text-text-dim">
           Not sure which to pick? In Notion, open the database inside Databases & Components, copy
@@ -190,9 +243,16 @@ export function SettingsForm() {
           the id in the dropdown — they should match.
         </p>
 
+        {confirmUnfit && (
+          <p className="text-[12px] text-negative">
+            One or more selected databases are missing properties the glasses need — lists from them
+            may come back empty. Tap Save again to use them anyway.
+          </p>
+        )}
+
         <Divider variant="spaced" />
         <Button type="submit" variant="highlight">
-          Save
+          {confirmUnfit ? 'Save anyway' : 'Save'}
         </Button>
       </form>
       <LogConsole />

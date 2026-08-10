@@ -1,5 +1,6 @@
 import { deletePage, markTaskDone, setPageProject, setTaskDueDate } from '../../../api';
 import { saveCachedList } from '../../../cache';
+import { reportApiFailure } from '../../../config-health';
 import { trace } from '../../../logging/trace';
 import type { ListItem, ScreenName } from '../../../state';
 import { state } from '../../../state';
@@ -184,6 +185,7 @@ export async function confirmAction(): Promise<void> {
     const msg = e instanceof Error ? e.message : 'Unknown error';
     trace.error('ACT', `${kind} failed: ${msg}`, { id: pending.itemId });
     state.errorMessage = msg;
+    reportApiFailure(e);
     void renderUpdate(action.confirmScreenName);
   } finally {
     stopSpinner(spinner);

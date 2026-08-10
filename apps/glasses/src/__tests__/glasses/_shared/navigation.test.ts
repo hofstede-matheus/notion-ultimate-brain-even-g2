@@ -65,7 +65,7 @@ describe('warm open (cache hit)', () => {
 });
 
 describe('failed fetch on cold open', () => {
-  it('shows the empty state instead of staying on "Fetching…"', async () => {
+  it('shows a load-failed message instead of the empty state or "Fetching…"', async () => {
     vi.mocked(fetchInboxTasks).mockRejectedValue(new Error('offline'));
     const h = mount();
     h.state.screen = 'tasks-menu';
@@ -75,10 +75,12 @@ describe('failed fetch on cold open', () => {
 
     expect(h.state.loading).toBe(false);
     expect(h.state.lists.inbox).toEqual([]);
+    expect(h.state.listStatus.inbox).toBe('failed');
     const display = h.render();
     expect(display.mode).toBe('text');
     if (display.mode === 'text') {
-      expect(display.content).toContain('Your inbox is empty!');
+      expect(display.content).toContain("Couldn't load");
+      expect(display.content).not.toContain('Your inbox is empty!');
       expect(display.content).not.toContain('Fetching tasks...');
     }
   });
@@ -95,10 +97,29 @@ describe('failed fetch on cold open', () => {
     expect(errorRecords).toHaveLength(1);
     expect(errorRecords[0]?.ctx?.error).toContain('offline');
   });
+
+  it('a later success clears the failed marker', async () => {
+    vi.mocked(fetchInboxTasks).mockRejectedValueOnce(new Error('offline'));
+    const h = mount();
+    h.state.screen = 'tasks-menu';
+    h.ctx.enterView('inbox');
+    await h.settle();
+    expect(h.state.listStatus.inbox).toBe('failed');
+
+    vi.mocked(fetchInboxTasks).mockResolvedValue({
+      items: FRESH,
+      hasMore: false,
+      nextCursor: null,
+    });
+    h.ctx.enterView('inbox');
+    await h.settle();
+
+    expect(h.state.listStatus.inbox).toBeUndefined();
+  });
 });
 
 describe('failed fetch on warm open', () => {
-  it('keeps the cached list visible', async () => {
+  it('keeps the cached list visible, but marks it stale', async () => {
     seedCache(CACHED);
     vi.mocked(fetchInboxTasks).mockRejectedValue(new Error('offline'));
     const h = mount();
@@ -108,6 +129,32 @@ describe('failed fetch on warm open', () => {
     await h.settle();
 
     expect(h.state.lists.inbox).toEqual(CACHED);
+    expect(h.state.listStatus.inbox).toBe('stale');
+    const display = h.render();
+    expect(display.mode).toBe('list');
+    if (display.mode === 'list') expect(display.header).toContain('old');
+  });
+
+  it('a later success clears the stale marker', async () => {
+    seedCache(CACHED);
+    vi.mocked(fetchInboxTasks).mockRejectedValueOnce(new Error('offline'));
+    const h = mount();
+    h.state.screen = 'tasks-menu';
+    h.ctx.enterView('inbox');
+    await h.settle();
+    expect(h.state.listStatus.inbox).toBe('stale');
+
+    vi.mocked(fetchInboxTasks).mockResolvedValue({
+      items: FRESH,
+      hasMore: false,
+      nextCursor: null,
+    });
+    h.ctx.enterView('inbox');
+    await h.settle();
+
+    expect(h.state.listStatus.inbox).toBeUndefined();
+    const display = h.render();
+    if (display.mode === 'list') expect(display.header).not.toContain('old');
   });
 });
 

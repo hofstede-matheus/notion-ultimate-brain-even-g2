@@ -26,7 +26,10 @@ Feature: Setting the app up for the first time
       | Notes Database    |
       | Projects Database |
       | Tags Database     |
-    When I choose a database for each of the four
+    # Each dropdown is already narrowed to databases whose schema fits that role, and a slot
+    # with exactly one such database is filled in automatically — see
+    # choosing-the-databases.feature's "Databases are matched by schema, not just name" rule.
+    When I choose a database for each of the four that isn't already filled in
     And I tap "Save"
     Then the setup is remembered
     And the glasses show their menu

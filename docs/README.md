@@ -163,6 +163,7 @@ settings/
   integration-token.feature                entering the Notion token
   choosing-the-databases.feature           the four dropdowns
   changing-settings-later.feature          reopening and backing out
+  when-the-setup-stops-working.feature     a saved database that stops fitting its role
   debug-log.feature                        reading and copying the log
 ```
 

@@ -14,7 +14,12 @@
  */
 
 import type { Client } from '@notionhq/client';
-import { APIErrorCode, isNotionClientError } from '@notionhq/client';
+import {
+  APIErrorCode,
+  APIResponseError,
+  isNotionClientError,
+  UnknownHTTPResponseError,
+} from '@notionhq/client';
 import { translateFilter } from './filters';
 import type { NotionPage } from './mappers';
 import {
@@ -122,8 +127,18 @@ function tokenAuthed(
   };
 }
 
+// The SDK's own `isHTTPResponseError` isn't part of its public export surface (only
+// `./errors`, not the package root, exports it) — these two static guards are the exported
+// equivalent, covering the same union of error classes (the ones that carry `.status`).
+function hasHttpStatus(err: unknown): err is APIResponseError | UnknownHTTPResponseError {
+  return (
+    APIResponseError.isAPIResponseError(err) ||
+    UnknownHTTPResponseError.isUnknownHTTPResponseError(err)
+  );
+}
+
 /**
- * Single 500-mapping boundary for both entry points (Express, Lambda) — the
+ * Single error-mapping boundary for both entry points (Express, Lambda) — the
  * one place a handler's thrown error becomes a RouteResult, so individual
  * handlers can stay straight-line "happy path" code.
  */
@@ -136,11 +151,14 @@ export async function invokeRoute(route: Route, ctx: RouteContext): Promise<Rout
     // returning to them. It must not be logged: Notion's error text quotes
     // page IDs and titles. `errorCode` is the loggable half — see
     // RouteResult.errorCode and lambda/logger.ts.
-    return {
-      status: 500,
-      body: { error: message },
-      errorCode: isNotionClientError(err) ? err.code : 'unhandled_error',
-    };
+    const code = isNotionClientError(err) ? err.code : 'unhandled_error';
+    // Notion's own status, when it gave one. A 400 validation_error is a user-fixable
+    // configuration mistake (e.g. a sort on a property the chosen database doesn't have —
+    // see @notion-ub/contracts's evaluateRoles, which exists to catch this before the request
+    // is ever made). Flattening every failure to 500 made that indistinguishable from a real
+    // server fault. Clamped to >=400 so a passthrough can never look like success.
+    const status = hasHttpStatus(err) && err.status >= 400 ? err.status : 500;
+    return { status, body: { error: message, code }, errorCode: code };
   }
 }
 
