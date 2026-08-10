@@ -1,7 +1,7 @@
 import { type EvenHubEvent, OsEventTypeList } from '@evenrealities/even_hub_sdk';
 import { flush as flushLog } from '../../logging/persist';
 import { trace } from '../../logging/trace';
-import { getBridge, state } from '../../state';
+import { getBridge, type ScreenName, state } from '../../state';
 import * as stt from '../../stt';
 import { createGlassCtx } from '../glass-ctx';
 import { renderFull, resetRenderSession } from '../render';

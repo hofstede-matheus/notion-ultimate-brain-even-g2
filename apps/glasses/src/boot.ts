@@ -12,11 +12,7 @@ import {
   showRetry,
 } from '@web/providers/uiController';
 import { loadStoredConfig, saveStoredConfig } from '@web/services/config';
-import {
-  BOOT_SPLASH_MIN_MS,
-  BRIDGE_WAIT_TIMEOUT_MS,
-  VOSK_MODEL_URL,
-} from './glasses/constants';
+import { BOOT_SPLASH_MIN_MS, BRIDGE_WAIT_TIMEOUT_MS, VOSK_MODEL_URL } from './glasses/constants';
 import { attachGlassesListeners, showGlassesScreen } from './glasses/events';
 import { StartupRejectedError } from './glasses/render';
 import { loadPreviousSession, startPersisting } from './logging/persist';
@@ -181,12 +177,13 @@ export async function boot(): Promise<void> {
   onConnectClick(() => void connect());
 
   // Settings button — always available, independent of connection state
-  onSettingsClick(() =>
-    void (async () => {
-      if (!(await reconfigure(getTenantConfig()))) return;
-      state.lists = {};
-      state.listPages = {};
-      if (state.startupRendered) await showGlassesScreen('menu');
-    })(),
+  onSettingsClick(
+    () =>
+      void (async () => {
+        if (!(await reconfigure(getTenantConfig()))) return;
+        state.lists = {};
+        state.listPages = {};
+        if (state.startupRendered) await showGlassesScreen('menu');
+      })(),
   );
 }

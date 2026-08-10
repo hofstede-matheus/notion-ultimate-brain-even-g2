@@ -1,4 +1,3 @@
-import { type EvenAppBridge, StartUpPageCreateResult } from '@evenrealities/even_hub_sdk';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeMockBridge } from './fakes';
 
@@ -53,12 +52,7 @@ describe('boot', () => {
     vi.useFakeTimers();
     const bridge = makeMockBridge();
     mocks.bridge = bridge;
-    let resolveConfig: (value: null) => void = () => {};
-    mocks.loadStoredConfig.mockReturnValue(
-      new Promise<null>((resolve) => {
-        resolveConfig = resolve;
-      }),
-    );
+    mocks.loadStoredConfig.mockReturnValue(new Promise<null>(() => {}));
 
     await boot();
     await vi.advanceTimersByTimeAsync(0);
@@ -71,8 +65,5 @@ describe('boot', () => {
     };
     expect(startup.textObject[0]).toMatchObject({ containerID: 1, containerName: 'ub-header' });
     expect(startup.listObject[0]).toMatchObject({ containerID: 2, containerName: 'ub-list' });
-
-    resolveConfig(null);
-    await vi.advanceTimersByTimeAsync(1000);
   });
 });

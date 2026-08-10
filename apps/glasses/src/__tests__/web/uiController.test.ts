@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  getState,
-  promptForConfig,
-  resolveSettings,
-} from '../../web/providers/uiController';
+import { getState, promptForConfig, resolveSettings } from '../../web/providers/uiController';
 
 const config = {
   token: 'token',

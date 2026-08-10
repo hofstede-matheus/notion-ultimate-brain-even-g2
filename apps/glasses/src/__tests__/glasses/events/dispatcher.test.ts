@@ -14,11 +14,7 @@ vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
-import {
-  attachGlassesListeners,
-  showGlassesScreen,
-  startGlasses,
-} from '../../../glasses/events';
+import { attachGlassesListeners, showGlassesScreen, startGlasses } from '../../../glasses/events';
 import { clear as clearLog } from '../../../logging/sink';
 import { mount } from '../harness';
 
