@@ -28,3 +28,15 @@ Feature: Starting the app
       your Notion token and databases.
       """
     And the message remains while I enter settings on my phone
+
+  Scenario: The glasses explain a connection failure after startup
+    Given the app has started on the glasses
+    When connecting cannot continue
+    Then the glasses show:
+      """
+      ULTIMATE BRAIN
+
+      Can't connect.
+      Check the Even Hub app on your
+      phone, then retry.
+      """

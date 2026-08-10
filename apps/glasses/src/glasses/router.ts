@@ -1,6 +1,6 @@
 import { trace } from '../logging/trace';
 import type { AppState } from '../state';
-import { bootingScreen, setupNeededScreen } from './boot-screens';
+import { bootErrorScreen, bootingScreen, setupNeededScreen } from './boot-screens';
 import { FALLBACK_SCREEN } from './constants';
 import { menuScreen } from './menu';
 import { deleteConfirmScreen } from './modules/_shared/delete-confirm';
@@ -69,6 +69,7 @@ import type { AppGlassAction, GlassCtx, ScreenDisplay, ScreenModule } from './ty
 export const SCREENS: Record<string, ScreenModule> = {
   booting: bootingScreen,
   'setup-needed': setupNeededScreen,
+  'boot-error': bootErrorScreen,
   menu: menuScreen,
   'tasks-menu': tasksMenuScreen,
   'notes-menu': notesMenuScreen,

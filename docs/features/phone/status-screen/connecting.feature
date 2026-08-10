@@ -38,11 +38,22 @@ Feature: Connecting the app to the glasses
     Then the status reads "Connection failed. Tap to retry."
     And a "Retry" button is shown
 
+  Scenario: Waiting for Even Hub times out
+    Given Even Hub does not provide a bridge
+    When the app waits for the glasses
+    Then the status reads "Connection failed. Tap to retry."
+    And a "Retry" button is shown
+
   Scenario: The glasses will not show the app
     Given the glasses will not let the app draw on them
     When the app tries to connect
     Then the status reads "Glasses display setup failed — check the glasses are connected, then retry."
     And a "Retry" button is shown
+
+  Scenario: A connection failure after rendering is shown on the glasses
+    Given the app has started on the glasses
+    When connecting cannot continue
+    Then the glasses explain how to retry in Even Hub
 
   Scenario: Retrying
     Given the status reads "Connection failed. Tap to retry."

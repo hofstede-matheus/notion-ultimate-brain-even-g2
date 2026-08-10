@@ -177,6 +177,9 @@ export const CAL_COL_W = 82;
 /** Minimum duration the boot splash remains visible before the next screen. */
 export const BOOT_SPLASH_MIN_MS = 1000;
 
+/** Maximum time to wait for the Even Hub bridge before returning control to the phone. */
+export const BRIDGE_WAIT_TIMEOUT_MS = 20_000;
+
 /** Minimum interval between scroll events, in milliseconds. */
 export const SCROLL_COOLDOWN_MS = 300;
 

@@ -12,12 +12,16 @@ import {
   showRetry,
 } from '@web/providers/uiController';
 import { loadStoredConfig, saveStoredConfig } from '@web/services/config';
-import { BOOT_SPLASH_MIN_MS, VOSK_MODEL_URL } from './glasses/constants';
+import {
+  BOOT_SPLASH_MIN_MS,
+  BRIDGE_WAIT_TIMEOUT_MS,
+  VOSK_MODEL_URL,
+} from './glasses/constants';
 import { attachGlassesListeners, showGlassesScreen } from './glasses/events';
 import { StartupRejectedError } from './glasses/render';
 import { loadPreviousSession, startPersisting } from './logging/persist';
 import { trace } from './logging/trace';
-import { setBridge } from './state';
+import { setBridge, state } from './state';
 import { preloadVoskModel } from './stt';
 import { getDevEnvConfig, getTenantConfig, setTenantConfig } from './tenant-config';
 
@@ -54,6 +58,23 @@ async function holdSplash(splashAt: number): Promise<void> {
   }
 }
 
+async function waitForBridge() {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      waitForEvenAppBridge(),
+      new Promise<never>((_resolve, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error('Timed out waiting for Even Hub bridge')),
+          BRIDGE_WAIT_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
+  }
+}
+
 export async function boot(): Promise<void> {
   trace.info('BOOT', 'session start', {
     app: __APP_VERSION__,
@@ -72,7 +93,7 @@ export async function boot(): Promise<void> {
     disableConnect();
 
     try {
-      const bridge = await waitForEvenAppBridge();
+      const bridge = await waitForBridge();
       setBridge(bridge);
       trace.info('BOOT', 'bridge acquired');
       attachGlassesListeners();
@@ -146,6 +167,7 @@ export async function boot(): Promise<void> {
         setStatus('Glasses display setup failed — check the glasses are connected, then retry.');
       } else {
         setStatus('Connection failed. Tap to retry.');
+        if (state.startupRendered) void showGlassesScreen('boot-error');
       }
       showRetry();
     }
