@@ -1,5 +1,6 @@
 import { storageGet, storageSet } from 'even-toolkit/storage';
 import { trace } from './logging/trace';
+import { getTenantConfig } from './tenant-config';
 
 // ---------------------------------------------------------------------------
 // localStorage keys
@@ -7,7 +8,8 @@ import { trace } from './logging/trace';
 
 /** Cache key for a generic list-view screen — see _shared/navigation.ts's enterView(). */
 export function cacheKeyForScreen(screen: string): string {
-  return `notionultimatebrain:${screen}`;
+  const tenant = getTenantConfig()?.tasksDb.slice(0, 8) ?? 'unconfigured';
+  return `notionultimatebrain:${tenant}:${screen}`;
 }
 
 // ---------------------------------------------------------------------------

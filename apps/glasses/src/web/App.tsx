@@ -1,5 +1,6 @@
 import { IcChevronBack, IcMenuGear } from 'even-toolkit/web/icons/svg-icons';
 import { NavHeader } from 'even-toolkit/web/nav-header';
+import { APP_DISPLAY_NAME } from '../app-info';
 import { PageStack } from './components/PageStack';
 import { useUiState } from './hooks/useUiState';
 import { cancelSettings, triggerSettings } from './providers/uiController';
@@ -20,7 +21,7 @@ export function App() {
     <div className="h-dvh flex flex-col overflow-hidden">
       <div className="shrink-0 bg-bg">
         <NavHeader
-          title={ui.settingsOpen ? 'Notion Settings' : 'GlassTask'}
+          title={ui.settingsOpen ? 'Notion Settings' : APP_DISPLAY_NAME}
           left={
             ui.settingsOpen && ui.settingsCancellable ? (
               <button type="button" onClick={() => cancelSettings()} aria-label="Back">

@@ -109,7 +109,7 @@ payload over a phone-tethered link.
 
 ## Prerequisites
 
-- Node.js ≥ 20.9
+- Node.js ≥ 24 (`.nvmrc` pins the exact version — run `nvm use` after installing nvm)
 - [pnpm](https://pnpm.io) 9 (`corepack enable pnpm` or `npm i -g pnpm@9`)
 - A Notion integration token, with your Tasks/Notes/Projects/Tags databases shared with
   that integration. The database IDs are picked in-app, not set in an env file — see

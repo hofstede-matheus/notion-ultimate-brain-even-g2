@@ -1,0 +1,134 @@
+import { waitForEvenAppBridge } from '@evenrealities/even_hub_sdk';
+import type { TenantConfig } from '@notion-ub/contracts';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { resetBridgeQueue } from '../../glasses/bridge-queue';
+import { BOOT_SPLASH_MIN_MS, BRIDGE_WAIT_TIMEOUT_MS } from '../../glasses/constants';
+import { state } from '../../state';
+import {
+  onSettingsClick,
+  promptForConfig,
+  setStatus,
+  showRetry,
+} from '../../web/providers/uiController';
+import { makeMockBridge } from './fakes';
+
+const mocks = vi.hoisted(() => ({
+  bridge: null as ReturnType<typeof makeMockBridge> | null,
+  loadStoredConfig: vi.fn(),
+}));
+
+vi.mock('@evenrealities/even_hub_sdk', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@evenrealities/even_hub_sdk')>();
+  return {
+    ...actual,
+    waitForEvenAppBridge: vi.fn(() => mocks.bridge),
+  };
+});
+
+vi.mock('../../web/providers/uiController', () => ({
+  SettingsCancelledError: class SettingsCancelledError extends Error {},
+  disableConnect: vi.fn(),
+  hideConnect: vi.fn(),
+  onConnectClick: vi.fn(),
+  onSettingsClick: vi.fn(),
+  promptForConfig: vi.fn(),
+  setDeviceConnected: vi.fn(),
+  setStatus: vi.fn(),
+  showRetry: vi.fn(),
+}));
+
+vi.mock('../../web/services/config', () => ({
+  loadStoredConfig: mocks.loadStoredConfig,
+  saveStoredConfig: vi.fn(),
+}));
+
+vi.mock('../../logging/persist', () => ({
+  loadPreviousSession: vi.fn().mockResolvedValue(undefined),
+  startPersisting: vi.fn(),
+}));
+
+vi.mock('../../stt', () => ({
+  preloadVoskModel: vi.fn(),
+}));
+
+const { boot } = await import('../../boot');
+
+const tenantConfig = (suffix: string): TenantConfig => ({
+  token: `token-${suffix}`,
+  tasksDb: `tasks-${suffix}`,
+  notesDb: `notes-${suffix}`,
+  projectsDb: `projects-${suffix}`,
+  tagsDb: `tags-${suffix}`,
+});
+
+afterEach(() => {
+  vi.clearAllMocks();
+  vi.useRealTimers();
+  resetBridgeQueue();
+  state.startupRendered = false;
+  state.lists = {};
+  state.listPages = {};
+});
+
+describe('boot', () => {
+  it('creates the startup containers before stored config resolves', async () => {
+    vi.useFakeTimers();
+    const bridge = makeMockBridge();
+    mocks.bridge = bridge;
+    mocks.loadStoredConfig.mockReturnValue(new Promise<null>(() => {}));
+
+    await boot();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(bridge.createStartUpPageContainer).toHaveBeenCalledTimes(1);
+    expect(mocks.loadStoredConfig).toHaveBeenCalledTimes(1);
+    const startup = bridge.createStartUpPageContainer.mock.calls[0]?.[0] as {
+      textObject: Array<{ containerID: number; containerName: string }>;
+      listObject: Array<{ containerID: number; containerName: string }>;
+    };
+    expect(startup.textObject[0]).toMatchObject({ containerID: 1, containerName: 'ub-header' });
+    expect(startup.listObject[0]).toMatchObject({ containerID: 2, containerName: 'ub-list' });
+  });
+
+  it('shows a retryable failure, with no startup draw attempted, when Even Hub never provides a bridge', async () => {
+    vi.useFakeTimers();
+    vi.mocked(waitForEvenAppBridge).mockReturnValueOnce(new Promise(() => {}));
+    mocks.loadStoredConfig.mockReturnValue(new Promise<null>(() => {}));
+
+    await boot();
+    await vi.advanceTimersByTimeAsync(BRIDGE_WAIT_TIMEOUT_MS);
+
+    expect(setStatus).toHaveBeenCalledWith('Connection failed. Tap to retry.');
+    expect(showRetry).toHaveBeenCalledTimes(1);
+    expect(state.startupRendered).toBe(false);
+  });
+
+  it('clears cached lists and redraws the menu when settings are saved later', async () => {
+    vi.useFakeTimers();
+    const bridge = makeMockBridge();
+    mocks.bridge = bridge;
+    mocks.loadStoredConfig.mockResolvedValue(tenantConfig('stored'));
+
+    await boot();
+    await vi.advanceTimersByTimeAsync(BOOT_SPLASH_MIN_MS);
+
+    expect(state.startupRendered).toBe(true);
+    expect(state.screen).toBe('menu');
+
+    // Simulate stale data left over from browsing before settings changed.
+    state.lists = { menu: [] };
+    state.listPages = { menu: 3 };
+    bridge.rebuildPageContainer.mockClear();
+    vi.mocked(promptForConfig).mockResolvedValueOnce(tenantConfig('updated'));
+
+    const settingsHandler = vi.mocked(onSettingsClick).mock.calls[0]?.[0];
+    expect(settingsHandler).toBeDefined();
+    settingsHandler?.();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(state.lists).toEqual({});
+    expect(state.listPages).toEqual({});
+    expect(state.screen).toBe('menu');
+    expect(bridge.rebuildPageContainer).toHaveBeenCalled();
+  });
+});

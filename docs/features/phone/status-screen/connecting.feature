@@ -8,7 +8,7 @@ Feature: Connecting the app to the glasses
 
   Scenario: The app opens already trying to connect
     When I open the app
-    Then the phone shows "GlassTask"
+    Then the phone shows "Ultimate Brain"
     And the status reads "Connecting..."
     And a "Connect" button is shown
 
@@ -21,6 +21,7 @@ Feature: Connecting the app to the glasses
     Given the app was set up on a previous run
     When it connects
     Then the settings form is not shown
+    And the glasses briefly show that Ultimate Brain started
     And the glasses show their menu
     And the status reads "Connected! Use your glasses."
     And the "Connect" button disappears
@@ -37,11 +38,22 @@ Feature: Connecting the app to the glasses
     Then the status reads "Connection failed. Tap to retry."
     And a "Retry" button is shown
 
+  Scenario: Waiting for Even Hub times out
+    Given Even Hub does not provide a bridge
+    When the app waits for the glasses
+    Then the status reads "Connection failed. Tap to retry."
+    And a "Retry" button is shown
+
   Scenario: The glasses will not show the app
     Given the glasses will not let the app draw on them
     When the app tries to connect
     Then the status reads "Glasses display setup failed — check the glasses are connected, then retry."
     And a "Retry" button is shown
+
+  Scenario: A connection failure after rendering is shown on the glasses
+    Given the app has started on the glasses
+    When connecting cannot continue
+    Then the glasses explain how to retry in Even Hub
 
   Scenario: Retrying
     Given the status reads "Connection failed. Tap to retry."
@@ -59,10 +71,9 @@ Feature: Connecting the app to the glasses
     Given the settings form is open
     Then no settings button is shown
 
-  @known-gap
-  Scenario: Opening settings during first-run setup leaves the app stuck
+  Scenario: Opening settings again during first-run setup keeps connecting
     Given the app is waiting for me to fill in first-run settings
     When I tap the settings button
-    Then a fresh settings form replaces the one I was filling in
-    And saving it no longer finishes connecting
-    And the app has to be reopened
+    Then the settings form is shown
+    When I save it
+    Then the app finishes connecting

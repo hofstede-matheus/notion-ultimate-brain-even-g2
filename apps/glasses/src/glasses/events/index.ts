@@ -1,7 +1,7 @@
 import { type EvenHubEvent, OsEventTypeList } from '@evenrealities/even_hub_sdk';
 import { flush as flushLog } from '../../logging/persist';
 import { trace } from '../../logging/trace';
-import { getBridge, state } from '../../state';
+import { getBridge, type ScreenName, state } from '../../state';
 import * as stt from '../../stt';
 import { createGlassCtx } from '../glass-ctx';
 import { renderFull, resetRenderSession } from '../render';
@@ -10,9 +10,9 @@ import { eventTypeName, isScrollThrottled, resolveEventType, toGlassAction } fro
 
 const ctx = createGlassCtx();
 
-/** Unsubscribe for the current onEvenHubEvent listener — see startGlasses(). */
+/** Unsubscribe for the current onEvenHubEvent listener — see attachGlassesListeners(). */
 let unsubscribeHub: (() => void) | null = null;
-/** Guards against attaching a second pagehide listener across repeated startGlasses() calls. */
+/** Guards against attaching a second pagehide listener across repeated attachGlassesListeners() calls. */
 let pagehideAttached = false;
 
 // ---------------------------------------------------------------------------
@@ -100,13 +100,12 @@ export function onEvenHubEvent(event: EvenHubEvent): void {
 }
 
 /**
- * Start the glasses runtime: wires the SDK event listener and renders the
- * initial menu screen. Call once after the bridge is connected. Idempotent
- * against a second call (e.g. the retry button after a failed connect) —
+ * Wires the SDK event listener. Call once after the bridge is connected.
+ * Idempotent against a second call (e.g. the retry button after a failed connect) —
  * re-subscribing without unsubscribing the previous listener first would
  * double-fire every gesture.
  */
-export async function startGlasses(): Promise<void> {
+export function attachGlassesListeners(): void {
   const b = getBridge();
   if (!b) return;
 
@@ -122,7 +121,16 @@ export async function startGlasses(): Promise<void> {
       void teardownGlasses('pagehide');
     });
   }
+}
 
-  state.screen = 'menu';
+/** Renders a complete screen after its event-capturing container is available. */
+export async function showGlassesScreen(screen: ScreenName): Promise<void> {
+  state.screen = screen;
   await renderFull();
+}
+
+/** Start the glasses runtime and render the initial menu screen. */
+export async function startGlasses(): Promise<void> {
+  attachGlassesListeners();
+  await showGlassesScreen('menu');
 }

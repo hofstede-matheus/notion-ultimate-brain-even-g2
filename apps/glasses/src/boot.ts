@@ -12,12 +12,12 @@ import {
   showRetry,
 } from '@web/providers/uiController';
 import { loadStoredConfig, saveStoredConfig } from '@web/services/config';
-import { VOSK_MODEL_URL } from './glasses/constants';
-import { startGlasses } from './glasses/events';
+import { BOOT_SPLASH_MIN_MS, BRIDGE_WAIT_TIMEOUT_MS, VOSK_MODEL_URL } from './glasses/constants';
+import { attachGlassesListeners, showGlassesScreen } from './glasses/events';
 import { StartupRejectedError } from './glasses/render';
 import { loadPreviousSession, startPersisting } from './logging/persist';
 import { trace } from './logging/trace';
-import { setBridge } from './state';
+import { setBridge, state } from './state';
 import { preloadVoskModel } from './stt';
 import { getDevEnvConfig, getTenantConfig, setTenantConfig } from './tenant-config';
 
@@ -32,18 +32,43 @@ import { getDevEnvConfig, getTenantConfig, setTenantConfig } from './tenant-conf
  * When `prefill` is present the form is cancellable (a back button appears);
  * backing out keeps the existing config untouched.
  */
-async function reconfigure(prefill?: TenantConfig | null): Promise<void> {
+async function reconfigure(prefill?: TenantConfig | null): Promise<boolean> {
   try {
     const cfg = await promptForConfig(prefill, prefill != null);
     await saveStoredConfig(cfg);
     setTenantConfig(cfg);
     trace.info('BOOT', 'tenant config saved');
+    return true;
   } catch (err) {
     if (err instanceof SettingsCancelledError) {
       trace.info('BOOT', 'settings cancelled, keeping existing config');
-      return;
+      return false;
     }
     throw err;
+  }
+}
+
+async function holdSplash(splashAt: number): Promise<void> {
+  const remaining = BOOT_SPLASH_MIN_MS - (Date.now() - splashAt);
+  if (remaining > 0) {
+    await new Promise<void>((resolve) => setTimeout(resolve, remaining));
+  }
+}
+
+async function waitForBridge() {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      waitForEvenAppBridge(),
+      new Promise<never>((_resolve, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error('Timed out waiting for Even Hub bridge')),
+          BRIDGE_WAIT_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
   }
 }
 
@@ -65,9 +90,12 @@ export async function boot(): Promise<void> {
     disableConnect();
 
     try {
-      const bridge = await waitForEvenAppBridge();
+      const bridge = await waitForBridge();
       setBridge(bridge);
       trace.info('BOOT', 'bridge acquired');
+      attachGlassesListeners();
+      await showGlassesScreen('booting');
+      const splashAt = Date.now();
 
       // Real glasses link state, independent of whether startup rendering
       // succeeded — a second connect() (via the retry button) must not stack
@@ -105,6 +133,8 @@ export async function boot(): Promise<void> {
         cfgSource = 'env';
       }
       if (!cfg) {
+        await holdSplash(splashAt);
+        await showGlassesScreen('setup-needed');
         setStatus('Enter your Notion settings to continue.');
         cfgSource = 'prompted';
         await reconfigure();
@@ -113,8 +143,8 @@ export async function boot(): Promise<void> {
       }
       trace.info('BOOT', `config source = ${cfgSource}`);
 
-      // Wire event listener + render the initial menu screen
-      await startGlasses();
+      await holdSplash(splashAt);
+      await showGlassesScreen('menu');
       trace.info('BOOT', 'glasses started');
 
       setStatus('Connected! Use your glasses.');
@@ -134,6 +164,7 @@ export async function boot(): Promise<void> {
         setStatus('Glasses display setup failed — check the glasses are connected, then retry.');
       } else {
         setStatus('Connection failed. Tap to retry.');
+        if (state.startupRendered) void showGlassesScreen('boot-error');
       }
       showRetry();
     }
@@ -146,5 +177,13 @@ export async function boot(): Promise<void> {
   onConnectClick(() => void connect());
 
   // Settings button — always available, independent of connection state
-  onSettingsClick(() => void reconfigure(getTenantConfig()));
+  onSettingsClick(
+    () =>
+      void (async () => {
+        if (!(await reconfigure(getTenantConfig()))) return;
+        state.lists = {};
+        state.listPages = {};
+        if (state.startupRendered) await showGlassesScreen('menu');
+      })(),
+  );
 }

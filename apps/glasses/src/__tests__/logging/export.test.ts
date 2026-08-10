@@ -11,7 +11,7 @@ describe('buildLogText', () => {
   it('includes a header block naming the app version and line count', () => {
     append('info', 'NAV', 'menu -> today');
     const text = buildLogText();
-    expect(text).toContain('GlassTask log —');
+    expect(text).toContain('Ultimate Brain log —');
     expect(text).toContain('app test');
     expect(text).toContain('1 lines');
     expect(text).toContain('─'.repeat(40));

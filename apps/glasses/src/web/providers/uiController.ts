@@ -119,6 +119,7 @@ export class SettingsCancelledError extends Error {
 
 let pendingResolve: ((cfg: TenantConfig) => void) | null = null;
 let pendingReject: ((reason: SettingsCancelledError) => void) | null = null;
+let pendingPromise: Promise<TenantConfig> | null = null;
 
 function openSettings(prefill: TenantConfig | null, cancellable: boolean): void {
   setState({
@@ -134,6 +135,7 @@ export function resolveSettings(cfg: TenantConfig): void {
   const resolve = pendingResolve;
   pendingResolve = null;
   pendingReject = null;
+  pendingPromise = null;
   setState({ settingsOpen: false, navDirection: 'back' });
   resolve?.(cfg);
 }
@@ -143,6 +145,7 @@ export function cancelSettings(): void {
   const reject = pendingReject;
   pendingResolve = null;
   pendingReject = null;
+  pendingPromise = null;
   setState({ settingsOpen: false, navDirection: 'back' });
   reject?.(new SettingsCancelledError());
 }
@@ -158,8 +161,10 @@ export function promptForConfig(
   cancellable = false,
 ): Promise<TenantConfig> {
   openSettings(prefill ?? null, cancellable);
-  return new Promise((resolve, reject) => {
+  if (pendingPromise) return pendingPromise;
+  pendingPromise = new Promise((resolve, reject) => {
     pendingResolve = resolve;
     pendingReject = reject;
   });
+  return pendingPromise;
 }
