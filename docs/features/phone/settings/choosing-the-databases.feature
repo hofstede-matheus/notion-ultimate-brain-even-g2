@@ -117,10 +117,6 @@ Feature: Choosing the four databases
       Then that choice is left exactly as it was
       And it is flagged with what it's missing
 
-    Scenario: A hidden database is counted, not just dropped
-      Given 3 of the shared databases don't fit the Projects role's schema
-      Then the Projects dropdown shows a hint that 3 databases are hidden
-
     Scenario: All databases can be shown anyway
       Given some databases are hidden for not fitting a role
       When I turn on "Show all databases"

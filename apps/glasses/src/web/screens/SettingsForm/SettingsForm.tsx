@@ -183,10 +183,9 @@ export function SettingsForm() {
         {ready &&
           databases.length > 0 &&
           DB_SLOTS.map((slot) => {
-            const allOptions = availableOptionsFor(slot.key, databases, selection);
-            const fitOptions = compatibleOptionsFor(slot.key, databases, selection);
-            const options = showAll ? allOptions : fitOptions;
-            const hiddenCount = allOptions.length - fitOptions.length;
+            const options = showAll
+              ? availableOptionsFor(slot.key, databases, selection)
+              : compatibleOptionsFor(slot.key, databases, selection);
             const currentDb = databases.find((db) => db.id === selection[slot.key]);
             const currentUnfitReason = currentDb ? unfitReason(currentDb, slot.key) : null;
 
@@ -221,13 +220,6 @@ export function SettingsForm() {
                     None of your shared databases can be the {slot.label.replace(' Database', '')}{' '}
                     database. Share your Ultimate Brain {slot.label.replace(' Database', '')}{' '}
                     database with the integration.
-                  </p>
-                )}
-                {!showAll && hiddenCount > 0 && (
-                  <p className="text-[12px] text-text-dim mt-1">
-                    {hiddenCount} of {allOptions.length} database
-                    {allOptions.length === 1 ? '' : 's'} hidden — they can't be a{' '}
-                    {slot.label.replace(' Database', '')} database.
                   </p>
                 )}
               </div>
