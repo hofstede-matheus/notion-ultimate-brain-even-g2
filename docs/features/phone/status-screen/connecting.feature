@@ -71,10 +71,9 @@ Feature: Connecting the app to the glasses
     Given the settings form is open
     Then no settings button is shown
 
-  @known-gap
-  Scenario: Opening settings during first-run setup leaves the app stuck
+  Scenario: Opening settings again during first-run setup keeps connecting
     Given the app is waiting for me to fill in first-run settings
     When I tap the settings button
-    Then a fresh settings form replaces the one I was filling in
-    And saving it no longer finishes connecting
-    And the app has to be reopened
+    Then the settings form is shown
+    When I save it
+    Then the app finishes connecting
