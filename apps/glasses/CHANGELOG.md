@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.3](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.7.2...glasses-v2.7.3) (2026-08-14)
+
+
+### Bug Fixes
+
+* **glasses:** calendar UI performance improvements ([#18](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/18)) ([372f35f](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/372f35f8f92c16cc55054070263655c336936354))
+
 ## [2.7.2](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.7.1...glasses-v2.7.2) (2026-08-10)
 
 
