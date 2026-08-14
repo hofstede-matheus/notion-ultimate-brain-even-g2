@@ -18,24 +18,51 @@
  */
 import { trace } from '../logging/trace';
 
-const BRIDGE_CALL_TIMEOUT_MS = 5000;
+const DEFAULT_CALL_TIMEOUT_MS = 5000;
+
+/**
+ * Image sends (`updateImageRawData`) carry real payload over BLE — at the
+ * low end of the ~10–30 KB/s range (see even-g2-context/docs/networking.md)
+ * a 288×144 tile can take longer than the 5s default before the SDK's own
+ * response even arrives. Callers that know they're sending image data pass
+ * `kind: 'image'`.
+ */
+const IMAGE_CALL_TIMEOUT_MS = 15000;
+
+/**
+ * Once a call has missed its own timeout, this bounds how much longer the
+ * chain will wait for it to actually settle before letting later calls
+ * start anyway — see `enqueue`'s doc comment for why the chain has to wait
+ * at all. A permanently hung promise (dead BLE link) must not wedge every
+ * later render forever; this is a backstop, not something normal operation
+ * should ever reach.
+ */
+const SETTLE_WAIT_CAP_MS = 25000;
 
 const TIMED_OUT = Symbol('bridge-queue-timeout');
 
 let chain: Promise<void> = Promise.resolve();
 
-async function runOne<T>(label: string, fn: () => Promise<T>): Promise<T | undefined> {
+/**
+ * Races `promise` (already-started) against `timeoutMs`, logging and
+ * resolving `undefined` on either a timeout or a rejection — never throws.
+ * This is what unblocks the *caller*; it does not by itself advance the
+ * chain (see `enqueue`).
+ */
+async function raceWithTimeout<T>(
+  label: string,
+  promise: Promise<T>,
+  timeoutMs: number,
+): Promise<T | undefined> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
-    timer = setTimeout(() => resolve(TIMED_OUT), BRIDGE_CALL_TIMEOUT_MS);
+    timer = setTimeout(() => resolve(TIMED_OUT), timeoutMs);
   });
 
   try {
-    const result = await Promise.race([fn(), timeout]);
+    const result = await Promise.race([promise, timeout]);
     if (result === TIMED_OUT) {
-      trace.error('RENDER', `bridge call timed out: ${label}`, {
-        timeoutMs: BRIDGE_CALL_TIMEOUT_MS,
-      });
+      trace.error('RENDER', `bridge call timed out: ${label}`, { timeoutMs });
       return undefined;
     }
     return result;
@@ -49,16 +76,67 @@ async function runOne<T>(label: string, fn: () => Promise<T>): Promise<T | undef
 }
 
 /**
- * Runs `fn` after every previously-enqueued call has settled. Returns
- * `undefined` (rather than throwing) on timeout or rejection so callers can
- * treat "no answer" the same way they already treat a documented failure
- * return (`false` / a non-success result code) — check the result, don't
- * assume it landed.
+ * Resolves once `promise` settles (either way) or `SETTLE_WAIT_CAP_MS`
+ * elapses, whichever comes first — never rejects. Used to advance `chain`
+ * only once a call is actually done, not merely once its caller-facing
+ * timeout has fired.
  */
-export function enqueue<T>(label: string, fn: () => Promise<T>): Promise<T | undefined> {
-  const run = chain.catch(() => undefined).then(() => runOne(label, fn));
-  chain = run.then(() => undefined);
-  return run;
+async function waitForSettleCapped(promise: Promise<unknown>): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const cap = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, SETTLE_WAIT_CAP_MS);
+  });
+  try {
+    await Promise.race([
+      promise.then(
+        () => undefined,
+        () => undefined,
+      ),
+      cap,
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+/**
+ * Runs `fn` after every previously-enqueued call has actually settled — not
+ * merely after its timeout fired. Returns `undefined` (rather than
+ * throwing) on timeout or rejection so callers can treat "no answer" the
+ * same way they already treat a documented failure return (`false` / a
+ * non-success result code) — check the result, don't assume it landed.
+ *
+ * The returned promise settles at the caller-facing timeout (`kind`
+ * default 5s, `'image'` 15s) even if the underlying bridge call is still
+ * pending — a caller should not be blocked longer than that just because
+ * BLE is slow. But the *chain* itself only advances once that underlying
+ * call truly settles (capped at `SETTLE_WAIT_CAP_MS`): letting the next
+ * call start while a previous `updateImageRawData` might still be in
+ * flight violates the SDK's documented "no concurrent image sends"
+ * constraint, and can leave a tile's on-device state permanently
+ * out of sync with what the per-tile hash cache believes it sent
+ * (see render/index.ts's `sendCalendarTiles`).
+ */
+export function enqueue<T>(
+  label: string,
+  fn: () => Promise<T>,
+  kind: 'default' | 'image' = 'default',
+): Promise<T | undefined> {
+  const timeoutMs = kind === 'image' ? IMAGE_CALL_TIMEOUT_MS : DEFAULT_CALL_TIMEOUT_MS;
+
+  // Both `fn()` and its timeout clock start only once every earlier link
+  // has settled — this call's actual turn — not at enqueue() time, which
+  // can be arbitrarily earlier than that if calls are already queued up.
+  // `started` and `result` share the same `turn` so `fn()` (registered
+  // first) always runs before `raceWithTimeout` (registered second) sets
+  // up its timer, per standard same-promise handler ordering.
+  const turn = chain.catch(() => undefined);
+  const started = turn.then(fn);
+  const result = turn.then(() => raceWithTimeout(label, started, timeoutMs));
+
+  chain = waitForSettleCapped(started);
+
+  return result;
 }
 
 /** Test-only: resets the chain so a failure/timeout in one test doesn't bleed into the next. */

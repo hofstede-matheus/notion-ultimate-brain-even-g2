@@ -19,14 +19,20 @@ export const taskDueDateScreen: ScreenModule = {
       dueIso: p.dueIso,
     });
 
+    const prevActive = p.phase === 'week' && p.rowIndex === 0;
+    const nextActive = p.phase === 'week' && p.rowIndex === 7;
+
     const topText = [
       buildHeaderLine('CHANGE DUE', ''),
       monthLabel(p.viewYear, p.viewMonth).toUpperCase(),
+      prevActive ? '▶ PREV MONTH ◀' : '◀ PREV MONTH',
     ].join('\n');
-    const bottomText =
+    const bottomText = [
+      nextActive ? '▶ NEXT MONTH ◀' : 'NEXT MONTH ▶',
       p.phase === 'week'
         ? 'Swipe: week · Tap: enter · 2x: back'
-        : 'Swipe: day · Tap: save · 2x: back';
+        : 'Swipe: day · Tap: save · 2x: back',
+    ].join('\n');
 
     return { mode: 'bitmap', topText, bottomText, pixels };
   },

@@ -27,16 +27,12 @@ import {
   CONTAINER_ID_HEADER,
   CONTAINER_ID_IMG_A,
   CONTAINER_ID_IMG_B,
-  CONTAINER_ID_IMG_C,
-  CONTAINER_ID_IMG_D,
   CONTAINER_ID_LIST,
   CONTAINER_PADDING,
   HEADER_CONTAINER_NAME,
   HEADER_H,
   IMG_CONTAINER_NAME_A,
   IMG_CONTAINER_NAME_B,
-  IMG_CONTAINER_NAME_C,
-  IMG_CONTAINER_NAME_D,
   LIST_CONTAINER_NAME,
   LIST_H,
   SCREEN_H,
@@ -129,19 +125,16 @@ async function rebuildPage(config: {
 /**
  * Per-tile FNV-1a hash of the last successfully sent calendar frame — lets
  * `sendCalendarTiles` skip re-sending a tile whose bytes haven't changed
- * (most swipes only touch one quadrant of the buffer). Cleared whenever a
- * non-bitmap screen renders, so re-entering the picker always redraws all
- * four tiles instead of trusting stale state from a previous session.
+ * (a day move usually only touches one of the two tiles). Cleared whenever a
+ * non-bitmap screen renders, so re-entering the picker always redraws both
+ * tiles instead of trusting stale state from a previous session — and
+ * cleared on an image-send timeout (see bridge-queue's per-call timeout),
+ * since a timed-out send leaves the device's tile state unknowable.
  */
-let lastTileHash: [number | null, number | null, number | null, number | null] = [
-  null,
-  null,
-  null,
-  null,
-];
+let lastTileHash: [number | null, number | null] = [null, null];
 
 /**
- * Whether the 8-container bitmap layout is already live on the device. Set
+ * Whether the 6-container bitmap layout is already live on the device. Set
  * once on the first render of a bitmap-screen "session" and cleared the
  * moment a non-bitmap screen renders. While true, subsequent renders must
  * NOT call `rebuildPageContainer` again — doing so re-declares (and thereby
@@ -161,7 +154,7 @@ function clearCalendarSession(): void {
   bitmapContainersLive = false;
   lastCalTopText = null;
   lastCalBottomText = null;
-  lastTileHash = [null, null, null, null];
+  lastTileHash = [null, null];
 }
 
 /**
@@ -177,8 +170,49 @@ export function resetRenderSession(): void {
   clearCalendarSession();
 }
 
-/** Full container rebuild. Assumes `state.screen === screen` already. */
-export async function renderFull(): Promise<void> {
+/**
+ * Tracks whether a `renderFullOnce()` body is currently running, and whether
+ * another render was requested while it was in flight — see `renderFull`'s
+ * doc comment.
+ */
+let renderInFlight: Promise<void> | null = null;
+let rerenderRequested = false;
+
+/**
+ * Full container rebuild. Assumes `state.screen === screen` already.
+ *
+ * Latest-frame-wins: if a render is already in flight when this is called,
+ * marks a rerun instead of starting a second body — sustained gestures
+ * (rapid calendar swipes) used to queue one full render per gesture, and
+ * since each bitmap render costs hundreds of ms to seconds on real BLE, the
+ * display would visibly lag behind and keep "catching up" through stale
+ * intermediate frames. The pending rerun always calls `currentDisplay()`
+ * fresh when it actually runs, so it reflects whatever state is current at
+ * that point — no gesture's *effect on state* is lost, only the extra
+ * intermediate *renders* are collapsed into one.
+ *
+ * A caller that awaits this while a render is already in flight resolves
+ * when that earlier render settles, not the coalesced rerun — every
+ * existing call site fires this with `void` or only cares that a render
+ * eventually happens, not which one it's holding a reference to.
+ */
+export function renderFull(): Promise<void> {
+  if (renderInFlight) {
+    rerenderRequested = true;
+    return renderInFlight;
+  }
+  const run = renderFullOnce().finally(() => {
+    renderInFlight = null;
+    if (rerenderRequested) {
+      rerenderRequested = false;
+      void renderFull();
+    }
+  });
+  renderInFlight = run;
+  return run;
+}
+
+async function renderFullOnce(): Promise<void> {
   const display = currentDisplay();
   trace.debug(
     'RENDER',
@@ -194,7 +228,7 @@ export async function renderFull(): Promise<void> {
       // real hardware turns out to need them declared unconditionally too
       // (the firmware quirk id=1/id=2 follow), that's a rebuild here away.
       await rebuildPage({
-        containerTotalNum: 8,
+        containerTotalNum: 6,
         textObject: [
           calendarSinkContainer(),
           calendarTopTextContainer(display.topText),
@@ -313,11 +347,11 @@ async function updateCalendarLabels(topText: string, bottomText: string): Promis
 }
 
 /**
- * Quarters the calendar's logical 576×204 pixel buffer into the four SDK
- * image tiles, encodes each as a 1-bit BMP, and sends only the tiles whose
- * bytes changed since the last frame — sequentially, per
- * `updateImageRawData`'s documented "no concurrent image sends" constraint
- * (now also enforced across screens by bridge-queue's single chain).
+ * Halves the calendar's logical 576×144 pixel buffer into the two SDK image
+ * tiles, encodes each as a 1-bit BMP, and sends only the tiles whose bytes
+ * changed since the last frame — sequentially, per `updateImageRawData`'s
+ * documented "no concurrent image sends" constraint (now also enforced
+ * across screens by bridge-queue's single chain).
  */
 async function sendCalendarTiles(pixels: Uint8Array): Promise<void> {
   const b = getBridge();
@@ -337,17 +371,11 @@ async function sendCalendarTiles(pixels: Uint8Array): Promise<void> {
       name: IMG_CONTAINER_NAME_B,
       rect: sliceRect(pixels, CAL_BUF_W, CAL_TILE_W, 0, CAL_TILE_W, CAL_TILE_H),
     },
-    {
-      id: CONTAINER_ID_IMG_C,
-      name: IMG_CONTAINER_NAME_C,
-      rect: sliceRect(pixels, CAL_BUF_W, 0, CAL_TILE_H, CAL_TILE_W, CAL_TILE_H),
-    },
-    {
-      id: CONTAINER_ID_IMG_D,
-      name: IMG_CONTAINER_NAME_D,
-      rect: sliceRect(pixels, CAL_BUF_W, CAL_TILE_W, CAL_TILE_H, CAL_TILE_W, CAL_TILE_H),
-    },
   ];
+
+  const startedAt = performance.now();
+  let sent = 0;
+  let bytes = 0;
 
   for (let i = 0; i < tiles.length; i++) {
     const tile = tiles[i];
@@ -356,24 +384,41 @@ async function sendCalendarTiles(pixels: Uint8Array): Promise<void> {
     const hash = fnv32a(bmp);
     if (lastTileHash[i] === hash) continue;
 
-    const result = await enqueue(`updateImageRawData(${tile.name})`, () =>
-      b.updateImageRawData(
-        new ImageRawDataUpdate({
-          containerID: tile.id,
-          containerName: tile.name,
-          imageData: Array.from(bmp),
-        }),
-      ),
+    const result = await enqueue(
+      `updateImageRawData(${tile.name})`,
+      () =>
+        b.updateImageRawData(
+          new ImageRawDataUpdate({
+            containerID: tile.id,
+            containerName: tile.name,
+            imageData: bmp,
+          }),
+        ),
+      'image',
     );
     // undefined means the call already logged an error (threw / timed out) —
-    // avoid a second, redundant warn for the same failure.
+    // avoid a second, redundant warn for the same failure. A timeout also
+    // means the device's tile state is unknowable, so the hash cache for
+    // the WHOLE session (not just this tile) can no longer be trusted.
     if (result !== undefined) {
       if (ImageRawDataUpdateResult.isSuccess(result)) {
         lastTileHash[i] = hash;
+        sent++;
+        bytes += bmp.length;
       } else {
         trace.warn('RENDER', `calendar tile ${tile.name} send failed`, { result });
       }
+    } else {
+      lastTileHash = [null, null];
     }
+  }
+
+  if (sent > 0) {
+    trace.info('CAL', 'tiles sent', {
+      tiles: sent,
+      bytes,
+      ms: Math.round(performance.now() - startedAt),
+    });
   }
 }
 
