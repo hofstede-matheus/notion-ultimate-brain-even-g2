@@ -117,8 +117,12 @@ version-specific, see `glasses/constants.ts`) with `pnpm --filter
   firmware matches containers by name+ID against the first `createStartUpPageContainer`, so
   names must stay **stable** (and ≤16 chars) for the app's lifetime; a container absent from
   the immediately preceding rebuild can't be re-added, which is why id=2 ships an inert 1×1
-  placeholder on text-only screens. The calendar's image containers are the deliberate
+  placeholder on text-only screens. The calendar's two image containers are the deliberate
   exception — declared only on that screen to stay under the simulator's 4-container cap.
+  Its pixel buffer is capped at 288×144 tall on purpose: `updateImageRawData` costs a fixed
+  ~104ms per call regardless of payload (even-g2-context/docs/display.md), so a taller
+  buffer needing 4 tiles instead of 2 pays that overhead twice for every redraw — don't
+  re-grow the buffer past 144px without re-checking that tradeoff.
 - **Bitmaps are BMP, not PNG.** A 1-bit PNG renders solid green on G2 firmware; the 1-bit
   BMP encoder in `glasses/bitmap/bmp.ts` decodes correctly through `updateImageRawData`.
   Drawing code is pure (no DOM/SDK) so it tests under vitest's node environment.

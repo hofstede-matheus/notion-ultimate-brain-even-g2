@@ -105,11 +105,18 @@ export const HEADER_CONTAINER_NAME = 'ub-header';
 export const LIST_CONTAINER_NAME = 'ub-list';
 
 /**
- * The due-date calendar's four image containers, quartering one logical
- * 576×204 pixel buffer into 288×102 tiles. 288×144 is the real per-container
- * limit on hardware (SDK `index.d.ts`: width 20–288, height 20–144); 200×100
- * is a limit of the desktop simulator only (`@evenrealities/evenhub-simulator`,
+ * The due-date calendar's two image containers, halving one logical 576×144
+ * pixel buffer into 288×144 left/right tiles. 288×144 is the real
+ * per-container limit on hardware (SDK `index.d.ts`: width 20–288, height
+ * 20–144) — the buffer height is capped at 144 for exactly this reason, so
+ * one 576-wide row only ever needs splitting on X, never Y. 200×100 is a
+ * limit of the desktop simulator only (`@evenrealities/evenhub-simulator`,
  * pinned to 0.7.3 in package.json), not the firmware.
+ *
+ * A taller buffer (the previous 576×204, quartered into 4 tiles) works too,
+ * but costs 2x the fixed ~104ms-per-call `updateImageRawData` overhead (see
+ * even-g2-context/docs/display.md) for every redraw — avoid re-growing past
+ * 144px tall without re-checking that tradeoff.
  *
  * Unlike the header/list containers, these are declared ONLY on the bitmap
  * screen — not on every rebuild — so every other screen in the app stays
@@ -120,17 +127,20 @@ export const LIST_CONTAINER_NAME = 'ub-list';
  */
 export const CONTAINER_ID_IMG_A = 3;
 export const CONTAINER_ID_IMG_B = 4;
-export const CONTAINER_ID_IMG_C = 5;
-export const CONTAINER_ID_IMG_D = 6;
 export const IMG_CONTAINER_NAME_A = 'ub-cal-a';
 export const IMG_CONTAINER_NAME_B = 'ub-cal-b';
-export const IMG_CONTAINER_NAME_C = 'ub-cal-c';
-export const IMG_CONTAINER_NAME_D = 'ub-cal-d';
 
 /**
  * The due-date calendar's two label text containers (above/below the image
  * grid) plus the full-screen event-sink container id=1 becomes on this
- * screen — see render/containers.ts's `calendarContainers()`.
+ * screen — see render/containers.ts's `calendarContainers()`. PREV MONTH /
+ * NEXT MONTH nav-row selection also renders here (as plain text, via
+ * `textContainerUpgrade`) rather than as bitmap glyphs — see
+ * modules/tasks/screens/task-due-date.ts. That doesn't make nav-row
+ * transitions free: the highlighted week's outline still has to
+ * appear/disappear from the image grid when the cursor enters/leaves a nav
+ * row, and since a week's outline spans the full 576px width it always
+ * touches both image tiles either way.
  */
 export const CONTAINER_ID_CAL_TOP = 7;
 export const CONTAINER_ID_CAL_BOTTOM = 8;
@@ -138,34 +148,34 @@ export const CAL_TOP_CONTAINER_NAME = 'ub-cal-top';
 export const CAL_BOTTOM_CONTAINER_NAME = 'ub-cal-bot';
 
 // ---------------------------------------------------------------------------
-// Due-date calendar bitmap geometry — one 576×204 logical buffer, quartered
-// into four 288×102 image tiles (2 cols × 2 rows), full-width under a top
-// label band and above a bottom hint band. See bitmap/ and
+// Due-date calendar bitmap geometry — one 576×144 logical buffer, halved
+// into two 288×144 image tiles (left/right), full-width under a top label
+// band (which also carries the PREV MONTH nav line) and above a bottom hint
+// band (which also carries the NEXT MONTH nav line). See bitmap/ and
 // modules/tasks/calendar/.
 // ---------------------------------------------------------------------------
 
 export const CAL_BUF_W = 576;
-export const CAL_BUF_H = 204;
+export const CAL_BUF_H = 144;
 export const CAL_TILE_W = 288;
-export const CAL_TILE_H = 102;
+export const CAL_TILE_H = 144;
 
 /** y position (in screen coordinates) where the image tiles start. */
-export const CAL_BAND_Y = 54;
-/** Top label container ("CHANGE DUE" / month+year), above the image tiles. */
+export const CAL_BAND_Y = 84;
+/** Top label container ("CHANGE DUE" / month+year / prev-month nav), above the image tiles. */
 export const CAL_TOP_TEXT_H = CAL_BAND_Y;
-/** Bottom hint container (gesture instructions), below the image tiles. */
+/** Bottom hint container (next-month nav / gesture instructions), below the image tiles. */
 export const CAL_BOT_TEXT_Y = CAL_BAND_Y + CAL_BUF_H;
 export const CAL_BOT_TEXT_H = SCREEN_H - CAL_BOT_TEXT_Y;
 
-// Bands within the 576×204 buffer itself:
-export const CAL_NAV_H = 14;
-export const CAL_WEEKDAY_Y = 14;
+// Bands within the 576×144 buffer itself (PREV/NEXT MONTH nav rows moved out
+// to the top/bottom text containers above — see CAL_BAND_Y's doc comment):
+export const CAL_WEEKDAY_Y = 0;
 export const CAL_WEEKDAY_H = 16;
-export const CAL_RULE_Y = 30;
-export const CAL_GRID_Y = 31;
-export const CAL_ROW_H = 26;
+export const CAL_RULE_Y = 16;
+export const CAL_GRID_Y = 17;
+export const CAL_ROW_H = 21;
 export const CAL_GRID_ROWS = 6;
-export const CAL_NAV_NEXT_Y = 188;
 
 export const CAL_COL_X0 = 1;
 export const CAL_COL_W = 82;

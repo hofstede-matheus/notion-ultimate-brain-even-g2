@@ -18,14 +18,10 @@ import {
   CONTAINER_ID_HEADER,
   CONTAINER_ID_IMG_A,
   CONTAINER_ID_IMG_B,
-  CONTAINER_ID_IMG_C,
-  CONTAINER_ID_IMG_D,
   CONTAINER_ID_LIST,
   HEADER_CONTAINER_NAME,
   IMG_CONTAINER_NAME_A,
   IMG_CONTAINER_NAME_B,
-  IMG_CONTAINER_NAME_C,
-  IMG_CONTAINER_NAME_D,
   LIST_CONTAINER_NAME,
   SCREEN_H,
   SCREEN_W,
@@ -112,12 +108,12 @@ export function calendarBottomTextContainer(text: string): TextContainerProperty
 }
 
 /**
- * Quarters the calendar's logical 576×204 pixel buffer into four 288×102
- * SDK image tiles (2 cols × 2 rows), positioned under the top label band.
- * 288×144 is the real per-container limit on hardware; only the desktop
- * simulator caps at 200×100 (see constants.ts). Declared only while the
- * bitmap screen is showing — not on every rebuild — so every other screen
- * stays within the simulator's 4-container cap.
+ * Halves the calendar's logical 576×144 pixel buffer into two 288×144 SDK
+ * image tiles (left/right), positioned under the top label band. 288×144 is
+ * the real per-container limit on hardware; only the desktop simulator caps
+ * at 200×100 (see constants.ts). Declared only while the bitmap screen is
+ * showing — not on every rebuild — so every other screen stays within the
+ * simulator's 4-container cap.
  */
 export function calendarImageContainers(): ImageContainerProperty[] {
   return [
@@ -134,22 +130,6 @@ export function calendarImageContainers(): ImageContainerProperty[] {
       containerName: IMG_CONTAINER_NAME_B,
       xPosition: CAL_TILE_W,
       yPosition: CAL_BAND_Y,
-      width: CAL_TILE_W,
-      height: CAL_TILE_H,
-    }),
-    new ImageContainerProperty({
-      containerID: CONTAINER_ID_IMG_C,
-      containerName: IMG_CONTAINER_NAME_C,
-      xPosition: 0,
-      yPosition: CAL_BAND_Y + CAL_TILE_H,
-      width: CAL_TILE_W,
-      height: CAL_TILE_H,
-    }),
-    new ImageContainerProperty({
-      containerID: CONTAINER_ID_IMG_D,
-      containerName: IMG_CONTAINER_NAME_D,
-      xPosition: CAL_TILE_W,
-      yPosition: CAL_BAND_Y + CAL_TILE_H,
       width: CAL_TILE_W,
       height: CAL_TILE_H,
     }),

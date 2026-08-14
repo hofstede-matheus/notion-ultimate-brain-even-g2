@@ -100,7 +100,7 @@ describe('renderFull — the bridge wiring', () => {
     expect(h.bridge.updateImageRawData).not.toHaveBeenCalled();
   });
 
-  it('the due-date picker opens as a full-screen event sink behind 4 image tiles, sends all 4 on open, then skips unchanged tiles on a redundant render', async () => {
+  it('the due-date picker opens as a full-screen event sink behind 2 image tiles, sends both on open, then skips unchanged tiles on a redundant render', async () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: 'Buy milk' }];
@@ -109,7 +109,7 @@ describe('renderFull — the bridge wiring', () => {
     await h.settle();
 
     const arg = h.bridge.rebuildPageContainer.mock.calls.at(-1)?.[0] as RebuildPageContainer;
-    expect(arg.containerTotalNum).toBe(8);
+    expect(arg.containerTotalNum).toBe(6);
 
     // Regression test for the swipe-scrolls-the-text-panel bug: container
     // id=1 must be a non-overflowing ' ' sink with sole event capture, not a
@@ -123,21 +123,16 @@ describe('renderFull — the bridge wiring', () => {
     expect(otherCapturing).toHaveLength(0);
 
     const images = arg.imageObject as ImageContainerProperty[];
-    expect(images).toHaveLength(4);
+    expect(images).toHaveLength(2);
     for (const img of images) {
       expect(img.width).toBe(288);
-      expect(img.height).toBe(102);
+      expect(img.height).toBe(144);
     }
-    expect(h.bridge.updateImageRawData).toHaveBeenCalledTimes(4);
+    expect(h.bridge.updateImageRawData).toHaveBeenCalledTimes(2);
     const calls = h.bridge.updateImageRawData.mock.calls.map(
       ([data]) => data as ImageRawDataUpdate,
     );
-    expect(calls.map((c) => c.containerName)).toEqual([
-      'ub-cal-a',
-      'ub-cal-b',
-      'ub-cal-c',
-      'ub-cal-d',
-    ]);
+    expect(calls.map((c) => c.containerName)).toEqual(['ub-cal-a', 'ub-cal-b']);
 
     h.bridge.updateImageRawData.mockClear();
     await renderFull(); // same picker state — nothing changed
@@ -172,6 +167,77 @@ describe('renderFull — the bridge wiring', () => {
     // change — but critically, this must go through updateImageRawData,
     // never through a container rebuild.
     expect(h.bridge.updateImageRawData.mock.calls.length).toBeGreaterThan(0);
+  });
+
+  it('moving onto a nav row updates its label via text, but still redraws the week outline as an image send', async () => {
+    // The nav labels ("PREV MONTH"/"NEXT MONTH") moved out of the bitmap
+    // and into topText/bottomText — but that does NOT make nav-row entry
+    // free of image sends: the highlighted week's outline still has to
+    // disappear from the grid bitmap when the cursor leaves it, and since
+    // that outline spans the full 576px width it always touches both
+    // tiles. The win here is the label update itself is now a cheap
+    // textContainerUpgrade instead of baked into the (now smaller) bitmap.
+    const h = mount();
+    h.state.screen = 'inbox';
+    h.state.lists.inbox = [{ id: 't1', name: 'Buy milk' }];
+    h.dispatch(select(0));
+    h.dispatch(select(2));
+    await h.settle();
+
+    const picker = h.state.dueDatePicker;
+    if (!picker) throw new Error('expected dueDatePicker to be open');
+    picker.rowIndex = 1; // a real week row, not a nav row
+    await renderFull();
+    await h.settle();
+
+    h.bridge.updateImageRawData.mockClear();
+    h.bridge.textContainerUpgrade.mockClear();
+
+    h.dispatch(move('up')); // rowIndex 1 -> 0 ("PREV MONTH")
+    await h.settle();
+
+    expect(h.bridge.updateImageRawData.mock.calls.length).toBeGreaterThan(0);
+    const topArg = h.bridge.textContainerUpgrade.mock.calls.find(
+      ([call]) => (call as TextContainerUpgrade).containerID === CONTAINER_ID_CAL_TOP,
+    )?.[0] as TextContainerUpgrade | undefined;
+    expect(topArg?.content).toContain('PREV MONTH');
+  });
+
+  it('coalesces renders fired faster than the bridge can drain — the final state wins over stale intermediate frames', async () => {
+    const h = mount();
+    h.state.screen = 'inbox';
+    h.state.lists.inbox = [{ id: 't1', name: 'Buy milk' }];
+    h.dispatch(select(0));
+    h.dispatch(select(2));
+    await h.settle();
+
+    const picker = h.state.dueDatePicker;
+    if (!picker) throw new Error('expected dueDatePicker to be open');
+    picker.rowIndex = 3; // known baseline, away from the nav rows
+    await renderFull();
+    await h.settle();
+
+    h.bridge.updateImageRawData.mockClear();
+
+    // Three swipes fired back-to-back, faster than a single render can
+    // drain through the (mocked, but still async) bridge chain.
+    h.dispatch(move('down')); // 3 -> 4
+    h.dispatch(move('down')); // 4 -> 5
+    h.dispatch(move('down')); // 5 -> 6
+    await h.settle();
+
+    expect(h.state.dueDatePicker?.rowIndex).toBe(6);
+
+    // Three separate full renders would each send 2 tiles = 6 calls total.
+    // Coalescing collapses the two renders requested while the first was
+    // still in flight into a single rerun of the *final* state.
+    expect(h.bridge.updateImageRawData.mock.calls.length).toBeLessThan(6);
+
+    // The frame that actually reached the device already matches rowIndex
+    // 6 — a further render finds nothing left to send.
+    h.bridge.updateImageRawData.mockClear();
+    await renderFull();
+    expect(h.bridge.updateImageRawData).not.toHaveBeenCalled();
   });
 
   it('paging the month updates the top label via textContainerUpgrade, not a rebuild', async () => {

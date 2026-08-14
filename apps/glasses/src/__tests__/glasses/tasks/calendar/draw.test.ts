@@ -15,7 +15,7 @@ import { buildMonthGrid } from '../../../../glasses/modules/tasks/calendar/month
 const grid = buildMonthGrid(2026, 7); // July 2026 — day 1 at row 0, col 3
 
 describe('drawCalendar', () => {
-  it('produces a full 576x204 buffer', () => {
+  it('produces a full 576x144 buffer', () => {
     const buf = drawCalendar(grid, {
       phase: 'week',
       rowIndex: 1,
@@ -122,7 +122,10 @@ describe('drawCalendar', () => {
     expect(withDue).not.toEqual(withoutDue);
   });
 
-  it('an out-of-month day renders at scale 2, an in-month day at scale 3', () => {
+  it('an out-of-month day is stippled and an in-month day is solid, at the same scale', () => {
+    // Both render at the same scale now (the shrunk row height doesn't
+    // leave room for a bigger in-month scale alongside the week-cursor
+    // outline) — out-of-month days are told apart by stippling instead.
     const buf = drawCalendar(grid, {
       phase: 'week',
       rowIndex: 3, // cursor elsewhere, so row 0's band highlight doesn't contaminate the pixel count
@@ -147,25 +150,23 @@ describe('drawCalendar', () => {
       return count;
     }
 
-    function renderCellAt(label: string, scale: number, col: number): number {
+    function renderCellAt(label: string, col: number, stipple: boolean): number {
       const scratch = createBuffer(CAL_BUF_W, CAL_BUF_H);
       const cellX = CAL_COL_X0 + col * CAL_COL_W;
-      drawText(scratch, CAL_BUF_W, CAL_BUF_H, cellX, rowY, label, { scale });
+      drawText(scratch, CAL_BUF_W, CAL_BUF_H, cellX, rowY, label, { scale: 2, stipple });
       return countCellPixels(scratch, col);
     }
 
     const outLabel = String(outCell?.day);
-    const outAtScale2 = renderCellAt(outLabel, 2, 0);
-    const outAtScale3 = renderCellAt(outLabel, 3, 0);
-    expect(outAtScale2).toBeGreaterThan(0);
-    expect(outAtScale2).toBeLessThan(outAtScale3); // sanity: scale 3 really is bigger than scale 2
-    expect(countCellPixels(buf, 0)).toBe(outAtScale2); // the actual cell matches the scale-2 rendering
+    const outSolid = renderCellAt(outLabel, 0, false);
+    const outStippled = renderCellAt(outLabel, 0, true);
+    expect(outStippled).toBeGreaterThan(0);
+    expect(outStippled).toBeLessThan(outSolid); // sanity: stippling really removes some pixels
+    expect(countCellPixels(buf, 0)).toBe(outStippled); // the actual cell matches the stippled rendering
 
     const inLabel = String(inCell?.day);
-    const inAtScale2 = renderCellAt(inLabel, 2, 3);
-    const inAtScale3 = renderCellAt(inLabel, 3, 3);
-    expect(inAtScale3).toBeGreaterThan(0);
-    expect(inAtScale2).toBeLessThan(inAtScale3);
-    expect(countCellPixels(buf, 3)).toBe(inAtScale3); // the actual cell matches the scale-3 rendering
+    const inSolid = renderCellAt(inLabel, 3, false);
+    expect(inSolid).toBeGreaterThan(0);
+    expect(countCellPixels(buf, 3)).toBe(inSolid); // the actual cell is solid, not stippled
   });
 });

@@ -29,7 +29,7 @@ Feature: Choosing a due date on the calendar
       When I open the calendar on any month
       Then six weeks are shown
       And days from the months either side fill the gaps
-      And those days are drawn smaller so they are easy to tell apart
+      And those days are drawn faded so they are easy to tell apart
 
     Scenario: Today and the current due date are marked
       Given the task is due on 2026-07-04 and today is 2026-07-01

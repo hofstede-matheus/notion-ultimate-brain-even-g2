@@ -85,15 +85,73 @@ describe('failure handling', () => {
     expect(errors[0]?.msg).toContain('stuck');
   });
 
-  it('a later call still runs after an earlier one times out', async () => {
+  it("does not start the next call until the timed-out call's own promise actually settles", async () => {
+    // Regression test: an earlier version let the chain advance the moment
+    // a call's timeout fired, before its underlying promise resolved —
+    // which let a later `updateImageRawData` start while the timed-out one
+    // might still be in flight, violating the SDK's "no concurrent image
+    // sends" rule.
+    vi.useFakeTimers();
+    const order: string[] = [];
+    let releaseStuck: (() => void) | undefined;
+
+    const stuck = enqueue(
+      'stuck',
+      () =>
+        new Promise<void>((resolve) => {
+          releaseStuck = () => {
+            order.push('stuck settled');
+            resolve();
+          };
+        }),
+    );
+    const after = enqueue('after', async () => {
+      order.push('after ran');
+      return 'ok';
+    });
+
+    await vi.advanceTimersByTimeAsync(5000); // stuck's own per-call timeout fires
+    await expect(stuck).resolves.toBeUndefined(); // caller unblocked...
+    expect(order).toEqual([]); // ...but 'after' has not started — stuck's promise is still pending
+
+    releaseStuck?.();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(order).toEqual(['stuck settled', 'after ran']);
+    await expect(after).resolves.toBe('ok');
+  });
+
+  it('caps how long a permanently hung call can block the chain', async () => {
     vi.useFakeTimers();
     const never = new Promise<void>(() => {});
+    const order: string[] = [];
 
     const stuck = enqueue('stuck', () => never);
-    const after = enqueue('after', async () => 'ok');
+    const after = enqueue('after', async () => {
+      order.push('after ran');
+      return 'ok';
+    });
 
-    await vi.advanceTimersByTimeAsync(5000);
+    await vi.advanceTimersByTimeAsync(5000); // stuck's own per-call timeout fires
     await expect(stuck).resolves.toBeUndefined();
+    expect(order).toEqual([]);
+
+    await vi.advanceTimersByTimeAsync(25000); // hard settle-wait cap elapses
     await expect(after).resolves.toBe('ok');
+    expect(order).toEqual(['after ran']);
+  });
+
+  it('an image-kind call gets a longer timeout than the default', async () => {
+    vi.useFakeTimers();
+    const slow = enqueue('slow-image', () => new Promise<string>(() => {}), 'image');
+
+    await vi.advanceTimersByTimeAsync(5000); // past the default timeout...
+    const errorsAt5s = getLogSnapshot().filter((r) => r.level === 'error');
+    expect(errorsAt5s).toHaveLength(0); // ...but the image call hasn't timed out yet
+
+    await vi.advanceTimersByTimeAsync(10000); // past the 15s image timeout
+    await expect(slow).resolves.toBeUndefined();
+    const errorsAt15s = getLogSnapshot().filter((r) => r.level === 'error');
+    expect(errorsAt15s.some((r) => r.msg.includes('slow-image'))).toBe(true);
   });
 });
