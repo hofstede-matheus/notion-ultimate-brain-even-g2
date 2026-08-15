@@ -12,19 +12,19 @@ import {
   showRetry,
 } from '@web/providers/uiController';
 import { loadStoredConfig, saveStoredConfig } from '@web/services/config';
-import { BOOT_SPLASH_MIN_MS, BRIDGE_WAIT_TIMEOUT_MS, VOSK_MODEL_URL } from './glasses/constants';
+import { BOOT_SPLASH_MIN_MS, BRIDGE_WAIT_TIMEOUT_MS } from './glasses/constants';
 import { attachGlassesListeners, showGlassesScreen } from './glasses/events';
 import { StartupRejectedError } from './glasses/render';
 import { loadPreviousSession, startPersisting } from './logging/persist';
 import { trace } from './logging/trace';
 import { setBridge, state } from './state';
-import { preloadVoskModel } from './stt';
 import { getDevEnvConfig, getTenantConfig, setTenantConfig } from './tenant-config';
+import { refreshVoiceStatus } from './voice-runtime';
 
 // ---------------------------------------------------------------------------
 // App bootstrap — connect the Even Hub bridge, ensure a Notion tenant config
-// is set (prompting on first run), start the glasses runtime, warm the
-// voice model in the background
+// is set (prompting on first run), start the glasses runtime, and resolve the
+// configured speech backend in the background
 // ---------------------------------------------------------------------------
 
 /**
@@ -152,10 +152,8 @@ export async function boot(): Promise<void> {
       setStatus('Connected! Use your glasses.');
       hideConnect();
 
-      // Warm the Vosk model in the background — off the critical path.
-      // By the time the user navigates to Add Task the model will be ready.
-      trace.info('BOOT', 'vosk preload started');
-      preloadVoskModel(VOSK_MODEL_URL);
+      // Off the critical path — the menu is already on screen.
+      void refreshVoiceStatus();
     } catch (err) {
       const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
       trace.error('BOOT', `connect failed: ${msg}`);

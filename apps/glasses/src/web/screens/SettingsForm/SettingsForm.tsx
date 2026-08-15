@@ -9,6 +9,7 @@ import { useUiState } from '../../hooks/useUiState';
 import { resolveSettings } from '../../providers/uiController';
 import { fetchDatabases, InvalidTokenError } from '../../services/databases';
 import { LogConsole } from './components/LogConsole';
+import { VoiceSection } from './components/VoiceSection';
 import {
   autoSelect,
   availableOptionsFor,
@@ -255,6 +256,7 @@ export function SettingsForm() {
           {confirmUnfit ? 'Save anyway' : 'Save'}
         </Button>
       </form>
+      <VoiceSection />
       <LogConsole />
     </Page>
   );

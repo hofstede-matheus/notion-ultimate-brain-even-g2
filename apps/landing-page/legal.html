@@ -144,16 +144,26 @@
 
           <h3 class="font-desktop-title-xsmall">Voice input</h3>
           <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Dictating a task uses the
-            microphone in the glasses. Speech recognition runs <span class="font-normal">on the device, fully
-              offline</span>, using a Vosk model bundled inside the app package. There is no speech API, no API key,
-            and no network request involved in recognition.</p>
-          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Audio frames are converted,
-            fed to the recogniser, and discarded. <span class="font-normal">No recording is kept, and no audio ever
-              leaves your glasses.</span> The microphone closes automatically after a short silence, after fifteen
-            seconds at most, or when you stop it.</p>
-          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">What does leave the device
-            is the resulting text, once you confirm it &mdash; sent onward as the title of the task you just
-            created, exactly as if you had typed it.</p>
+            microphone in the glasses. <span class="font-normal">Voice input is off until you turn it on</span>, and
+            when you do, you choose which of two recognisers to use. The choice is in the settings screen, and the
+            app tells you there what each one does with your audio.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large"><span
+              class="font-normal">On-device</span> downloads a Vosk speech model to your phone once, about 40 MB, and
+            recognises speech locally from then on. There is no speech API, no API key, and no network request
+            involved in recognition. Audio frames are converted, fed to the recogniser, and discarded:
+            <span class="font-normal">no recording is kept, and no audio ever leaves your phone.</span> It
+            understands English.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large"><span
+              class="font-normal">Cloud</span> streams your audio to <a href="https://soniox.com"
+              class="underline">Soniox</a> for transcription, using an API key from your own Soniox account. Here
+            <span class="font-normal">what you say does leave the device</span>, and what Soniox does with it is
+            covered by their terms, not ours. We never see the audio or the key: the key is stored on your phone and
+            sent only to Soniox, and the connection goes straight from your phone to them without passing through our
+            server. Nothing is streamed unless you are actively recording.</p>
+          <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Either way the microphone
+            closes automatically after a short silence, after fifteen seconds at most, or when you stop it. And
+            either way, what leaves the device once you confirm is the resulting text &mdash; sent onward as the
+            title of the task you just created, exactly as if you had typed it.</p>
 
           <h3 class="font-desktop-title-xsmall">What is stored on your device</h3>
           <p class="text-white/60 font-desktop-body-small tablet:font-desktop-body-large">Three things, all in local

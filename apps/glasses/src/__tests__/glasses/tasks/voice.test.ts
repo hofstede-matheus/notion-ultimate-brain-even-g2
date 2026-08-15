@@ -34,7 +34,7 @@ describe('starting a recording', () => {
     expect(stt.isListening()).toBe(true);
   });
 
-  it('goes to error when the recognizer never becomes ready', async () => {
+  it('goes to error when the backend never becomes ready', async () => {
     fakeStt.setReady(false);
     const h = mount();
     openAddTask(h);
@@ -43,7 +43,58 @@ describe('starting a recording', () => {
     await h.settle();
 
     expect(h.state.recording).toBe('error');
-    expect(h.state.errorMessage).toContain('Voice model loading');
+    expect(h.state.errorMessage).toContain('Voice input unavailable');
+  });
+});
+
+describe('the gate on an unconfigured backend', () => {
+  // Every case here is fixed on the phone, so a tap on the glasses must not
+  // start anything — the screen explains what to do instead.
+  it.each([
+    'off',
+    'needs-download',
+    'needs-key',
+    'preparing',
+    'unknown',
+  ] as const)('ignores a tap and starts nothing when voice is %s', async (status) => {
+    const h = mount();
+    openAddTask(h);
+    h.state.voice = status;
+
+    h.dispatch(select());
+    await h.settle();
+
+    expect(h.state.recording).toBe('idle');
+    expect(stt.isListening()).toBe(false);
+    expect(stt.ensureReady).not.toHaveBeenCalled();
+  });
+
+  it('records normally once a backend is configured', async () => {
+    const h = mount();
+    openAddTask(h);
+    h.state.voice = 'ready';
+
+    h.dispatch(select());
+    await h.settle();
+
+    expect(h.state.recording).toBe('recording');
+  });
+
+  it('closes the mic if the backend drops out after it said it was ready', async () => {
+    // The realistic case is a Soniox key that connects and is then rejected:
+    // ensureReady() has already resolved true by the time the 401 arrives.
+    const h = mount();
+    openAddTask(h);
+    vi.mocked(stt.startListening).mockImplementationOnce(() => {
+      /* socket died — no session started */
+    });
+
+    h.dispatch(select());
+    await h.settle();
+
+    expect(h.state.recording).toBe('error');
+    expect(h.state.errorMessage).toContain('Voice input unavailable');
+    expect(h.bridge.audioControl).toHaveBeenLastCalledWith(false);
   });
 });
 
@@ -164,7 +215,7 @@ describe('cancelling out of a recording', () => {
 });
 
 beforeEach(() => {
-  fakeStt.setReady(true);
+  fakeStt.reset();
   vi.mocked(createTask).mockImplementation(async (name: string) => ({ id: 't1', name }));
 });
 

@@ -22,15 +22,16 @@ export default defineConfig({
     },
   },
   // index.html lives in src/web/ (the browser-only shell) rather than the
-  // project root — outDir/publicDir are pointed back at the project root so
-  // `dist/` and the Vosk model under `public/` land where the rest of the
-  // build tooling (evenhub pack, scripts/fetch-vosk-model.cjs) expects them.
+  // project root — outDir is pointed back at the project root so `dist/` lands
+  // where `evenhub pack` expects it.
   root: 'src/web',
   // .env* files live at the package root (apps/glasses/), not under root
   // (src/web/) — without this, Vite's default envDir (= root) would never
   // find them and import.meta.env.VITE_* would always be undefined.
   envDir: '../..',
-  publicDir: '../../public',
+  // Nothing to copy: the only static asset was the 39 MB voice model, which is
+  // now downloaded at runtime (see src/voice-model.ts).
+  publicDir: false,
   build: {
     outDir: '../../dist',
     emptyOutDir: true,

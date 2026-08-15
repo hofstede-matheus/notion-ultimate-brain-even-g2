@@ -2,14 +2,18 @@
 Feature: Adding a task by voice
 
   The one place the glasses create something rather than act on something that already exists.
-  Speech is recognised on the device itself, so nothing that is said leaves the glasses.
+
+  Voice input has to be set up on the phone first, and there are two ways to do it: an on-device
+  model, where nothing that is said leaves the phone, or a cloud service the person supplies their
+  own key for. Which one is in use changes nothing about the flow below — only whether audio
+  leaves the device, which is stated where the choice is made.
 
   Recording stops by itself once talking stops, so the whole thing is: tap, speak, check what it
   heard, tap again.
 
   Background:
     Given I am on the "TASKS" menu
-    And the app is ready to listen
+    And voice input is set up and ready
 
   Rule: The usual path
 
@@ -144,22 +148,103 @@ Feature: Adding a task by voice
       When I tap
       Then nothing happens
 
+  Rule: Before voice input is set up, the screen says what is missing
+
+    The row stays in the Tasks menu either way — hiding it would mean nobody ever discovers the
+    feature. Every fix is on the phone, so tapping here does nothing on purpose.
+
+    Scenario: No voice mode chosen yet
+      Given voice input is off
+      When I tap "Add Task (Voice)"
+      Then the glasses show:
+        """
+        ADD TASK
+
+        Voice input is off.
+
+        Choose a voice mode in
+        Settings on your phone.
+
+        Double-tap to go back.
+        """
+
+    Scenario: On-device mode, model not downloaded
+      Given voice input is set to on-device
+      But the voice model has not been downloaded
+      When I tap "Add Task (Voice)"
+      Then the glasses show:
+        """
+        ADD TASK
+
+        Voice input needs a
+        one-time download.
+
+        Open Settings on your
+        phone to download it.
+
+        Double-tap to go back.
+        """
+
+    Scenario: Cloud mode, no API key
+      Given voice input is set to cloud
+      But no API key has been entered
+      When I tap "Add Task (Voice)"
+      Then the glasses show:
+        """
+        ADD TASK
+
+        Cloud voice input needs
+        a Soniox API key.
+
+        Add it in Settings on
+        your phone.
+
+        Double-tap to go back.
+        """
+
+    Scenario: The model is still loading
+      Given voice input is set to on-device
+      And the voice model has been downloaded
+      When I open Add Task before it has finished loading
+      Then the glasses show:
+        """
+        ADD TASK
+
+        Voice model loading...
+
+        Double-tap to go back.
+        """
+
+    Scenario: Tapping does nothing until it is set up
+      Given voice input is off
+      And I am on the Add Task screen
+      When I tap
+      Then nothing happens
+      And the glasses do not start listening
+
+    Scenario: Leaving still works
+      Given voice input is off
+      And I am on the Add Task screen
+      When I double-tap
+      Then I go back to the "TASKS" menu
+
   Rule: Failures explain themselves and can be retried
 
-    Scenario: Not ready to listen yet
-      Given the app is not yet ready to listen
+    Scenario: The backend will not start
+      Given voice input is set up
+      But the speech backend cannot be reached
       When I tap to start recording
       Then the glasses show:
         """
         ADD TASK
 
         Error:
-        Voice model loading. Please try again in a moment.
+        Voice input unavailable. Check Settings, then try again.
 
         Tap to try again.
         Double-tap to go back.
         """
-      When I wait a moment and tap again
+      When I fix it on my phone and tap again
       Then recording starts
 
     Scenario: Nothing was heard

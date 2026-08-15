@@ -2,6 +2,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE?: string;
+  /** Overrides where the offline voice model is downloaded from (see voice-model.ts). */
+  readonly VITE_VOICE_MODEL_URL?: string;
   /** Dev-only auto-fill for the Notion settings form (see tenant-config.ts). */
   readonly VITE_NOTION_TOKEN?: string;
   readonly VITE_NOTION_TASKS_DB?: string;

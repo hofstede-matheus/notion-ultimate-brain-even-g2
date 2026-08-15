@@ -7,7 +7,7 @@
     },
     {
       "site": "notion-ub-assets",
-      "public": "apps/glasses/public",
+      "public": "apps/glasses/dist-model",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "headers": [
         {
