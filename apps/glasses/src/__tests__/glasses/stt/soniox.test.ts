@@ -384,11 +384,13 @@ describe('soniox provider — failures', () => {
 
   it('stops listening and closes the socket on dispose', async () => {
     const { provider, ws } = await connected();
-    provider.startListening(vi.fn(), vi.fn());
+    const onStop = vi.fn();
+    provider.startListening(vi.fn(), onStop);
 
     provider.dispose();
 
     expect(provider.isListening()).toBe(false);
+    expect(onStop).toHaveBeenCalledTimes(1);
     expect(ws.readyState).toBe(FakeWebSocket.CLOSED);
   });
 });

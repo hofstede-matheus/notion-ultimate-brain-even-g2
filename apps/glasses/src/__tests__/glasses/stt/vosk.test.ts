@@ -130,6 +130,19 @@ describe('vosk provider — result-timeout safety net', () => {
   });
 });
 
+describe('vosk provider — dispose', () => {
+  it('ends capture on dispose while listening', async () => {
+    const provider = await readyProvider();
+    const onStop = vi.fn();
+    provider.startListening(vi.fn(), onStop);
+
+    provider.dispose();
+
+    expect(provider.isListening()).toBe(false);
+    expect(onStop).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('vosk provider — model failures', () => {
   it('reports not-ready when the model cannot be loaded', async () => {
     h.createModelShouldReject = true;

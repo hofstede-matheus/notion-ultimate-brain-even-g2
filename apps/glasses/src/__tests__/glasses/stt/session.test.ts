@@ -117,7 +117,7 @@ describe('session lifecycle', () => {
     expect(session.isListening()).toBe(false);
   });
 
-  it('abort drops the session without delivering anything', () => {
+  it('abort ends capture without delivering a transcript', () => {
     const session = createListenSession(vi.fn());
     const onFinal = vi.fn();
     const onStop = vi.fn();
@@ -128,6 +128,6 @@ describe('session lifecycle', () => {
 
     expect(session.isListening()).toBe(false);
     expect(onFinal).not.toHaveBeenCalled();
-    expect(onStop).not.toHaveBeenCalled();
+    expect(onStop).toHaveBeenCalledTimes(1);
   });
 });

@@ -120,6 +120,16 @@ export function sttMock(): SttModule & SttController {
   let onFinal: ((text: string) => void) | null = null;
   let onStop: (() => void) | null = null;
 
+  /** Mirrors session.abort() — end capture, drop any pending transcript. */
+  function abortLikeProduction(): void {
+    if (listening) {
+      listening = false;
+      onStop?.();
+    }
+    onFinal = null;
+    onStop = null;
+  }
+
   const stopListening = vi.fn(() => {
     if (!listening) return;
     listening = false;
@@ -128,7 +138,12 @@ export function sttMock(): SttModule & SttController {
 
   return {
     ensureReady: vi.fn(async () => ready),
-    applyVoiceConfig: vi.fn(async () => 'ready'),
+    applyVoiceConfig: vi.fn(async (cfg) => {
+      abortLikeProduction();
+      if (cfg?.mode === 'off') return 'off';
+      if (cfg?.mode === 'cloud' && !cfg.sonioxApiKey) return 'needs-key';
+      return 'ready';
+    }),
     warmUp: vi.fn(async () => ready),
     startListening: vi.fn((final: (text: string) => void, stop?: () => void) => {
       listening = true;
@@ -138,7 +153,9 @@ export function sttMock(): SttModule & SttController {
     stopListening,
     isListening: vi.fn(() => listening),
     feedAudio: vi.fn(),
-    dispose: vi.fn(),
+    dispose: vi.fn(() => {
+      abortLikeProduction();
+    }),
     fireFinal(text: string) {
       const cb = onFinal;
       onFinal = null;

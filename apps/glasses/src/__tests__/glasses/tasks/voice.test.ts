@@ -13,6 +13,7 @@ vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { createTask } from '../../../api';
 import * as stt from '../../../stt';
+import { refreshVoiceStatus } from '../../../voice-runtime';
 import type { SttController } from '../fakes';
 import { back, mount, select } from '../harness';
 
@@ -242,7 +243,56 @@ describe('cancelling out of a recording', () => {
     h.dispatch(back());
 
     expect(stt.isListening()).toBe(false);
+    expect(h.bridge.audioControl).toHaveBeenLastCalledWith(false);
     expect(h.state.screen).toBe('tasks-menu');
+  });
+
+  it('GO_BACK after the backend was disposed still closes the mic', async () => {
+    const h = mount();
+    openAddTask(h);
+    h.dispatch(select());
+    await h.settle();
+    expect(h.state.recording).toBe('recording');
+
+    stt.dispose();
+    expect(stt.isListening()).toBe(false);
+
+    h.dispatch(back());
+
+    expect(h.bridge.audioControl).toHaveBeenLastCalledWith(false);
+    expect(h.state.screen).toBe('tasks-menu');
+  });
+});
+
+describe('voice settings changing mid-recording', () => {
+  it('refreshVoiceStatus abandons recording and closes the mic', async () => {
+    const h = mount();
+    openAddTask(h);
+    h.dispatch(select());
+    await h.settle();
+    expect(h.state.recording).toBe('recording');
+
+    await refreshVoiceStatus({ mode: 'off' });
+
+    expect(stt.applyVoiceConfig).toHaveBeenCalled();
+    expect(h.bridge.audioControl).toHaveBeenLastCalledWith(false);
+    expect(h.state.recording).toBe('idle');
+    expect(h.state.voice).toBe('off');
+  });
+
+  it('refreshVoiceStatus leaves confirm alone', async () => {
+    const h = mount();
+    openAddTask(h);
+    h.dispatch(select());
+    await h.settle();
+    fakeStt.fireStop();
+    fakeStt.fireFinal('buy milk');
+    expect(h.state.recording).toBe('confirm');
+
+    await refreshVoiceStatus({ mode: 'off' });
+
+    expect(h.state.recording).toBe('confirm');
+    expect(h.state.pendingTranscript).toBe('buy milk');
   });
 });
 

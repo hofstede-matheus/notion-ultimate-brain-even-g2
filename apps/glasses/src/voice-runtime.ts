@@ -9,6 +9,7 @@
  * boot.ts would mean web/ importing boot.ts, which already imports web/.
  */
 
+import { abandonInFlightRecording } from './glasses/modules/tasks/voice';
 import { trace } from './logging/trace';
 import { state } from './state';
 import { applyVoiceConfig, warmUp } from './stt';
@@ -31,6 +32,7 @@ export async function refreshVoiceStatus(cfg?: VoiceConfig): Promise<void> {
     if (seq !== refreshSeq) return;
     const status = await applyVoiceConfig(config);
     if (seq !== refreshSeq) return;
+    abandonInFlightRecording();
     state.voice = status;
     trace.info('VOICE', `mode=${config.mode} status=${status}`);
 

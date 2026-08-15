@@ -72,9 +72,9 @@ export async function startRecording(): Promise<void> {
       // onStop: VAD detected silence OR user tapped to stop early.
       // Called synchronously — close the mic and show "processing".
       () => {
-        if (mySession !== recordingSession) return;
         trace.info('VOICE', 'recording stop');
         void b.audioControl(false);
+        if (mySession !== recordingSession) return;
         state.recording = 'processing';
         void renderUpdate('add-task');
       },
@@ -133,10 +133,25 @@ export function discardAddTask(): void {
   void renderUpdate('add-task');
 }
 
+/**
+ * Called when the speech backend is replaced from Settings while Add Task may
+ * still be mid-capture. Drops recording/processing back to idle without
+ * touching a captured transcript (confirm and later states are left alone).
+ */
+export function abandonInFlightRecording(): void {
+  if (state.recording !== 'recording' && state.recording !== 'processing') return;
+  trace.info('VOICE', 'in-flight recording abandoned — backend replaced');
+  recordingSession++;
+  state.recording = 'idle';
+  if (state.screen === 'add-task') void renderUpdate('add-task');
+}
+
 export function cancelRecordingAndGoBack(): void {
+  const b = getBridge();
   if (stt.isListening()) {
     stt.stopListening(); // fires onStop synchronously under the CURRENT session — must run first
   }
+  if (b) void b.audioControl(false);
   recordingSession++; // invalidate — only affects the later async onFinal
   navigate('tasks-menu');
 }

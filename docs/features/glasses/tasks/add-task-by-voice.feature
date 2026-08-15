@@ -146,6 +146,12 @@ Feature: Adding a task by voice
       And show the header "TASKS"
       And nothing appears afterwards from what I had said
 
+    Scenario: Changing voice settings on the phone while recording
+      Given I am recording
+      When I change voice settings on the phone
+      Then the glasses stop listening
+      And the glasses are ready to record again
+
     Scenario: Leaving the app stops the recording
       Given I am recording
       When I leave the app

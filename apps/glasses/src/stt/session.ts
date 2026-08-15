@@ -213,11 +213,9 @@ export function createListenSession(
     },
 
     abort() {
-      listening = false;
-      clearSessionTimers();
+      endCapture();
       clearResultTimer();
       onFinal = null;
-      onStop = null;
     },
   };
 }
