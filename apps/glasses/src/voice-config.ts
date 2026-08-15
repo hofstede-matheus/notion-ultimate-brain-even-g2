@@ -16,6 +16,7 @@
 import { registerSecret } from './logging/redact';
 import { trace } from './logging/trace';
 import { getBridge } from './state';
+import { sanitizeLanguageHints } from './stt/soniox-languages';
 
 const VOICE_KEY = 'notionultimatebrain:voice';
 
@@ -40,6 +41,10 @@ export interface VoiceConfig {
   mode: VoiceMode;
   /** Only meaningful for mode 'cloud'. The user's own key, never ours. */
   sonioxApiKey?: string;
+  /** Soniox `language_hints` — empty/omitted means auto-detect. */
+  sonioxLanguageHints?: string[];
+  /** Soniox `language_hints_strict` — only sent when hints are non-empty. */
+  sonioxLanguageHintsStrict?: boolean;
 }
 
 /**
@@ -64,6 +69,13 @@ export async function loadVoiceConfig(): Promise<VoiceConfig> {
     if (parsed.sonioxApiKey) {
       cfg.sonioxApiKey = parsed.sonioxApiKey;
       registerSecret(parsed.sonioxApiKey);
+    }
+    const hints = sanitizeLanguageHints(
+      Array.isArray(parsed.sonioxLanguageHints) ? parsed.sonioxLanguageHints : undefined,
+    );
+    if (hints.length > 0) cfg.sonioxLanguageHints = hints;
+    if (parsed.sonioxLanguageHintsStrict === true && hints.length > 0) {
+      cfg.sonioxLanguageHintsStrict = true;
     }
     return cfg;
   } catch {

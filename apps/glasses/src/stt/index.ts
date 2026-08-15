@@ -46,7 +46,10 @@ export async function applyVoiceConfig(cfg: VoiceConfig): Promise<VoiceStatus> {
 
   if (cfg.mode === 'cloud') {
     if (!cfg.sonioxApiKey) return 'needs-key';
-    provider = createSonioxProvider(cfg.sonioxApiKey);
+    provider = createSonioxProvider(cfg.sonioxApiKey, {
+      languageHints: cfg.sonioxLanguageHints,
+      languageHintsStrict: cfg.sonioxLanguageHintsStrict,
+    });
     return 'ready';
   }
 

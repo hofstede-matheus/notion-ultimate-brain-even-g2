@@ -5,6 +5,7 @@
  * newer cloud/off choice has already replaced provider.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createSonioxProvider } from '../../../stt/soniox';
 
 const h = vi.hoisted(() => ({
   hasModel: vi.fn(),
@@ -153,5 +154,24 @@ describe('warmUp — captured provider', () => {
     resolveWarm();
     expect(await warm).toBe(true);
     expect(h.voskEnsureReady).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('applyVoiceConfig — cloud language hints', () => {
+  it('passes language hints to the Soniox provider', async () => {
+    const stt = await freshStt();
+    vi.mocked(createSonioxProvider).mockClear();
+
+    await stt.applyVoiceConfig({
+      mode: 'cloud',
+      sonioxApiKey: 'soniox-key-abcdefghijklmnop',
+      sonioxLanguageHints: ['en', 'nl'],
+      sonioxLanguageHintsStrict: true,
+    });
+
+    expect(createSonioxProvider).toHaveBeenCalledWith('soniox-key-abcdefghijklmnop', {
+      languageHints: ['en', 'nl'],
+      languageHintsStrict: true,
+    });
   });
 });

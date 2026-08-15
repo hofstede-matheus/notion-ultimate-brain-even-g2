@@ -119,6 +119,30 @@ Feature: Setting up voice input
       Then the field is marked invalid
       And nothing is saved
 
+    Scenario: Guessing the language by default
+      Given I chose "Cloud (Soniox)"
+      Then there is a "Language hints" field
+      And the phone says "Leave empty and Soniox guesses among 60+ languages."
+      And the phone says "Or type two-letter ISO codes separated by commas to bias toward those languages — it can still recognise others."
+
+    Scenario: Hinting a language
+      Given I chose "Cloud (Soniox)"
+      When I type "en, nl" into "Language hints"
+      And I tap "Save"
+      Then voice input works on the glasses without restarting the app
+
+    Scenario: Restricting to hinted languages
+      Given I chose "Cloud (Soniox)"
+      When I type "en" into "Language hints"
+      And I check "Restrict to these languages"
+      Then the phone says "When checked, Soniox strongly prefers only the codes above. Works best with a single language. Ignored when the field is empty."
+
+    Scenario: An unknown language code
+      Given I chose "Cloud (Soniox)"
+      When I type "xx" into "Language hints"
+      Then the field is marked invalid
+      And the phone says "Unknown code: xx. Use two-letter codes like en or nl."
+
   Rule: The key is treated as a secret
 
     Scenario: It never reaches the debug log

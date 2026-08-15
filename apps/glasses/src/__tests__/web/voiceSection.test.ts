@@ -4,11 +4,13 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { parseLanguageHints } from '../../stt/soniox-languages';
 import {
   downloadPercent,
   formatProgress,
   isPlausibleApiKey,
   isVoiceReady,
+  languageHintsError,
   VOICE_MODES,
   voiceConfigFromDraft,
 } from '../../web/screens/SettingsForm/voiceSection';
@@ -68,34 +70,88 @@ describe('isVoiceReady', () => {
   });
 });
 
+describe('parseLanguageHints', () => {
+  it('normalises comma-separated codes to unique lowercase', () => {
+    expect(parseLanguageHints('en, NL  es')).toEqual({ codes: ['en', 'nl', 'es'], invalid: [] });
+  });
+
+  it('reports unknown tokens', () => {
+    expect(parseLanguageHints('en, xx')).toEqual({ codes: ['en'], invalid: ['xx'] });
+  });
+
+  it('returns empty for blank input', () => {
+    expect(parseLanguageHints('   ')).toEqual({ codes: [], invalid: [] });
+  });
+});
+
+describe('languageHintsError', () => {
+  it('is null when all tokens are valid', () => {
+    expect(languageHintsError('en, nl')).toBeNull();
+  });
+
+  it('describes unknown codes', () => {
+    expect(languageHintsError('xx')).toMatch(/Unknown code: xx/);
+  });
+});
+
 describe('voiceConfigFromDraft', () => {
   it('always includes the chosen mode', () => {
-    expect(voiceConfigFromDraft('off', '')).toEqual({ mode: 'off' });
-    expect(voiceConfigFromDraft('on-device', '')).toEqual({ mode: 'on-device' });
-    expect(voiceConfigFromDraft('cloud', '')).toEqual({ mode: 'cloud' });
+    expect(voiceConfigFromDraft('off', '', '', false)).toEqual({ mode: 'off' });
+    expect(voiceConfigFromDraft('on-device', '', '', false)).toEqual({ mode: 'on-device' });
+    expect(voiceConfigFromDraft('cloud', '', '', false)).toEqual({ mode: 'cloud' });
   });
 
   it('includes a plausible key for any mode so switching off does not discard it', () => {
     const key = 'soniox-key-abcdefghijklmnop';
-    expect(voiceConfigFromDraft('off', key)).toEqual({ mode: 'off', sonioxApiKey: key });
-    expect(voiceConfigFromDraft('on-device', key)).toEqual({
+    expect(voiceConfigFromDraft('off', key, '', false)).toEqual({ mode: 'off', sonioxApiKey: key });
+    expect(voiceConfigFromDraft('on-device', key, '', false)).toEqual({
       mode: 'on-device',
       sonioxApiKey: key,
     });
-    expect(voiceConfigFromDraft('cloud', key)).toEqual({ mode: 'cloud', sonioxApiKey: key });
+    expect(voiceConfigFromDraft('cloud', key, '', false)).toEqual({
+      mode: 'cloud',
+      sonioxApiKey: key,
+    });
   });
 
   it('omits an incomplete key, clearing a previously stored one on Save', () => {
-    expect(voiceConfigFromDraft('cloud', 'abc')).toEqual({ mode: 'cloud' });
-    expect(voiceConfigFromDraft('cloud', '   ')).toEqual({ mode: 'cloud' });
+    expect(voiceConfigFromDraft('cloud', 'abc', '', false)).toEqual({ mode: 'cloud' });
+    expect(voiceConfigFromDraft('cloud', '   ', '', false)).toEqual({ mode: 'cloud' });
   });
 
   it('trims whitespace from a plausible key', () => {
     const key = 'soniox-key-abcdefghijklmnop';
-    expect(voiceConfigFromDraft('cloud', `  ${key}  `)).toEqual({
+    expect(voiceConfigFromDraft('cloud', `  ${key}  `, '', false)).toEqual({
       mode: 'cloud',
       sonioxApiKey: key,
     });
+  });
+
+  it('includes language hints when valid codes are present', () => {
+    expect(voiceConfigFromDraft('cloud', '', 'en, nl', false)).toEqual({
+      mode: 'cloud',
+      sonioxLanguageHints: ['en', 'nl'],
+    });
+  });
+
+  it('omits hints when the field is empty', () => {
+    expect(voiceConfigFromDraft('cloud', '', '', false)).toEqual({ mode: 'cloud' });
+  });
+
+  it('drops invalid codes on save', () => {
+    expect(voiceConfigFromDraft('cloud', '', 'en, xx', false)).toEqual({
+      mode: 'cloud',
+      sonioxLanguageHints: ['en'],
+    });
+  });
+
+  it('includes strict only when hints are non-empty', () => {
+    expect(voiceConfigFromDraft('cloud', '', 'en', true)).toEqual({
+      mode: 'cloud',
+      sonioxLanguageHints: ['en'],
+      sonioxLanguageHintsStrict: true,
+    });
+    expect(voiceConfigFromDraft('cloud', '', '', true)).toEqual({ mode: 'cloud' });
   });
 });
 

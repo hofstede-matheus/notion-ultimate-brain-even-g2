@@ -12,6 +12,7 @@ import {
   downloadPercent,
   formatProgress,
   isPlausibleApiKey,
+  languageHintsError,
   type ModelState,
   VOICE_MODES,
 } from '../voiceSection';
@@ -38,8 +39,12 @@ const KEY_CHECK_TONE: Record<KeyCheckState, string> = {
 export interface VoiceSectionProps {
   mode: VoiceMode;
   apiKey: string;
+  languageHints: string;
+  languageHintsStrict: boolean;
   onModeChange: (mode: VoiceMode) => void;
   onApiKeyChange: (apiKey: string) => void;
+  onLanguageHintsChange: (hints: string) => void;
+  onLanguageHintsStrictChange: (strict: boolean) => void;
 }
 
 /**
@@ -50,7 +55,16 @@ export interface VoiceSectionProps {
  * Download, remove, and test-key are immediate actions that do not change the
  * stored preference.
  */
-export function VoiceSection({ mode, apiKey, onModeChange, onApiKeyChange }: VoiceSectionProps) {
+export function VoiceSection({
+  mode,
+  apiKey,
+  languageHints,
+  languageHintsStrict,
+  onModeChange,
+  onApiKeyChange,
+  onLanguageHintsChange,
+  onLanguageHintsStrictChange,
+}: VoiceSectionProps) {
   const [modelState, setModelState] = useState<ModelState>('checking');
   const [received, setReceived] = useState(0);
   const [total, setTotal] = useState(0);
@@ -127,6 +141,7 @@ export function VoiceSection({ mode, apiKey, onModeChange, onApiKeyChange }: Voi
   }
 
   const percent = downloadPercent(received, total);
+  const hintsError = languageHintsError(languageHints);
 
   return (
     <div>
@@ -242,6 +257,39 @@ export function VoiceSection({ mode, apiKey, onModeChange, onApiKeyChange }: Voi
               Test key
             </Button>
           </div>
+
+          <label
+            htmlFor="settings-soniox-language-hints"
+            className="text-[13px] tracking-[-0.13px] text-text-dim mb-1 block mt-3"
+          >
+            Language hints
+          </label>
+          <Input
+            id="settings-soniox-language-hints"
+            autoComplete="off"
+            value={languageHints}
+            onChange={(e) => onLanguageHintsChange(e.target.value)}
+            placeholder="en, nl"
+            error={hintsError !== null}
+          />
+          <p className="text-[12px] text-text-dim mt-1">
+            Leave empty and Soniox guesses among 60+ languages. Or type two-letter ISO codes
+            separated by commas to bias toward those languages — it can still recognise others.
+          </p>
+          {hintsError && <p className="text-[12px] text-negative mt-1">{hintsError}</p>}
+
+          <label className="flex items-center gap-2 text-[13px] text-text-dim mt-2">
+            <input
+              type="checkbox"
+              checked={languageHintsStrict}
+              onChange={(e) => onLanguageHintsStrictChange(e.target.checked)}
+            />
+            Restrict to these languages
+          </label>
+          <p className="text-[12px] text-text-dim mt-1">
+            When checked, Soniox strongly prefers only the codes above. Works best with a single
+            language. Ignored when the field is empty.
+          </p>
         </div>
       )}
     </div>

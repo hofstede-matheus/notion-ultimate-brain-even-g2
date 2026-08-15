@@ -70,8 +70,11 @@ afterEach(() => {
 });
 
 /** Connect a provider and return it alongside its socket. */
-async function connected(apiKey = 'soniox-test-key') {
-  const provider = createSonioxProvider(apiKey);
+async function connected(
+  apiKey = 'soniox-test-key',
+  options?: { languageHints?: string[]; languageHintsStrict?: boolean },
+) {
+  const provider = createSonioxProvider(apiKey, options);
   const ready = provider.ensureReady();
   const ws = FakeWebSocket.last;
   if (!ws) throw new Error('no socket was created');
@@ -103,6 +106,25 @@ describe('soniox provider — connection', () => {
     });
     // Endpoint detection stays off — the local VAD owns end-of-speech.
     expect(config.enable_endpoint_detection).toBeUndefined();
+    expect(config.language_hints).toBeUndefined();
+    expect(config.language_hints_strict).toBeUndefined();
+  });
+
+  it('sends language hints and strict when configured', async () => {
+    const { ws } = await connected('soniox-test-key', {
+      languageHints: ['en', 'nl'],
+      languageHintsStrict: true,
+    });
+    const config = JSON.parse(ws.textFrames[0] ?? '{}');
+    expect(config.language_hints).toEqual(['en', 'nl']);
+    expect(config.language_hints_strict).toBe(true);
+  });
+
+  it('omits strict when hints are not restricted', async () => {
+    const { ws } = await connected('soniox-test-key', { languageHints: ['en'] });
+    const config = JSON.parse(ws.textFrames[0] ?? '{}');
+    expect(config.language_hints).toEqual(['en']);
+    expect(config.language_hints_strict).toBeUndefined();
   });
 
   it('uses the current real-time model, not the retired v4 alias', async () => {

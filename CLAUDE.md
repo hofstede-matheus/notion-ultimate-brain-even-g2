@@ -167,6 +167,8 @@ version-specific, see `glasses/constants.ts`) with `pnpm --filter
     honest: `sentBytes` / `buffered` / `tokens` are what separate "nothing left the
     device" from "server said nothing", and the VAD reads each frame *before* the send,
     so recording looks healthy either way.
+  - Optional `language_hints` come from Settings (comma-separated ISO codes); empty means
+    auto-detect. The "Restrict to these languages" checkbox maps to `language_hints_strict`.
   - The `Test key` button in Settings (`testSonioxKey`) runs a whole miniature session —
     config, audio, terminator, `finished` — rather than just a handshake, precisely so it
     exercises the parts above.

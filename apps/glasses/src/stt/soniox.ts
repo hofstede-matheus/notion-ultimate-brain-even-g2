@@ -75,19 +75,32 @@ const SEND_CHUNK_BYTES = (SAMPLE_RATE / 1000) * 2 * 100; // 100 ms
  */
 const CLOUD_RESULT_TIMEOUT_MS = 5000;
 
+export interface SonioxOptions {
+  languageHints?: string[];
+  languageHintsStrict?: boolean;
+}
+
 /**
  * The opening message of every stream. `sample_rate` and `num_channels` are
- * required because the format is raw PCM; `language_hints` is deliberately
- * omitted so the model auto-detects across its 60+ languages, and
- * `enable_endpoint_detection` because the local VAD decides when speech ends.
+ * required because the format is raw PCM. `language_hints` is omitted when
+ * empty so the model auto-detects across its 60+ languages;
+ * `enable_endpoint_detection` stays off because the local VAD decides when
+ * speech ends.
  */
-function configMessage(apiKey: string): string {
+function configMessage(apiKey: string, options?: SonioxOptions): string {
+  const hints = options?.languageHints?.filter(Boolean) ?? [];
   return JSON.stringify({
     api_key: apiKey,
     model: SONIOX_MODEL,
     audio_format: 'pcm_s16le',
     sample_rate: SAMPLE_RATE,
     num_channels: 1,
+    ...(hints.length > 0
+      ? {
+          language_hints: hints,
+          ...(options?.languageHintsStrict ? { language_hints_strict: true } : {}),
+        }
+      : {}),
   });
 }
 
@@ -159,7 +172,7 @@ export function testSonioxKey(apiKey: string, timeoutMs = 8000): Promise<SonioxK
   });
 }
 
-export function createSonioxProvider(apiKey: string): SttProvider {
+export function createSonioxProvider(apiKey: string, options?: SonioxOptions): SttProvider {
   let ws: WebSocket | null = null;
   let finalText = '';
   /** Suppresses handlers while we tear a socket down on purpose. */
@@ -341,7 +354,7 @@ export function createSonioxProvider(apiKey: string): SttProvider {
         socket.binaryType = 'arraybuffer';
 
         socket.onopen = () => {
-          socket.send(configMessage(apiKey));
+          socket.send(configMessage(apiKey, options));
           trace.info('VOICE', 'soniox connected');
           settle(true);
         };

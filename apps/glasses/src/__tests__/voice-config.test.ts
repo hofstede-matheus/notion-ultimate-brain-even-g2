@@ -51,12 +51,53 @@ describe('loadVoiceConfig', () => {
     const bridge = fakeBridge();
     mocks.bridge = bridge;
 
-    await saveVoiceConfig({ mode: 'cloud', sonioxApiKey: 'sk-abcdefghijklmnopqrstuvwxyz' });
+    await saveVoiceConfig({
+      mode: 'cloud',
+      sonioxApiKey: 'sk-abcdefghijklmnopqrstuvwxyz',
+      sonioxLanguageHints: ['en', 'nl'],
+      sonioxLanguageHintsStrict: true,
+    });
 
     expect(await loadVoiceConfig()).toEqual({
       mode: 'cloud',
       sonioxApiKey: 'sk-abcdefghijklmnopqrstuvwxyz',
+      sonioxLanguageHints: ['en', 'nl'],
+      sonioxLanguageHintsStrict: true,
     });
+  });
+
+  it('drops unknown language codes from stored config', async () => {
+    const bridge = fakeBridge();
+    bridge.store.set(
+      'notionultimatebrain:voice',
+      JSON.stringify({
+        mode: 'cloud',
+        sonioxLanguageHints: ['en', 'not-a-language', 'xx'],
+        sonioxLanguageHintsStrict: true,
+      }),
+    );
+    mocks.bridge = bridge;
+
+    expect(await loadVoiceConfig()).toEqual({
+      mode: 'cloud',
+      sonioxLanguageHints: ['en'],
+      sonioxLanguageHintsStrict: true,
+    });
+  });
+
+  it('ignores strict when no valid hints remain', async () => {
+    const bridge = fakeBridge();
+    bridge.store.set(
+      'notionultimatebrain:voice',
+      JSON.stringify({
+        mode: 'cloud',
+        sonioxLanguageHints: ['xx'],
+        sonioxLanguageHintsStrict: true,
+      }),
+    );
+    mocks.bridge = bridge;
+
+    expect(await loadVoiceConfig()).toEqual({ mode: 'cloud' });
   });
 
   it('stores under its own key, never alongside the Notion tenant config', async () => {

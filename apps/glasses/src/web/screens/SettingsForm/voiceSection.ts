@@ -6,6 +6,7 @@
  * so anything that has to be tested cannot live in a component file.
  */
 
+import { parseLanguageHints } from '../../../stt/soniox-languages';
 import type { VoiceConfig, VoiceMode } from '../../../voice-config';
 
 /** State of the on-device model panel. */
@@ -42,10 +43,29 @@ export function isPlausibleApiKey(key: string): boolean {
 }
 
 /** Build the config to write when the settings form is saved. */
-export function voiceConfigFromDraft(mode: VoiceMode, apiKey: string): VoiceConfig {
+export function voiceConfigFromDraft(
+  mode: VoiceMode,
+  apiKey: string,
+  hintsRaw: string,
+  strict: boolean,
+): VoiceConfig {
   const cfg: VoiceConfig = { mode };
   if (isPlausibleApiKey(apiKey)) cfg.sonioxApiKey = apiKey.trim();
+  const { codes } = parseLanguageHints(hintsRaw);
+  if (codes.length > 0) {
+    cfg.sonioxLanguageHints = codes;
+    if (strict) cfg.sonioxLanguageHintsStrict = true;
+  }
   return cfg;
+}
+
+/** Error message for invalid language-hint tokens, or null when the field is fine. */
+export function languageHintsError(raw: string): string | null {
+  const { invalid } = parseLanguageHints(raw);
+  if (invalid.length === 0) return null;
+  const sample = invalid.slice(0, 3).join(', ');
+  const suffix = invalid.length > 3 ? '…' : '';
+  return `Unknown code: ${sample}${suffix}. Use two-letter codes like en or nl.`;
 }
 
 /** Whether the section's current selection is complete enough to record with. */
