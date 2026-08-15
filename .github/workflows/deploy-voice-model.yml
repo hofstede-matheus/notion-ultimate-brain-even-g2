@@ -1,0 +1,50 @@
+name: Deploy voice model
+
+# Manual only. The model is ~41 MB and changes almost never (a new Vosk release,
+# or switching the published language), so there is no push trigger — a run
+# re-downloads the model from alphacephei and republishes it.
+#
+# It deploys the `notion-ub-assets` Hosting site, NOT `notion-ub-landing`.
+# A Firebase Hosting deploy replaces the whole site, so keeping the model on its
+# own site is what stops a landing-page deploy from wiping it.
+on:
+  workflow_dispatch:
+    inputs:
+      language:
+        description: 'Vosk language key (see scripts/fetch-vosk-model.cjs --list)'
+        required: false
+        default: 'en'
+
+concurrency:
+  group: deploy-voice-model
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Fetch and repackage the Vosk model
+        run: node apps/glasses/scripts/fetch-vosk-model.cjs "${{ inputs.language }}"
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HOFSDEV }}
+          channelId: live
+          target: notion-ub-assets
+          projectId: hofsdev

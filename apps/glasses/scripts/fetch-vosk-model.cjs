@@ -1,28 +1,29 @@
 /**
  * Fetch + repackage the offline Vosk speech model for voice task entry.
  *
+ * This is a *publishing* step, not a build step. The model is no longer packed
+ * into the .ehpk (it was 39 MB of a 45 MB bundle, against a ~10 MB practical
+ * cap); it is hosted and downloaded on demand from the app's Settings screen —
+ * see ../src/voice-model.ts and .github/workflows/deploy-voice-model.yml.
+ *
  * vosk-browser loads a gzipped tar of a `model/` folder. Vosk's small models
  * ship as a zip with a versioned top folder, so we download it, rename the
- * top folder to `model/`, and write public/vosk/model.tar.gz.
- *
- * Only one model is baked into a build (the runtime always fetches it from
- * the fixed path /vosk/model.tar.gz — see glasses/constants.ts VOSK_MODEL_URL),
- * so this picks one language per run.
+ * top folder to `model/`, and write dist-model/vosk/model.tar.gz — the layout
+ * the `notion-ub-assets` Firebase Hosting site serves, so the deployed path
+ * matches VOICE_MODEL_URL in ../src/glasses/constants.ts.
  *
  * Adapted directly from EvenChess scripts/fetch-vosk-model.cjs.
  *
- * Run once before building (defaults to English):
- *   npm run fetch:voice-model
+ * Run before deploying the model (defaults to English):
+ *   pnpm --filter @notion-ub/glasses fetch:voice-model
  *
- * Build with a different language:
+ * Publish a different language:
  *   node scripts/fetch-vosk-model.cjs fr        # key from LANGUAGES below
  *   node scripts/fetch-vosk-model.cjs --list     # print supported keys
  *   node scripts/fetch-vosk-model.cjs https://…  # any Vosk model .zip URL
  *
- * The model (~30-100 MB depending on language) is NOT committed to git. Vite
- * copies public/ into dist/, so it gets packed into the .ehpk and served
- * locally — fully offline at runtime. If the file is absent the app shows an
- * error on the Add Task screen.
+ * The model (~30-100 MB depending on language) is NOT committed to git. Only
+ * `en` is published today; the client fetches a single fixed URL.
  */
 const fs = require('node:fs');
 const os = require('node:os');
@@ -89,8 +90,9 @@ const LANGUAGES = {
   },
 };
 
-const OUT_DIR = path.join(__dirname, '..', 'public', 'vosk');
+const OUT_DIR = path.join(__dirname, '..', 'dist-model', 'vosk');
 const OUT_FILE = path.join(OUT_DIR, 'model.tar.gz');
+const OUT_LABEL = 'dist-model/vosk/model.tar.gz';
 
 function printLanguages() {
   console.log('[fetch-vosk-model] supported language keys:');
@@ -123,7 +125,7 @@ if (!arg) {
 }
 
 if (fs.existsSync(OUT_FILE)) {
-  console.log('[fetch-vosk-model] public/vosk/model.tar.gz already exists — skipping.');
+  console.log(`[fetch-vosk-model] ${OUT_LABEL} already exists — skipping.`);
   console.log('[fetch-vosk-model] to switch languages, delete that file first and re-run.');
   process.exit(0);
 }
@@ -172,14 +174,15 @@ function download(url, dest, redirects = 0) {
     fs.renameSync(path.join(tmp, top), path.join(tmp, 'model'));
 
     fs.mkdirSync(OUT_DIR, { recursive: true });
-    console.log('[fetch-vosk-model] packaging public/vosk/model.tar.gz…');
+    console.log(`[fetch-vosk-model] packaging ${OUT_LABEL}…`);
     execFileSync('tar', ['-czf', OUT_FILE, '-C', tmp, 'model'], { stdio: 'inherit' });
 
     const mb = (fs.statSync(OUT_FILE).size / 1e6).toFixed(1);
-    console.log(`[fetch-vosk-model] done — ${mb} MB written to public/vosk/model.tar.gz`);
+    console.log(`[fetch-vosk-model] done — ${mb} MB written to ${OUT_LABEL}`);
+    console.log('[fetch-vosk-model] deploy it with the "Deploy voice model" workflow.');
   } catch (err) {
     console.error('[fetch-vosk-model] FAILED:', err.message);
-    console.error('Add Task voice input will not work until this succeeds.');
+    console.error('The offline voice model will not be downloadable until this succeeds.');
     process.exitCode = 1;
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
