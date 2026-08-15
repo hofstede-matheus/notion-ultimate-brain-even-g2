@@ -108,6 +108,22 @@ describe('session lifecycle', () => {
     expect(onFinal).toHaveBeenCalledWith('');
   });
 
+  it('does not let a previous result timer destroy the next recording', () => {
+    const session = createListenSession(vi.fn());
+    const first = vi.fn();
+    const second = vi.fn();
+
+    session.start(first, vi.fn());
+    session.stop(); // arms the safety net; no deliver()
+
+    session.start(second, vi.fn());
+    vi.advanceTimersByTime(3000); // past RESULT_TIMEOUT_MS
+
+    expect(first).not.toHaveBeenCalled();
+    session.deliver('buy milk');
+    expect(second).toHaveBeenCalledWith('buy milk');
+  });
+
   it('ignores frames once the session has ended', () => {
     const session = createListenSession(vi.fn());
     session.start(vi.fn(), vi.fn());

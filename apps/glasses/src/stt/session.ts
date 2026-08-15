@@ -154,6 +154,10 @@ export function createListenSession(
   return {
     start(final, stop) {
       if (listening) return;
+      // A previous stop() may still be waiting on a backend that will never
+      // answer — e.g. Soniox's socket was torn down in ensureReady() before
+      // `finished` could cancel the timer.
+      clearResultTimer();
       onFinal = final;
       onStop = stop ?? null;
       listening = true;
@@ -190,8 +194,11 @@ export function createListenSession(
       const saved = onFinal;
       resultTimer = setTimeout(() => {
         resultTimer = null;
+        // Only act if this session's callback is still current — a new
+        // recording may have replaced it since stop() armed the timer.
+        if (onFinal !== saved) return;
         onFinal = null;
-        saved?.(opts.onTimeout?.() ?? '');
+        saved(opts.onTimeout?.() ?? '');
       }, resultTimeoutMs);
     },
 
