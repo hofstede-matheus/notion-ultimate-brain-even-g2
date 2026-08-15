@@ -59,6 +59,13 @@ Feature: Setting up voice input
       Then the download stops
       And the "Download (41 MB)" button comes back
 
+    Scenario: Switching mode while a download is running
+      Given the download is running
+      When I choose "Cloud"
+      And the download completes
+      Then "Cloud" is still selected
+      And on-device voice is not turned back on
+
     Scenario: It failed
       Given the download failed
       Then the phone shows why

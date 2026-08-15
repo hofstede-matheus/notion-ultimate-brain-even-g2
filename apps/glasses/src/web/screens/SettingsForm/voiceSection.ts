@@ -6,7 +6,7 @@
  * so anything that has to be tested cannot live in a component file.
  */
 
-import type { VoiceMode } from '../../../voice-config';
+import type { VoiceConfig, VoiceMode } from '../../../voice-config';
 
 /** State of the on-device model panel. */
 export type ModelState = 'checking' | 'absent' | 'downloading' | 'ready' | 'failed';
@@ -39,6 +39,12 @@ export function formatProgress(received: number, total: number): string {
  */
 export function isPlausibleApiKey(key: string): boolean {
   return key.trim().length >= 20;
+}
+
+/** After a download, only persist on-device if that is still the selection. */
+export function voiceConfigAfterDownload(mode: VoiceMode, apiKey: string): VoiceConfig | null {
+  if (mode !== 'on-device') return null;
+  return { mode: 'on-device', ...(apiKey ? { sonioxApiKey: apiKey } : {}) };
 }
 
 /** Whether the section's current selection is complete enough to record with. */

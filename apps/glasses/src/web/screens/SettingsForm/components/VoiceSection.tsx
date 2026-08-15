@@ -18,6 +18,7 @@ import {
   formatProgress,
   isPlausibleApiKey,
   type ModelState,
+  voiceConfigAfterDownload,
   VOICE_MODES,
 } from '../voiceSection';
 
@@ -57,6 +58,10 @@ export function VoiceSection() {
   const [error, setError] = useState<string | null>(null);
   const [keyCheck, setKeyCheck] = useState<KeyCheckState>('idle');
   const abortRef = useRef<AbortController | null>(null);
+  const modeRef = useRef(mode);
+  const apiKeyRef = useRef(apiKey);
+  modeRef.current = mode;
+  apiKeyRef.current = apiKey;
 
   // Load the stored config once, then check whether the model is present.
   useEffect(() => {
@@ -116,7 +121,8 @@ export function VoiceSection() {
         setTotal(size);
       }, controller.signal);
       setModelState('ready');
-      await persist({ mode: 'on-device' });
+      const cfg = voiceConfigAfterDownload(modeRef.current, apiKeyRef.current);
+      if (cfg) await persist(cfg);
     } catch (e) {
       if (controller.signal.aborted) {
         setModelState('absent');

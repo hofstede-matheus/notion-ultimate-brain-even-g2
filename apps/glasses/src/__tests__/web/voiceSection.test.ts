@@ -9,6 +9,7 @@ import {
   formatProgress,
   isPlausibleApiKey,
   isVoiceReady,
+  voiceConfigAfterDownload,
   VOICE_MODES,
 } from '../../web/screens/SettingsForm/voiceSection';
 
@@ -64,6 +65,28 @@ describe('isVoiceReady', () => {
   it('needs a key for cloud, and ignores the model entirely', () => {
     expect(isVoiceReady('cloud', 'absent', undefined)).toBe(false);
     expect(isVoiceReady('cloud', 'absent', 'soniox-key-abcdefghijklmnop')).toBe(true);
+  });
+});
+
+describe('voiceConfigAfterDownload', () => {
+  it('returns null when the user switched to off', () => {
+    expect(voiceConfigAfterDownload('off', '')).toBeNull();
+  });
+
+  it('returns null when the user switched to cloud', () => {
+    expect(voiceConfigAfterDownload('cloud', 'soniox-key-abcdefghijklmnop')).toBeNull();
+  });
+
+  it('persists on-device when that mode is still selected', () => {
+    expect(voiceConfigAfterDownload('on-device', '')).toEqual({ mode: 'on-device' });
+  });
+
+  it('preserves a saved Soniox key when still on-device', () => {
+    const key = 'soniox-key-abcdefghijklmnop';
+    expect(voiceConfigAfterDownload('on-device', key)).toEqual({
+      mode: 'on-device',
+      sonioxApiKey: key,
+    });
   });
 });
 
