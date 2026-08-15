@@ -102,5 +102,6 @@ describe('voiceConfigFromDraft', () => {
 describe('VOICE_MODES', () => {
   it('offers exactly the three exclusive modes, off first', () => {
     expect(VOICE_MODES.map((m) => m.value)).toEqual(['off', 'on-device', 'cloud']);
+    expect(VOICE_MODES.map((m) => m.label)).toEqual(['Off', 'On-device', 'Cloud (Soniox)']);
   });
 });

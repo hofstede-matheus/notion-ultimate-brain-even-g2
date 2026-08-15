@@ -24,7 +24,7 @@ Feature: Setting up voice input
       And the phone shows "Add Task by voice is disabled. Pick a mode to enable it."
 
     Scenario: The three choices
-      Then I can choose between "Off", "On-device" and "Cloud"
+      Then I can choose between "Off", "On-device" and "Cloud (Soniox)"
 
     Scenario: The choice sticks
       When I choose "On-device"
@@ -70,9 +70,9 @@ Feature: Setting up voice input
 
     Scenario: Switching mode while a download is running
       Given the download is running
-      When I choose "Cloud"
+      When I choose "Cloud (Soniox)"
       And the download completes
-      Then "Cloud" is still selected
+      Then "Cloud (Soniox)" is still selected
       And on-device voice is not turned back on
 
     Scenario: It failed
@@ -95,25 +95,26 @@ Feature: Setting up voice input
   Rule: Cloud mode
 
     Scenario: Being told where the audio goes, before typing anything
-      When I choose "Cloud"
+      When I choose "Cloud (Soniox)"
       Then the phone shows "Audio is sent to Soniox for transcription."
-      And it says there is no download and that it understands 60+ languages
-      And it says I pay Soniox directly, about $0.12 per hour of recording
+      And it says it uses Soniox STT, understands 60+ languages, and needs a connection and a
+        Soniox API key
+      And it says Soniox bills about $0.12 per hour of recording
 
     Scenario: Entering the key
-      Given I chose "Cloud"
+      Given I chose "Cloud (Soniox)"
       Then there is a "Soniox API key" field
       And what I type into it is masked
       And the phone says it is stored on this device only
 
     Scenario: The key takes effect when Save succeeds
-      Given I chose "Cloud"
+      Given I chose "Cloud (Soniox)"
       When I paste a valid key
       And I tap "Save"
       Then voice input works on the glasses without restarting the app
 
     Scenario: An obviously incomplete key
-      Given I chose "Cloud"
+      Given I chose "Cloud (Soniox)"
       When I type a few characters
       Then the field is marked invalid
       And nothing is saved

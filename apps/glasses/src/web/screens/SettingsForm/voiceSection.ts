@@ -14,7 +14,7 @@ export type ModelState = 'checking' | 'absent' | 'downloading' | 'ready' | 'fail
 export const VOICE_MODES: { value: VoiceMode; label: string }[] = [
   { value: 'off', label: 'Off' },
   { value: 'on-device', label: 'On-device' },
-  { value: 'cloud', label: 'Cloud' },
+  { value: 'cloud', label: 'Cloud (Soniox)' },
 ];
 
 /**

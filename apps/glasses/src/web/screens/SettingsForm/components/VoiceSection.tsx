@@ -206,8 +206,8 @@ export function VoiceSection({ mode, apiKey, onModeChange, onApiKeyChange }: Voi
             Audio is sent to Soniox for transcription.
           </p>
           <p className="text-[12px] text-text-dim mt-1">
-            No download, and it understands 60+ languages. You pay Soniox directly — about $0.12 per
-            hour of recording, so well under a cent per task.
+            Uses Soniox STT. Understands 60+ languages. Needs a connection and your own Soniox API
+            key. Soniox bills about $0.12 per hour of recording.
           </p>
           <label
             htmlFor="settings-soniox-key"
