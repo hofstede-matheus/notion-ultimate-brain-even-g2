@@ -4,9 +4,10 @@
  * read.
  *
  * Its own module rather than part of boot.ts because the Settings screen calls
- * it too — after a download finishes, a key is saved, or the mode changes, the
- * new backend has to take effect without restarting the app. Putting it in
- * boot.ts would mean web/ importing boot.ts, which already imports web/.
+ * it too — after Save, or after a model download/remove when on-device is
+ * already the stored mode, the new backend has to take effect without
+ * restarting the app. Putting it in boot.ts would mean web/ importing
+ * boot.ts, which already imports web/.
  */
 
 import { abandonInFlightRecording } from './glasses/modules/tasks/voice';

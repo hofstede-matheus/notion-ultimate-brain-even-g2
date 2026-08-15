@@ -1,16 +1,11 @@
 import { Button } from 'even-toolkit/web/button';
 import { Input } from 'even-toolkit/web/input';
 import { Progress } from 'even-toolkit/web/progress';
-import { SegmentedControl } from 'even-toolkit/web/segmented-control';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Select } from 'even-toolkit/web/select';
+import { useEffect, useRef, useState } from 'react';
 import { trace } from '../../../../logging/trace';
 import { type SonioxKeyCheck, testSonioxKey } from '../../../../stt/soniox';
-import {
-  loadVoiceConfig,
-  saveVoiceConfig,
-  type VoiceConfig,
-  type VoiceMode,
-} from '../../../../voice-config';
+import type { VoiceMode } from '../../../../voice-config';
 import { deleteModel, downloadModel, hasModel, MODEL_SIZE_MB } from '../../../../voice-model';
 import { refreshVoiceStatus } from '../../../../voice-runtime';
 import {
@@ -18,7 +13,6 @@ import {
   formatProgress,
   isPlausibleApiKey,
   type ModelState,
-  voiceConfigAfterDownload,
   VOICE_MODES,
 } from '../voiceSection';
 
@@ -41,36 +35,33 @@ const KEY_CHECK_TONE: Record<KeyCheckState, string> = {
   unreachable: 'text-accent-warning',
 };
 
+export interface VoiceSectionProps {
+  mode: VoiceMode;
+  apiKey: string;
+  onModeChange: (mode: VoiceMode) => void;
+  onApiKeyChange: (apiKey: string) => void;
+}
+
 /**
  * Picks the speech backend for Add Task, and manages whichever one is chosen:
  * the one-time model download for on-device, or the API key for cloud.
  *
- * Lives outside the settings <form> and saves on its own, rather than waiting
- * for the form's Save — a download is long-running and a half-finished one
- * shouldn't be tied to submitting Notion credentials.
+ * Mode and key are draft fields owned by the parent form and saved with Save.
+ * Download, remove, and test-key are immediate actions that do not change the
+ * stored preference.
  */
-export function VoiceSection() {
-  const [mode, setMode] = useState<VoiceMode>('off');
-  const [apiKey, setApiKey] = useState('');
+export function VoiceSection({ mode, apiKey, onModeChange, onApiKeyChange }: VoiceSectionProps) {
   const [modelState, setModelState] = useState<ModelState>('checking');
   const [received, setReceived] = useState(0);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [keyCheck, setKeyCheck] = useState<KeyCheckState>('idle');
   const abortRef = useRef<AbortController | null>(null);
-  const modeRef = useRef(mode);
-  const apiKeyRef = useRef(apiKey);
-  modeRef.current = mode;
-  apiKeyRef.current = apiKey;
 
-  // Load the stored config once, then check whether the model is present.
+  // Check whether the on-device model is present whenever the section mounts.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const cfg = await loadVoiceConfig();
-      if (cancelled) return;
-      setMode(cfg.mode);
-      setApiKey(cfg.sonioxApiKey ?? '');
       const present = await hasModel();
       if (cancelled) return;
       setModelState(present ? 'ready' : 'absent');
@@ -83,24 +74,15 @@ export function VoiceSection() {
   // Abort an in-flight download if the section unmounts mid-transfer.
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const persist = useCallback(async (cfg: VoiceConfig) => {
-    await saveVoiceConfig(cfg);
-    // Take effect immediately — no app restart to start dictating.
-    await refreshVoiceStatus(cfg);
-  }, []);
-
   function handleModeChange(next: string): void {
-    const nextMode = next as VoiceMode;
-    setMode(nextMode);
+    onModeChange(next as VoiceMode);
     setError(null);
-    void persist({ mode: nextMode, ...(apiKey ? { sonioxApiKey: apiKey } : {}) });
   }
 
   function handleKeyChange(next: string): void {
-    setApiKey(next);
+    onApiKeyChange(next);
     setError(null);
     setKeyCheck('idle'); // a previous verdict says nothing about a different key
-    if (isPlausibleApiKey(next)) void persist({ mode: 'cloud', sonioxApiKey: next.trim() });
   }
 
   async function handleTestKey(): Promise<void> {
@@ -121,8 +103,9 @@ export function VoiceSection() {
         setTotal(size);
       }, controller.signal);
       setModelState('ready');
-      const cfg = voiceConfigAfterDownload(modeRef.current, apiKeyRef.current);
-      if (cfg) await persist(cfg);
+      // If on-device is already the stored mode, the glasses can use the model
+      // without waiting for another Save.
+      await refreshVoiceStatus();
     } catch (e) {
       if (controller.signal.aborted) {
         setModelState('absent');
@@ -140,21 +123,20 @@ export function VoiceSection() {
   async function handleRemove(): Promise<void> {
     await deleteModel();
     setModelState('absent');
-    await refreshVoiceStatus({ mode });
+    await refreshVoiceStatus();
   }
 
   const percent = downloadPercent(received, total);
 
   return (
-    <div className="mt-6">
-      <h2 className="text-[13px] tracking-[-0.13px] text-text-dim mb-1">Voice input</h2>
-
-      <SegmentedControl
-        options={VOICE_MODES}
-        value={mode}
-        onValueChange={handleModeChange}
-        size="small"
-      />
+    <div>
+      <label
+        htmlFor="settings-voice-mode"
+        className="text-[13px] tracking-[-0.13px] text-text-dim mb-1 block"
+      >
+        Voice input
+      </label>
+      <Select value={mode} onValueChange={handleModeChange} options={VOICE_MODES} />
 
       {mode === 'off' && (
         <p className="text-[12px] text-text-dim mt-2">

@@ -9,8 +9,9 @@ Feature: Setting up voice input
   A fallback between them would leave nobody able to say whether a particular sentence left the
   device.
 
-  It sits below the database settings, and saves on its own — a long download should not be tied to
-  submitting Notion credentials.
+  It sits below the database dropdowns and is saved with Save, like the token and databases.
+  Downloading the model is a separate action so a 41 MB transfer is not tied to submitting Notion
+  credentials.
 
   Background:
     Given the settings form is open
@@ -27,8 +28,16 @@ Feature: Setting up voice input
 
     Scenario: The choice sticks
       When I choose "On-device"
+      And I tap "Save"
       And I close and reopen settings
       Then "On-device" is still selected
+
+    Scenario: Backing out discards an unsaved choice
+      Given voice input is set to "Off"
+      When I choose "On-device"
+      And I tap the back button
+      And I reopen settings
+      Then "Off" is still selected
 
   Rule: On-device mode
 
@@ -51,7 +60,7 @@ Feature: Setting up voice input
       When it completes
       Then the phone shows "Downloaded ✓"
       And a "Remove" button
-      And voice input works on the glasses without restarting the app
+      And voice input works on the glasses without restarting the app once on-device is saved
 
     Scenario: Changing my mind partway
       Given the download is running
@@ -97,9 +106,10 @@ Feature: Setting up voice input
       And what I type into it is masked
       And the phone says it is stored on this device only
 
-    Scenario: The key takes effect immediately
+    Scenario: The key takes effect when Save succeeds
       Given I chose "Cloud"
       When I paste a valid key
+      And I tap "Save"
       Then voice input works on the glasses without restarting the app
 
     Scenario: An obviously incomplete key

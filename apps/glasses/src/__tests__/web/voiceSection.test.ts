@@ -9,8 +9,8 @@ import {
   formatProgress,
   isPlausibleApiKey,
   isVoiceReady,
-  voiceConfigAfterDownload,
   VOICE_MODES,
+  voiceConfigFromDraft,
 } from '../../web/screens/SettingsForm/voiceSection';
 
 describe('downloadPercent', () => {
@@ -68,23 +68,32 @@ describe('isVoiceReady', () => {
   });
 });
 
-describe('voiceConfigAfterDownload', () => {
-  it('returns null when the user switched to off', () => {
-    expect(voiceConfigAfterDownload('off', '')).toBeNull();
+describe('voiceConfigFromDraft', () => {
+  it('always includes the chosen mode', () => {
+    expect(voiceConfigFromDraft('off', '')).toEqual({ mode: 'off' });
+    expect(voiceConfigFromDraft('on-device', '')).toEqual({ mode: 'on-device' });
+    expect(voiceConfigFromDraft('cloud', '')).toEqual({ mode: 'cloud' });
   });
 
-  it('returns null when the user switched to cloud', () => {
-    expect(voiceConfigAfterDownload('cloud', 'soniox-key-abcdefghijklmnop')).toBeNull();
-  });
-
-  it('persists on-device when that mode is still selected', () => {
-    expect(voiceConfigAfterDownload('on-device', '')).toEqual({ mode: 'on-device' });
-  });
-
-  it('preserves a saved Soniox key when still on-device', () => {
+  it('includes a plausible key for any mode so switching off does not discard it', () => {
     const key = 'soniox-key-abcdefghijklmnop';
-    expect(voiceConfigAfterDownload('on-device', key)).toEqual({
+    expect(voiceConfigFromDraft('off', key)).toEqual({ mode: 'off', sonioxApiKey: key });
+    expect(voiceConfigFromDraft('on-device', key)).toEqual({
       mode: 'on-device',
+      sonioxApiKey: key,
+    });
+    expect(voiceConfigFromDraft('cloud', key)).toEqual({ mode: 'cloud', sonioxApiKey: key });
+  });
+
+  it('omits an incomplete key, clearing a previously stored one on Save', () => {
+    expect(voiceConfigFromDraft('cloud', 'abc')).toEqual({ mode: 'cloud' });
+    expect(voiceConfigFromDraft('cloud', '   ')).toEqual({ mode: 'cloud' });
+  });
+
+  it('trims whitespace from a plausible key', () => {
+    const key = 'soniox-key-abcdefghijklmnop';
+    expect(voiceConfigFromDraft('cloud', `  ${key}  `)).toEqual({
+      mode: 'cloud',
       sonioxApiKey: key,
     });
   });

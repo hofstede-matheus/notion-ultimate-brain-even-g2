@@ -41,10 +41,11 @@ export function isPlausibleApiKey(key: string): boolean {
   return key.trim().length >= 20;
 }
 
-/** After a download, only persist on-device if that is still the selection. */
-export function voiceConfigAfterDownload(mode: VoiceMode, apiKey: string): VoiceConfig | null {
-  if (mode !== 'on-device') return null;
-  return { mode: 'on-device', ...(apiKey ? { sonioxApiKey: apiKey } : {}) };
+/** Build the config to write when the settings form is saved. */
+export function voiceConfigFromDraft(mode: VoiceMode, apiKey: string): VoiceConfig {
+  const cfg: VoiceConfig = { mode };
+  if (isPlausibleApiKey(apiKey)) cfg.sonioxApiKey = apiKey.trim();
+  return cfg;
 }
 
 /** Whether the section's current selection is complete enough to record with. */

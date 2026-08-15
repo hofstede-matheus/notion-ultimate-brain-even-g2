@@ -5,6 +5,8 @@ import { Input } from 'even-toolkit/web/input';
 import { Page } from 'even-toolkit/web/page';
 import { Select } from 'even-toolkit/web/select';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { loadVoiceConfig, saveVoiceConfig, type VoiceMode } from '../../../voice-config';
+import { refreshVoiceStatus } from '../../../voice-runtime';
 import { useUiState } from '../../hooks/useUiState';
 import { resolveSettings } from '../../providers/uiController';
 import { fetchDatabases, InvalidTokenError } from '../../services/databases';
@@ -22,6 +24,7 @@ import {
   unfitReason,
   unfitSlots,
 } from './dbSelection';
+import { voiceConfigFromDraft } from './voiceSection';
 
 /** How long to wait after the token stops changing before fetching its databases. */
 const TOKEN_DEBOUNCE_MS = 500;
@@ -69,6 +72,8 @@ export function SettingsForm() {
   // again to confirm it. Reset whenever the selection changes so a stale confirmation can't
   // silently wave through a later, different mistake.
   const [confirmUnfit, setConfirmUnfit] = useState(false);
+  const [voiceMode, setVoiceMode] = useState<VoiceMode>('off');
+  const [apiKey, setApiKey] = useState('');
   const requestId = useRef(0);
 
   useEffect(() => {
@@ -79,6 +84,10 @@ export function SettingsForm() {
     setTouched(false);
     setShowAll(false);
     setConfirmUnfit(false);
+    void loadVoiceConfig().then((cfg) => {
+      setVoiceMode(cfg.mode);
+      setApiKey(cfg.sonioxApiKey ?? '');
+    });
   }, [ui.settingsPrefill]);
 
   // Auto-load: once the token looks complete, debounce then fetch its
@@ -119,7 +128,7 @@ export function SettingsForm() {
     return () => clearTimeout(timer);
   }, [token]);
 
-  function handleSubmit(e: FormEvent): void {
+  async function handleSubmit(e: FormEvent): Promise<void> {
     e.preventDefault();
     setTouched(true);
 
@@ -136,6 +145,9 @@ export function SettingsForm() {
       return;
     }
 
+    const voiceCfg = voiceConfigFromDraft(voiceMode, apiKey);
+    await saveVoiceConfig(voiceCfg);
+    await refreshVoiceStatus(voiceCfg);
     resolveSettings({ token: trimmedToken, ...selection });
   }
 
@@ -251,12 +263,18 @@ export function SettingsForm() {
           </p>
         )}
 
+        <VoiceSection
+          mode={voiceMode}
+          apiKey={apiKey}
+          onModeChange={setVoiceMode}
+          onApiKeyChange={setApiKey}
+        />
+
         <Divider variant="spaced" />
         <Button type="submit" variant="highlight">
           {confirmUnfit ? 'Save anyway' : 'Save'}
         </Button>
       </form>
-      <VoiceSection />
       <LogConsole />
     </Page>
   );
