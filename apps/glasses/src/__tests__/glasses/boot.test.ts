@@ -47,8 +47,12 @@ vi.mock('../../logging/persist', () => ({
   startPersisting: vi.fn(),
 }));
 
-vi.mock('../../stt', () => ({
-  preloadVoskModel: vi.fn(),
+// Stubbed rather than exercised: resolving the speech backend reads IndexedDB,
+// which the node test environment has no business providing. What matters here
+// is that boot kicks it off without waiting on it — see the test below.
+const mockRefreshVoiceStatus = vi.fn().mockResolvedValue(undefined);
+vi.mock('../../voice-runtime', () => ({
+  refreshVoiceStatus: mockRefreshVoiceStatus,
 }));
 
 const mockFetchDatabases = vi.fn();
@@ -88,6 +92,35 @@ describe('boot', () => {
 
     expect(state.screen).toBe('menu');
     expect(mockFetchDatabases).not.toHaveBeenCalled();
+  });
+
+  it('resolves the speech backend after the menu is up, not before', async () => {
+    vi.useFakeTimers();
+    const bridge = makeMockBridge();
+    mocks.bridge = bridge;
+    mocks.loadStoredConfig.mockResolvedValue(tenantConfig('stored'));
+
+    await boot();
+    await vi.advanceTimersByTimeAsync(BOOT_SPLASH_MIN_MS);
+
+    // Voice setup is off the critical path: the glasses are usable whether or
+    // not a speech backend is configured, so it must never gate the menu.
+    expect(state.screen).toBe('menu');
+    expect(mockRefreshVoiceStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('still reaches the menu when voice setup fails', async () => {
+    vi.useFakeTimers();
+    const bridge = makeMockBridge();
+    mocks.bridge = bridge;
+    mocks.loadStoredConfig.mockResolvedValue(tenantConfig('stored'));
+    mockRefreshVoiceStatus.mockRejectedValueOnce(new Error('indexedDB unavailable'));
+
+    await boot();
+    await vi.advanceTimersByTimeAsync(BOOT_SPLASH_MIN_MS);
+
+    expect(state.screen).toBe('menu');
+    expect(setStatus).toHaveBeenCalledWith('Connected! Use your glasses.');
   });
 
   it('creates the startup containers before stored config resolves', async () => {

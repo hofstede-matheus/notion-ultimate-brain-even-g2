@@ -204,11 +204,25 @@ export const SPINNER_FRAMES: readonly string[] = ['|', '/', '-', '\\'];
 export const SPINNER_INTERVAL_MS = 250;
 
 // ---------------------------------------------------------------------------
-// STT / Vosk
+// STT
 // ---------------------------------------------------------------------------
+//
+// The on-device model is no longer served from a fixed path here — it is
+// downloaded on demand and handed to the recogniser as a blob: URL. Its
+// download location lives in ../voice-model.ts.
 
-/** Path (relative to the web root) where the Vosk model tarball is served. */
-export const VOSK_MODEL_URL = '/vosk/model.tar.gz';
+/** Soniox real-time transcription endpoint. */
+export const SONIOX_WS_URL = 'wss://stt-rt.soniox.com/transcribe-websocket';
+
+/**
+ * Soniox's real-time model. They publish exactly one for streaming — there is
+ * no fast/accurate tier to choose between. `stt-rt-v4` is a retired alias that
+ * routes here, so don't reintroduce it.
+ */
+export const SONIOX_MODEL = 'stt-rt-v5';
+
+/** How long to wait for the Soniox socket to open before giving up. */
+export const SONIOX_CONNECT_TIMEOUT_MS = 8000;
 
 // ---------------------------------------------------------------------------
 // Router

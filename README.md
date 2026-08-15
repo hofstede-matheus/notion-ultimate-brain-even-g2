@@ -24,8 +24,8 @@ database IDs (entered in the app's Settings screen), sent with every request via
 - **Page reader** — a task's or note's page renders as pre-paginated screenfuls of text,
   turned with a swipe (falling back to the page's Description property when its body is
   empty, as most Ultimate Brain tasks are).
-- **Voice capture** — dictate a new task offline on-device; confirm the transcript before
-  it's written to Notion.
+- **Voice capture** — dictate a new task, offline on-device or via your own Soniox key;
+  confirm the transcript before it's written to Notion.
 
 Lists paginate across both Notion's cursor and the G2's 20-item display cap, and fetched
 lists are cached on the device so revisiting a view is instant.
@@ -58,8 +58,10 @@ packages/
     layered into `providers/` · `hooks/` · `services/` · `components/` · `screens/`. This
     is where the tenant config is entered and persisted.
   - Packaged into a `.ehpk` bundle with the
-    [Even Hub CLI](https://www.npmjs.com/package/@evenrealities/evenhub-cli). Offline voice
-    capture uses [Vosk](https://alphacephei.com/vosk/) (`vosk-browser`).
+    [Even Hub CLI](https://www.npmjs.com/package/@evenrealities/evenhub-cli). Speech
+    recognition has two interchangeable backends behind `src/stt/`:
+    [Vosk](https://alphacephei.com/vosk/) (`vosk-browser`) on-device, or
+    [Soniox](https://soniox.com) over a WebSocket.
 - **`apps/server`** — a thin, framework-agnostic route layer (`src/routes.ts`) with two
   entry points that share the same handlers: `src/express/index.ts` for local dev, and
   `src/lambda/handler.ts` for production (bundled with esbuild, deployed via Terraform as
@@ -191,33 +193,52 @@ To package the glasses app into a `.ehpk` for the Even Hub:
 pnpm --filter @notion-ub/glasses pack
 ```
 
-(Fetches the offline voice model on first run via `pnpm --filter @notion-ub/glasses fetch:voice-model`
-if it isn't present.)
+The voice model is **not** part of this bundle — see below.
 
-### Building with a different voice-input language
+### Voice input
 
-Voice capture (`apps/glasses/src/stt.ts`) uses an offline [Vosk](https://alphacephei.com/vosk/)
-model that's baked into the build at package time — the app always loads it from the fixed
-path `/vosk/model.tar.gz`, so a build only ever contains one recognition language. It
-defaults to English. To build with a different one:
+Dictating a task needs a speech recogniser, and the app ships without one. Users pick a mode
+in the settings screen:
+
+- **On-device** — downloads an offline [Vosk](https://alphacephei.com/vosk/) model (English,
+  ~41 MB) to the phone once, then recognises speech locally. No network, no key, no audio
+  leaves the device.
+- **Cloud** — streams audio to [Soniox](https://soniox.com) over a WebSocket using the user's
+  own API key, stored on the device and sent only to Soniox. No download, 60+ languages,
+  billed to their Soniox account.
+
+The two are exclusive — there is no automatic fallback, because that would make it impossible
+to say whether a given recording left the device. Add Task by voice stays visible on the
+glasses either way, and explains what to set up when it can't run.
+
+The Vosk model used to be packed into the `.ehpk`, which put the package at ~45 MB against a
+~10 MB practical cap for install-over-Bluetooth. It is now hosted separately and fetched at
+runtime into IndexedDB.
+
+#### Publishing the offline model
+
+The model lives on its own Firebase Hosting site (`notion-ub-assets`), deliberately separate
+from the landing page: a Hosting deploy replaces the whole site, so sharing one would let a
+landing-page deploy wipe the model. Publishing is manual — run the **Deploy voice model**
+workflow (`workflow_dispatch`), optionally with a language key.
+
+To do it locally, or to check the catalog:
 
 ```bash
 # see the supported language keys
 node apps/glasses/scripts/fetch-vosk-model.cjs --list
 
-# delete any previously fetched model, then fetch the one you want
-rm apps/glasses/public/vosk/model.tar.gz
+# fetch one into apps/glasses/dist-model/ (delete it first to switch languages)
 pnpm --filter @notion-ub/glasses fetch:voice-model -- fr   # note the `--`, needed for pnpm
                                                              # to forward the arg to the script
 
-pnpm --filter @notion-ub/glasses pack   # or `build`, for a dev/sim run
+firebase deploy --only hosting:notion-ub-assets
 ```
 
-Any Vosk model `.zip` URL can be passed instead of a key (e.g. a larger, more accurate
-model than the "small" tier) — see the full catalog at
-[alphacephei.com/vosk/models](https://alphacephei.com/vosk/models). The fetch script skips
-downloading if `public/vosk/model.tar.gz` already exists, so remove it first whenever you
-switch languages.
+Any Vosk model `.zip` URL can be passed instead of a key (e.g. a larger, more accurate model
+than the "small" tier) — see the full catalog at
+[alphacephei.com/vosk/models](https://alphacephei.com/vosk/models). Only English is published
+today; the client fetches a single fixed URL, overridable in dev with `VITE_VOICE_MODEL_URL`.
 
 ## Running the server on its own
 

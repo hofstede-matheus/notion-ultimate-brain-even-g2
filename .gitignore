@@ -45,8 +45,9 @@ yarn-error.log*
 # Kilo plans (local planning artifacts)
 .kilo/plans/
 
-# Offline voice model (~40 MB, fetched via pnpm fetch:voice-model)
-**/public/vosk/model.tar.gz
+# Offline voice model (~40 MB, fetched via pnpm fetch:voice-model for publishing —
+# it is downloaded at runtime now, not packed into the .ehpk)
+apps/glasses/dist-model/
 
 # Terraform
 **/.terraform/

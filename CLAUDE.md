@@ -14,7 +14,8 @@ IDs via the `X-Notion-Config` header; the server stores no credentials.
 
 - `apps/glasses` (`@notion-ub/glasses`) — Vite app with two front ends in one build, plus
   shared plumbing at `src/` root (`api.ts`, `state.ts`, `cache.ts`, `page-loader.ts`,
-  `stt.ts`, `tenant-config.ts`, `boot.ts`, `logging/`).
+  `stt/`, `voice-config.ts`, `voice-model.ts`, `voice-runtime.ts`, `tenant-config.ts`,
+  `boot.ts`, `logging/`).
   - `src/glasses/` — on-glasses UI via the Even Realities SDK. `router.ts` (screen table),
     `menu.ts`, `constants.ts` (display geometry, container IDs, caps), `glass-ctx.ts`,
     `events/` (SDK event → action), `render/` (`index.ts` draw calls +
@@ -129,11 +130,48 @@ version-specific, see `glasses/constants.ts`) with `pnpm --filter
 - **Reader pages must fit with zero overflow.** Leftover overflow re-arms the firmware's
   internal scroll and swipes get swallowed — see `READER_LINES_PER_PAGE` /
   `READER_CHARS_PER_LINE` in `glasses/constants.ts`.
-- The offline voice model isn't in git. `pnpm dev`/`build` expect
-  `apps/glasses/public/vosk/model.tar.gz`; fetch it with
-  `pnpm --filter @notion-ub/glasses fetch:voice-model`. The script takes an optional
-  language key (default English) — see README's "Building with a different voice-input
-  language".
+- **Speech has two interchangeable backends, and the model is not in the build.** `src/stt/`
+  is a façade (`index.ts`) over `vosk.ts` (on-device) and `soniox.ts` (cloud), sharing the
+  VAD and auto-stop timers in `session.ts` so both stop recording at the same moment. The
+  user picks one in Settings (`voice-config.ts`, its own storage key — **never** put the
+  Soniox key in `TenantConfig`, which is base64'd into every `X-Notion-Config` header).
+  `voice-runtime.ts`'s `refreshVoiceStatus()` wires the choice into `state.voice`, which
+  gates `modules/tasks/voice.ts` and drives the Add Task copy. Modes are exclusive on
+  purpose — a fallback would make it unknowable whether a given recording left the device,
+  and the landing page's `legal.html` promises otherwise per mode.
+  - The Vosk model is downloaded at runtime into our own IndexedDB (`voice-model.ts`), not
+    packed into the `.ehpk` — it was 39 MB of a 45 MB bundle against a ~10 MB practical cap.
+    We hand vosk-browser a fresh `blob:` URL each session, so its own IDBFS cache (database
+    name `/vosk`) is worthless and would grow ~50 MB per launch; `clearVoskScratch()` drops
+    it before every load. Publish a model with the **Deploy voice model** workflow, which
+    deploys the `notion-ub-assets` Hosting site — kept separate from `notion-ub-landing`
+    because a Hosting deploy replaces the whole site.
+  - Soniox ships exactly one real-time model, `stt-rt-v5`; there is no fast/accurate tier.
+    `stt-rt-v4` is a retired alias — don't reintroduce it. The socket is opened in
+    `ensureReady()`, **before** the mic, or the first word gets clipped.
+  - **End the Soniox stream with an empty *text* frame, not just an empty binary one.**
+    This is the one that actually bit: the docs call the terminator "an empty WebSocket
+    frame (binary or text)" in one place and the empty string in another, and a
+    zero-length *binary* frame gets dropped somewhere between the WebView and the server.
+    Without a terminator Soniox never sends `finished`, the transcript is never delivered,
+    and the stream dies 20 s later with `408 request_timeout` — which reads as "couldn't
+    hear anything" even though recognition worked. `soniox.ts` sends both, plus
+    `{"type":"finalize"}`.
+  - **One Soniox socket per recording.** The end-of-audio frame is terminal and the
+    server closes after `finished`, so a reused socket silently transcribes nothing —
+    `streamUsed` in `soniox.ts` forces a reconnect. And **batch the audio**: the glasses
+    emit 10 ms frames (320 B), which is 100 sends/s against the ~120 ms pacing Soniox
+    documents. The VAD still sees every frame; only the wire traffic is batched.
+  - **Never let a missing `finished` discard a transcript** — the session's `onTimeout`
+    hands back whatever was already finalised. And keep the `soniox finalize` trace line
+    honest: `sentBytes` / `buffered` / `tokens` are what separate "nothing left the
+    device" from "server said nothing", and the VAD reads each frame *before* the send,
+    so recording looks healthy either way.
+  - Optional `language_hints` come from Settings (comma-separated ISO codes); empty means
+    auto-detect. The "Restrict to these languages" checkbox maps to `language_hints_strict`.
+  - The `Test key` button in Settings (`testSonioxKey`) runs a whole miniature session —
+    config, audio, terminator, `finished` — rather than just a handshake, precisely so it
+    exercises the parts above.
 - **Server logging is a privacy contract, not a convenience.** `apps/server/src/lambda/logger.ts`
   wraps pino with no `transport` (pino-pretty/multi-target spawn a worker that loads a script
   by path, which doesn't survive the esbuild single-file bundle). What it logs is deliberately

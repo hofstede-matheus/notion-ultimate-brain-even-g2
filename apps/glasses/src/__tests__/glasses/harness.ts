@@ -34,6 +34,10 @@ export function resetState(): void {
   state.recording = 'idle';
   state.createdTaskName = '';
   state.pendingTranscript = '';
+  // Most tests exercise the recording flow, so the default baseline is a
+  // configured, working backend. Tests for the unconfigured screens set this
+  // themselves.
+  state.voice = 'ready';
   state.loading = false;
   state.spinnerFrame = '';
   state.errorMessage = '';

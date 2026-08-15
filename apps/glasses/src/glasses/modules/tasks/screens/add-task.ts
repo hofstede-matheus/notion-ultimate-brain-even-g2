@@ -2,6 +2,64 @@ import { buildHeaderLine } from 'even-toolkit/text-utils';
 import type { AppState } from '../../../../state';
 import type { ScreenModule } from '../../../types';
 
+/**
+ * Copy for when there is no usable speech backend yet. Every fix lives on the
+ * phone, so each line points there rather than inviting a tap that can't work.
+ * Returns null once voice is ready, handing over to the recording states.
+ */
+function unavailableContent(state: AppState): string | null {
+  // An in-flight session keeps its own copy — voice status can flip from the
+  // phone Settings without invalidating a captured transcript.
+  if (state.recording !== 'idle') return null;
+
+  switch (state.voice) {
+    case 'ready':
+      return null;
+
+    case 'preparing':
+      return ['ADD TASK', '', 'Voice model loading...', '', 'Double-tap to go back.'].join('\n');
+
+    case 'needs-download':
+      return [
+        'ADD TASK',
+        '',
+        'Voice input needs a',
+        'one-time download.',
+        '',
+        'Open Settings on your',
+        'phone to download it.',
+        '',
+        'Double-tap to go back.',
+      ].join('\n');
+
+    case 'needs-key':
+      return [
+        'ADD TASK',
+        '',
+        'Cloud voice input needs',
+        'a Soniox API key.',
+        '',
+        'Add it in Settings on',
+        'your phone.',
+        '',
+        'Double-tap to go back.',
+      ].join('\n');
+
+    default:
+      // 'off' and 'unknown' — nothing chosen yet, or boot hasn't resolved it.
+      return [
+        'ADD TASK',
+        '',
+        'Voice input is off.',
+        '',
+        'Choose a voice mode in',
+        'Settings on your phone.',
+        '',
+        'Double-tap to go back.',
+      ].join('\n');
+  }
+}
+
 function addTaskContent(state: AppState): string {
   switch (state.recording) {
     case 'idle':
@@ -78,7 +136,7 @@ function addTaskContent(state: AppState): string {
 
 export const addTaskScreen: ScreenModule = {
   display(state) {
-    return { mode: 'text', content: addTaskContent(state) };
+    return { mode: 'text', content: unavailableContent(state) ?? addTaskContent(state) };
   },
 
   action(action, state, ctx) {
@@ -95,9 +153,17 @@ export const addTaskScreen: ScreenModule = {
     if (action.type === 'SELECT_HIGHLIGHTED') {
       if (state.recording === 'confirm') {
         void ctx.confirmAddTask();
-      } else {
-        ctx.startRecording();
+        return;
       }
+      // Nothing to start without a backend — the screen already says what to
+      // do about it, and it can only be done on the phone.
+      if (
+        state.voice !== 'ready' &&
+        (state.recording === 'idle' || state.recording === 'done' || state.recording === 'error')
+      ) {
+        return;
+      }
+      ctx.startRecording();
     }
 
     // HIGHLIGHT_MOVE: no scrollable content on this screen — intentionally no-op

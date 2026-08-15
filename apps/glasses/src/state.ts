@@ -1,5 +1,6 @@
 import type { EvenAppBridge } from '@evenrealities/even_hub_sdk';
 import type { Note, Project, Tag, Task } from '@notion-ub/contracts';
+import type { VoiceStatus } from './voice-config';
 
 export type ScreenName =
   | 'booting'
@@ -208,6 +209,12 @@ export interface AppState {
   createdTaskName: string;
   pendingTranscript: string;
 
+  // Whether voice task entry is usable, and what is missing when it isn't —
+  // resolved at boot from the stored voice config (see ../voice-config.ts).
+  // Read by the Add Task screen for its copy and by voice.ts as the gate, so
+  // both always agree about why recording is unavailable.
+  voice: VoiceStatus;
+
   // Loading / background refresh
   loading: boolean; // true = no cache yet, first fetch in flight
   spinnerFrame: string; // current spinner char ('|','/','-','\\'); empty = not spinning
@@ -247,6 +254,7 @@ export const state: AppState = {
   recording: 'idle',
   createdTaskName: '',
   pendingTranscript: '',
+  voice: 'unknown',
   loading: false,
   spinnerFrame: '',
   errorMessage: '',

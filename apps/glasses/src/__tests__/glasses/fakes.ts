@@ -95,20 +95,40 @@ export function cacheMock(): CacheModule {
 }
 
 export interface SttController {
-  /** Simulates Vosk delivering its (possibly empty) transcription. */
+  /** Simulates the backend delivering its (possibly empty) transcription. */
   fireFinal(text: string): void;
   /** Simulates VAD auto-stop (mic closes, UI moves to "processing"). */
   fireStop(): void;
-  /** Controls what the next ensureRecognizer() call resolves to. */
+  /** Controls what the next ensureReady() call resolves to. */
   setReady(ready: boolean): void;
+  /**
+   * Clears session state between tests. vi.clearAllMocks() only resets the
+   * vi.fn call records, not the closure the fake keeps, so without this a test
+   * that started a recording leaves the next one thinking the mic is open.
+   */
+  reset(): void;
 }
 
-/** stt.ts mock — captures the onFinal/onStop passed to startListening so a test can fire them. */
+/**
+ * stt/ façade mock — captures the onFinal/onStop passed to startListening so a
+ * test can fire them. Backend-agnostic: the façade looks the same whichever
+ * provider is active.
+ */
 export function sttMock(): SttModule & SttController {
   let ready = true;
   let listening = false;
   let onFinal: ((text: string) => void) | null = null;
   let onStop: (() => void) | null = null;
+
+  /** Mirrors session.abort() — end capture, drop any pending transcript. */
+  function abortLikeProduction(): void {
+    if (listening) {
+      listening = false;
+      onStop?.();
+    }
+    onFinal = null;
+    onStop = null;
+  }
 
   const stopListening = vi.fn(() => {
     if (!listening) return;
@@ -117,7 +137,14 @@ export function sttMock(): SttModule & SttController {
   });
 
   return {
-    ensureRecognizer: vi.fn(async () => ready),
+    ensureReady: vi.fn(async () => ready),
+    applyVoiceConfig: vi.fn(async (cfg) => {
+      abortLikeProduction();
+      if (cfg?.mode === 'off') return 'off';
+      if (cfg?.mode === 'cloud' && !cfg.sonioxApiKey) return 'needs-key';
+      return 'ready';
+    }),
+    warmUp: vi.fn(async () => ready),
     startListening: vi.fn((final: (text: string) => void, stop?: () => void) => {
       listening = true;
       onFinal = final;
@@ -126,7 +153,9 @@ export function sttMock(): SttModule & SttController {
     stopListening,
     isListening: vi.fn(() => listening),
     feedAudio: vi.fn(),
-    preloadVoskModel: vi.fn(),
+    dispose: vi.fn(() => {
+      abortLikeProduction();
+    }),
     fireFinal(text: string) {
       const cb = onFinal;
       onFinal = null;
@@ -138,6 +167,12 @@ export function sttMock(): SttModule & SttController {
     },
     setReady(r: boolean) {
       ready = r;
+    },
+    reset() {
+      ready = true;
+      listening = false;
+      onFinal = null;
+      onStop = null;
     },
   } as unknown as SttModule & SttController;
 }
