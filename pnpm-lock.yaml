@@ -30,8 +30,8 @@ importers:
   apps/glasses:
     dependencies:
       '@evenrealities/even_hub_sdk':
-        specifier: ^0.0.12
-        version: 0.0.12
+        specifier: 0.0.13
+        version: 0.0.13
       '@notion-ub/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -43,7 +43,7 @@ importers:
         version: 2.1.1
       even-toolkit:
         specifier: ^1.7.7
-        version: 1.7.7(@evenrealities/even_hub_sdk@0.0.12)(@types/react@19.2.17)(class-variance-authority@0.7.1)(clsx@2.1.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(redux@5.0.1)(tailwind-merge@3.6.0)
+        version: 1.7.7(@evenrealities/even_hub_sdk@0.0.13)(@types/react@19.2.17)(class-variance-authority@0.7.1)(clsx@2.1.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(redux@5.0.1)(tailwind-merge@3.6.0)
       framer-motion:
         specifier: ^12.42.2
         version: 12.42.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -61,7 +61,7 @@ importers:
         version: 0.0.8
     devDependencies:
       '@evenrealities/evenhub-cli':
-        specifier: latest
+        specifier: 0.1.13
         version: 0.1.13(@types/node@20.19.43)(typescript@5.9.3)
       '@evenrealities/evenhub-simulator':
         specifier: 0.8.0
@@ -578,8 +578,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@evenrealities/even_hub_sdk@0.0.12':
-    resolution: {integrity: sha512-PXAeuPl7dMIlSWlctDeQAodIr7iuNROaH9GvRrZ86xzRh33DkMJYY1hSxy6BTk+TLkDA0tYlVi4bOsSIJngINA==}
+  '@evenrealities/even_hub_sdk@0.0.13':
+    resolution: {integrity: sha512-UTEvhrvuuoCeHMQFlImGNeYP8R1SvEWLDtHj+VfMw0IA4MZl5OSonVhNKjJz+cCY27hBkSnIVeKXd99F3ttNDw==}
     engines: {node: ^20.0.0 || >=22.0.0}
 
   '@evenrealities/evenhub-cli@0.1.13':
@@ -3218,7 +3218,7 @@ snapshots:
   '@esbuild/win32-x64@0.28.1':
     optional: true
 
-  '@evenrealities/even_hub_sdk@0.0.12': {}
+  '@evenrealities/even_hub_sdk@0.0.13': {}
 
   '@evenrealities/evenhub-cli@0.1.13(@types/node@20.19.43)(typescript@5.9.3)':
     dependencies:
@@ -4195,9 +4195,9 @@ snapshots:
 
   etag@1.8.1: {}
 
-  even-toolkit@1.7.7(@evenrealities/even_hub_sdk@0.0.12)(@types/react@19.2.17)(class-variance-authority@0.7.1)(clsx@2.1.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(redux@5.0.1)(tailwind-merge@3.6.0):
+  even-toolkit@1.7.7(@evenrealities/even_hub_sdk@0.0.13)(@types/react@19.2.17)(class-variance-authority@0.7.1)(clsx@2.1.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(redux@5.0.1)(tailwind-merge@3.6.0):
     dependencies:
-      '@evenrealities/even_hub_sdk': 0.0.12
+      '@evenrealities/even_hub_sdk': 0.0.13
       '@evenrealities/pretext': 0.1.4
       react-is: 19.2.7
       recharts: 3.9.2(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-is@19.2.7)(react@19.2.7)(redux@5.0.1)

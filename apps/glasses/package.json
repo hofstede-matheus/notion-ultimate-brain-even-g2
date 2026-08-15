@@ -15,7 +15,7 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@evenrealities/even_hub_sdk": "^0.0.12",
+    "@evenrealities/even_hub_sdk": "0.0.13",
     "@notion-ub/contracts": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -27,7 +27,7 @@
     "vosk-browser": "^0.0.8"
   },
   "devDependencies": {
-    "@evenrealities/evenhub-cli": "latest",
+    "@evenrealities/evenhub-cli": "0.1.13",
     "@evenrealities/evenhub-simulator": "0.8.0",
     "@notion-ub/typescript-config": "workspace:*",
     "@tailwindcss/vite": "^4.1.16",
