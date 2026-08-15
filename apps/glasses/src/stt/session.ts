@@ -196,7 +196,7 @@ export function createListenSession(
         resultTimer = null;
         // Only act if this session's callback is still current — a new
         // recording may have replaced it since stop() armed the timer.
-        if (onFinal !== saved) return;
+        if (!saved || onFinal !== saved) return;
         onFinal = null;
         saved(opts.onTimeout?.() ?? '');
       }, resultTimeoutMs);

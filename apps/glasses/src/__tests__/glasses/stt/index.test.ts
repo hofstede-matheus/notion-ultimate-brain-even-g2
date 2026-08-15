@@ -81,7 +81,7 @@ describe('applyVoiceConfig — overlapping on-device then cloud', () => {
   it('does not install Vosk when cloud wins before openModelUrl resolves', async () => {
     const stt = await freshStt();
 
-    let resolveUrl: (url: string) => void;
+    let resolveUrl: ((url: string) => void) | undefined;
     h.openModelUrl.mockReturnValue(
       new Promise<string | null>((resolve) => {
         resolveUrl = resolve;
@@ -99,6 +99,7 @@ describe('applyVoiceConfig — overlapping on-device then cloud', () => {
     expect(h.sonioxCreated).toBe(1);
     expect(h.voskCreated).toBe(0);
 
+    if (!resolveUrl) throw new Error('openModelUrl was not deferred');
     resolveUrl('blob:stale-model');
     expect(await onDevice).toBe('off');
     expect(h.voskCreated).toBe(0);
@@ -112,7 +113,7 @@ describe('applyVoiceConfig — overlapping on-device then cloud', () => {
   it('does not install Vosk when off wins before openModelUrl resolves', async () => {
     const stt = await freshStt();
 
-    let resolveUrl: (url: string) => void;
+    let resolveUrl: ((url: string) => void) | undefined;
     h.openModelUrl.mockReturnValue(
       new Promise<string | null>((resolve) => {
         resolveUrl = resolve;
@@ -125,6 +126,7 @@ describe('applyVoiceConfig — overlapping on-device then cloud', () => {
     expect(await stt.applyVoiceConfig({ mode: 'off' })).toBe('off');
     expect(h.voskCreated).toBe(0);
 
+    if (!resolveUrl) throw new Error('openModelUrl was not deferred');
     resolveUrl('blob:stale-model');
     expect(await onDevice).toBe('off');
     expect(h.voskCreated).toBe(0);
