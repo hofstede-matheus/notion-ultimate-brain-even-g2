@@ -18,6 +18,8 @@ export type { SttProvider } from './types';
 let provider: SttProvider | null = null;
 /** Object URL backing the on-device model, revoked when the provider is replaced. */
 let modelObjectUrl: string | null = null;
+/** Bumped on each applyVoiceConfig call so stale on-device setup cannot replace provider. */
+let applySeq = 0;
 
 function clearProvider(): void {
   provider?.dispose();
@@ -37,6 +39,7 @@ function clearProvider(): void {
  * recording time, since an idle connection held from launch buys nothing.
  */
 export async function applyVoiceConfig(cfg: VoiceConfig): Promise<VoiceStatus> {
+  const seq = ++applySeq;
   clearProvider();
 
   if (cfg.mode === 'off') return 'off';
@@ -48,12 +51,19 @@ export async function applyVoiceConfig(cfg: VoiceConfig): Promise<VoiceStatus> {
   }
 
   if (!(await hasModel())) return 'needs-download';
+  if (seq !== applySeq) return 'off';
 
   // vosk-browser keys its own cache off the model URL, and ours is a fresh
   // blob: URL every session — see voice-model.ts for why the scratch has to go.
   await clearVoskScratch();
+  if (seq !== applySeq) return 'off';
+
   const url = await openModelUrl();
   if (!url) return 'needs-download';
+  if (seq !== applySeq) {
+    URL.revokeObjectURL(url);
+    return 'off';
+  }
 
   modelObjectUrl = url;
   provider = createVoskProvider(url);
@@ -66,8 +76,9 @@ export async function applyVoiceConfig(cfg: VoiceConfig): Promise<VoiceStatus> {
  * case re-downloading is the recovery the UI offers.
  */
 export async function warmUp(): Promise<boolean> {
-  if (!provider) return false;
-  return provider.ensureReady();
+  const active = provider;
+  if (!active) return false;
+  return active.ensureReady();
 }
 
 export async function ensureReady(): Promise<boolean> {

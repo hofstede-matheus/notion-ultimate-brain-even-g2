@@ -14,6 +14,9 @@ import { state } from './state';
 import { applyVoiceConfig, warmUp } from './stt';
 import { loadVoiceConfig, type VoiceConfig } from './voice-config';
 
+/** Bumped on each refreshVoiceStatus call so stale warmUp completions are ignored. */
+let refreshSeq = 0;
+
 /**
  * Apply `cfg` (or whatever is stored) and update `state.voice`.
  *
@@ -22,9 +25,12 @@ import { loadVoiceConfig, type VoiceConfig } from './voice-config';
  * that boot makes no blocking network call — keep it that way.
  */
 export async function refreshVoiceStatus(cfg?: VoiceConfig): Promise<void> {
+  const seq = ++refreshSeq;
   try {
     const config = cfg ?? (await loadVoiceConfig());
+    if (seq !== refreshSeq) return;
     const status = await applyVoiceConfig(config);
+    if (seq !== refreshSeq) return;
     state.voice = status;
     trace.info('VOICE', `mode=${config.mode} status=${status}`);
 
@@ -33,10 +39,12 @@ export async function refreshVoiceStatus(cfg?: VoiceConfig): Promise<void> {
       // reaches Add Task. Failure means the stored archive is unusable, and
       // re-downloading is the only recovery the UI can offer.
       const ok = await warmUp();
+      if (seq !== refreshSeq) return;
       state.voice = ok ? 'ready' : 'needs-download';
       if (!ok) trace.warn('VOICE', 'stored model failed to load — offering re-download');
     }
   } catch (err) {
+    if (seq !== refreshSeq) return;
     const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     trace.error('VOICE', `voice setup failed: ${msg}`);
     state.voice = 'off';
