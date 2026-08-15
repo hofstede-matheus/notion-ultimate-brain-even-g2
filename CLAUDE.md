@@ -66,8 +66,10 @@ Scope to one workspace with `pnpm --filter @notion-ub/server <task>` /
   Full rules in [.github/copilot-instructions.md](.github/copilot-instructions.md).
 - **Trace logging.** `apps/glasses/src/logging/trace.ts` is the app-wide log sink. Add
   `trace.info/warn/error('CAT', msg, ctx?)` at entry points and failure paths for new
-  screens, actions, and fetches. Don't log the raw tenant token or `X-Notion-Config` outside
-  `tenant-config.ts` (secrets are redacted automatically).
+  screens, actions, and fetches. The Settings debug console is behind ten taps on the
+  version label (session-only unlock; always visible in `vite dev`). Don't log the raw
+  tenant token or `X-Notion-Config`
+  outside `tenant-config.ts` (secrets are redacted automatically).
 - **Glasses tests** live in `apps/glasses/src/__tests__/**` and use
   `__tests__/glasses/harness.ts` + `fakes.ts`, not ad-hoc setup.
 - **Server logging is a privacy contract.** Successful requests log nothing; failures log only
