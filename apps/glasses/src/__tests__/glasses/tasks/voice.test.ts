@@ -142,6 +142,20 @@ describe('ending a recording (VAD auto-stop or manual tap)', () => {
     expect(h.state.recording).toBe('processing');
     expect(stt.isListening()).toBe(false);
   });
+
+  it('still manually stops when voice is turned off mid-recording', async () => {
+    const h = mount();
+    openAddTask(h);
+    h.dispatch(select());
+    await h.settle();
+    expect(h.state.recording).toBe('recording');
+
+    h.state.voice = 'off';
+    h.dispatch(select());
+
+    expect(h.state.recording).toBe('processing');
+    expect(stt.stopListening).toHaveBeenCalled();
+  });
 });
 
 describe('confirming the transcribed task', () => {
@@ -196,6 +210,24 @@ describe('confirming the transcribed task', () => {
     expect(h.state.recording).toBe('idle');
     expect(h.state.pendingTranscript).toBe('');
     expect(h.state.screen).toBe('add-task');
+  });
+
+  it('still saves when voice is turned off before confirm', async () => {
+    const h = mount();
+    openAddTask(h);
+    h.dispatch(select());
+    await h.settle();
+    fakeStt.fireStop();
+    fakeStt.fireFinal('buy milk');
+
+    h.state.voice = 'off';
+    h.dispatch(select());
+
+    expect(h.state.recording).toBe('confirming');
+    await h.settle();
+
+    expect(h.state.recording).toBe('done');
+    expect(createTask).toHaveBeenCalledWith('buy milk');
   });
 });
 

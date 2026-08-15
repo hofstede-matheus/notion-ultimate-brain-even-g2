@@ -80,4 +80,18 @@ describe('add task — no backend configured', () => {
 
     expect(h.state.screen).toBe('tasks-menu');
   });
+
+  it('keeps the confirm screen when voice is turned off mid-session', () => {
+    const h = mount();
+    h.state.screen = 'add-task';
+    h.state.voice = 'off';
+    h.state.recording = 'confirm';
+    h.state.pendingTranscript = 'buy milk';
+
+    const display = h.render();
+    if (display.mode !== 'text') throw new Error('expected a text screen');
+    expect(display.content).toContain('"buy milk"');
+    expect(display.content).toContain('Tap to confirm');
+    expect(display.content).not.toContain('Voice input is off');
+  });
 });

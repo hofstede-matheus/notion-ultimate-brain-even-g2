@@ -22,11 +22,10 @@ export async function startRecording(): Promise<void> {
   const b = getBridge();
   if (!b) return;
 
-  // No backend configured at all — the screen already explains what to fix on
-  // the phone, so there is nothing to start here.
-  if (state.voice !== 'ready') return;
-
   if (state.recording === 'idle' || state.recording === 'done' || state.recording === 'error') {
+    // No backend configured at all — the screen already explains what to fix on
+    // the phone, so there is nothing to start here.
+    if (state.voice !== 'ready') return;
     // state.recording doesn't flip to 'recording' until after the await
     // below resolves, so a second tap landing in that window would
     // otherwise re-enter this branch and double-issue audioControl/startListening.

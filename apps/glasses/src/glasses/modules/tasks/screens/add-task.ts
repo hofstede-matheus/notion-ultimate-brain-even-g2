@@ -8,6 +8,10 @@ import type { ScreenModule } from '../../../types';
  * Returns null once voice is ready, handing over to the recording states.
  */
 function unavailableContent(state: AppState): string | null {
+  // An in-flight session keeps its own copy — voice status can flip from the
+  // phone Settings without invalidating a captured transcript.
+  if (state.recording !== 'idle') return null;
+
   switch (state.voice) {
     case 'ready':
       return null;
@@ -147,14 +151,19 @@ export const addTaskScreen: ScreenModule = {
     }
 
     if (action.type === 'SELECT_HIGHLIGHTED') {
-      // Nothing to start without a backend — the screen already says what to
-      // do about it, and it can only be done on the phone.
-      if (state.voice !== 'ready') return;
       if (state.recording === 'confirm') {
         void ctx.confirmAddTask();
-      } else {
-        ctx.startRecording();
+        return;
       }
+      // Nothing to start without a backend — the screen already says what to
+      // do about it, and it can only be done on the phone.
+      if (
+        state.voice !== 'ready' &&
+        (state.recording === 'idle' || state.recording === 'done' || state.recording === 'error')
+      ) {
+        return;
+      }
+      ctx.startRecording();
     }
 
     // HIGHLIGHT_MOVE: no scrollable content on this screen — intentionally no-op

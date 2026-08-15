@@ -121,6 +121,24 @@ Feature: Adding a task by voice
       And the glasses are ready to record again
       And I have not left the screen
 
+    Scenario: A captured transcript can still be saved after voice is turned off
+      Given "buy oat milk" is waiting to be confirmed
+      And voice input is turned off on the phone
+      When I tap
+      Then the glasses show "Saving task..." with a spinner in the header
+      When the task is created
+      Then the glasses show:
+        """
+        ADD TASK
+
+        Task created!
+
+        "buy oat milk"
+
+        Tap to add another.
+        Double-tap to go back.
+        """
+
     Scenario: Backing out mid-recording
       Given I am recording
       When I double-tap
