@@ -43,10 +43,9 @@ export interface VoiceConfig {
 }
 
 /**
- * Voice is opt-in for a fresh install: 'off' until the user picks a backend,
- * since both choices now cost something (a 41 MB download, or an API key).
- * boot.ts upgrades this to 'on-device' for installs that predate the setting —
- * see resolveInitialVoiceConfig.
+ * Voice is opt-in: 'off' until the user picks a backend in Settings, since
+ * both choices cost something (a 41 MB download, or an API key). No stored
+ * config means this default — there is no migration from the old bundled model.
  */
 export const DEFAULT_VOICE_CONFIG: VoiceConfig = { mode: 'off' };
 
