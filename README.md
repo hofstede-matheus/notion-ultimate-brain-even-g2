@@ -73,7 +73,7 @@ packages/
   `{ method, route, status, errorCode? }` via [pino](https://getpino.io)
   (`src/lambda/logger.ts`), and `route` is the pattern (`/api/pages/:id`) rather than the
   real path, which would carry Notion page IDs. No response bodies, no error messages, no
-  headers, and no flag to turn any of it back on — see "Server logging" in
+  headers, and no flag to turn any of it back on — see **Conventions** in
   [CLAUDE.md](CLAUDE.md) before changing it.
 - **`apps/landing-page`** — a static, script-free marketing site (markup derived from the
   Even Hub developer portal with its Nuxt/Vue runtime stripped out; see its own
