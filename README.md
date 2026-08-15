@@ -163,8 +163,9 @@ screens through a shared harness rather than the real SDK.
 
 The phone webview keeps a running trace of everything the app does — key presses,
 screen changes, selections, cache hits/misses, and every API request/response/failure
-— in a debug log at the bottom of the Settings screen (tap the gear icon). To report a
-bug: reproduce it, open Settings, tap **Copy log**, and paste the result into the bug
+— in a debug log at the bottom of the Settings screen. To report a
+bug: reproduce it, open Settings, tap the version label at the bottom ten times to
+reveal the log, tap **Copy log**, and paste the result into the bug
 report/email. The buffer survives an app reload (persisted, tagged as "previous
 session"), and the Notion integration token is scrubbed automatically before anything
 is shown or copied. See `apps/glasses/src/logging/` for the implementation.

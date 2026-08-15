@@ -1,9 +1,11 @@
 import { IcChevronBack, IcMenuGear } from 'even-toolkit/web/icons/svg-icons';
 import { NavHeader } from 'even-toolkit/web/nav-header';
+import { useRef, useState } from 'react';
 import { APP_DISPLAY_NAME } from '../app-info';
 import { PageStack } from './components/PageStack';
 import { useUiState } from './hooks/useUiState';
 import { cancelSettings, triggerSettings } from './providers/uiController';
+import { isDebugLogVisible, nextUnlockTap } from './screens/SettingsForm/debugLogUnlock';
 import { SettingsForm } from './screens/SettingsForm/SettingsForm';
 import { StatusScreen } from './screens/StatusScreen';
 
@@ -16,6 +18,15 @@ import { StatusScreen } from './screens/StatusScreen';
 export function App() {
   const ui = useUiState();
   const screenKey = ui.settingsOpen ? 'settings' : 'status';
+  const [logUnlocked, setLogUnlocked] = useState(false);
+  const tapCount = useRef(0);
+  const showLog = isDebugLogVisible(logUnlocked);
+
+  function handleVersionTap(): void {
+    const { count, unlocked } = nextUnlockTap(tapCount.current);
+    tapCount.current = count;
+    if (unlocked) setLogUnlocked(true);
+  }
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden">
@@ -40,7 +51,11 @@ export function App() {
       </div>
       <div className="flex-1 min-h-0">
         <PageStack screenKey={screenKey} direction={ui.navDirection}>
-          {ui.settingsOpen ? <SettingsForm /> : <StatusScreen />}
+          {ui.settingsOpen ? (
+            <SettingsForm showLog={showLog} onVersionTap={handleVersionTap} />
+          ) : (
+            <StatusScreen />
+          )}
         </PageStack>
       </div>
     </div>

@@ -44,6 +44,12 @@ function selectionFromPrefill(prefill: TenantConfig | null): DbSelection {
   };
 }
 
+export interface SettingsFormProps {
+  /** Session-only; lifted to App so Back does not reset the unlock. */
+  showLog: boolean;
+  onVersionTap: () => void;
+}
+
 /**
  * The Notion tenant-config form — opened via ../../providers/uiController's
  * settingsOpen flag (see promptForConfig) and resolved on valid submit,
@@ -55,7 +61,7 @@ function selectionFromPrefill(prefill: TenantConfig | null): DbSelection {
  * and offered as options, with a database already picked for one slot hidden
  * from the other three so the same database can never be assigned twice.
  */
-export function SettingsForm() {
+export function SettingsForm({ showLog, onVersionTap }: SettingsFormProps) {
   const ui = useUiState();
   const [token, setToken] = useState(() => ui.settingsPrefill?.token ?? '');
   const [selection, setSelection] = useState<DbSelection>(() =>
@@ -284,7 +290,14 @@ export function SettingsForm() {
           {confirmUnfit ? 'Save anyway' : 'Save'}
         </Button>
       </form>
-      <LogConsole />
+      {showLog ? <LogConsole /> : null}
+      <button
+        type="button"
+        onClick={onVersionTap}
+        className="text-[12px] text-text-dim text-center w-full mb-4"
+      >
+        v{__APP_VERSION__}
+      </button>
     </Page>
   );
 }
