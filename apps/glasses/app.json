@@ -15,7 +15,12 @@
   "permissions": [
     {
       "name": "network",
-      "desc": "Connect to the local Notion Ultimate Brain server to sync Notion tasks and forward voice transcripts."
+      "desc": "Connect to the Notion Ultimate Brain server to sync Notion tasks, download the offline voice model, and — only if you choose cloud voice input — stream audio to Soniox.",
+      "whitelist": [
+        "https://bfh6yxf7bgbddlc2bijzj5jygq0ouoyc.lambda-url.us-east-1.on.aws",
+        "https://notion-ub-assets.web.app",
+        "wss://stt-rt.soniox.com"
+      ]
     },
     {
       "name": "g2-microphone",

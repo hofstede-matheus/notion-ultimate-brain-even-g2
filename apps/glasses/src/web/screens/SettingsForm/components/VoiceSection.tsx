@@ -4,6 +4,7 @@ import { Progress } from 'even-toolkit/web/progress';
 import { SegmentedControl } from 'even-toolkit/web/segmented-control';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { trace } from '../../../../logging/trace';
+import { type SonioxKeyCheck, testSonioxKey } from '../../../../stt/soniox';
 import {
   loadVoiceConfig,
   saveVoiceConfig,
@@ -20,6 +21,25 @@ import {
   VOICE_MODES,
 } from '../voiceSection';
 
+type KeyCheckState = 'idle' | 'checking' | SonioxKeyCheck;
+
+const KEY_CHECK_LABEL: Record<KeyCheckState, string> = {
+  idle: '',
+  checking: 'Testing…',
+  valid: 'Key works ✓',
+  invalid: 'Key rejected by Soniox',
+  // Deliberately not "key is bad": the key may be fine and the connection not.
+  unreachable: "Couldn't reach Soniox",
+};
+
+const KEY_CHECK_TONE: Record<KeyCheckState, string> = {
+  idle: 'text-text-dim',
+  checking: 'text-text-dim',
+  valid: 'text-positive',
+  invalid: 'text-negative',
+  unreachable: 'text-accent-warning',
+};
+
 /**
  * Picks the speech backend for Add Task, and manages whichever one is chosen:
  * the one-time model download for on-device, or the API key for cloud.
@@ -35,6 +55,7 @@ export function VoiceSection() {
   const [received, setReceived] = useState(0);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [keyCheck, setKeyCheck] = useState<KeyCheckState>('idle');
   const abortRef = useRef<AbortController | null>(null);
 
   // Load the stored config once, then check whether the model is present.
@@ -73,7 +94,13 @@ export function VoiceSection() {
   function handleKeyChange(next: string): void {
     setApiKey(next);
     setError(null);
+    setKeyCheck('idle'); // a previous verdict says nothing about a different key
     if (isPlausibleApiKey(next)) void persist({ mode: 'cloud', sonioxApiKey: next.trim() });
+  }
+
+  async function handleTestKey(): Promise<void> {
+    setKeyCheck('checking');
+    setKeyCheck(await testSonioxKey(apiKey.trim()));
   }
 
   async function handleDownload(): Promise<void> {
@@ -212,6 +239,21 @@ export function VoiceSection() {
           <p className="text-[12px] text-text-dim mt-1">
             Create one at console.soniox.com. It is stored on this device only.
           </p>
+
+          <div className="flex items-center justify-between mt-2">
+            <span className={`text-[12px] ${KEY_CHECK_TONE[keyCheck]}`}>
+              {KEY_CHECK_LABEL[keyCheck]}
+            </span>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={keyCheck === 'checking' || !isPlausibleApiKey(apiKey)}
+              onClick={() => void handleTestKey()}
+            >
+              Test key
+            </Button>
+          </div>
         </div>
       )}
     </div>

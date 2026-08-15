@@ -117,8 +117,32 @@ describe('soniox provider — connection', () => {
     const { provider, ws } = await connected();
     provider.startListening(vi.fn(), vi.fn());
     provider.feedAudio(loudFrame());
+    provider.stopListening(); // flushes whatever is buffered
 
-    expect(ws.binaryFrames).toHaveLength(1);
+    expect(ws.binaryFrames.length).toBeGreaterThan(0);
+  });
+
+  it('opens a fresh socket per recording, since end-of-audio is terminal', async () => {
+    // The server closes after `finished`, and an empty frame ends the stream
+    // for good. Reusing the socket made the second recording stream audio into
+    // a spent session and transcribe nothing.
+    const { provider, ws: first } = await connected();
+    provider.startListening(vi.fn(), vi.fn());
+    provider.feedAudio(loudFrame());
+    provider.stopListening();
+
+    const ready = provider.ensureReady();
+    const second = FakeWebSocket.last;
+    expect(second).not.toBe(first);
+    second?.open();
+    expect(await ready).toBe(true);
+  });
+
+  it('reuses a socket that has not carried audio yet', async () => {
+    // Connecting twice without recording in between shouldn't churn sockets.
+    const { provider, ws } = await connected();
+    expect(await provider.ensureReady()).toBe(true);
+    expect(FakeWebSocket.last).toBe(ws);
   });
 
   it('resolves false when the socket never opens', async () => {
@@ -135,15 +159,21 @@ describe('soniox provider — connection', () => {
 });
 
 describe('soniox provider — audio', () => {
+  /** Concatenation of every binary frame the socket received. */
+  function allBytes(ws: FakeWebSocket): number[] {
+    return ws.binaryFrames.flatMap((b) => Array.from(new Uint8Array(b)));
+  }
+
   it('forwards raw S16LE bytes without converting them', async () => {
     const { provider, ws } = await connected();
     provider.startListening(vi.fn(), vi.fn());
 
     const frame = loudFrame(4);
     provider.feedAudio(frame);
+    provider.stopListening();
 
-    const sent = new Uint8Array(ws.binaryFrames[0] as ArrayBuffer);
-    expect(Array.from(sent)).toEqual(Array.from(frame));
+    // The trailing empty frame is the end-of-audio marker, not audio.
+    expect(allBytes(ws)).toEqual(Array.from(frame));
   });
 
   it('accepts number[] frames from the JSON bridge', async () => {
@@ -151,10 +181,45 @@ describe('soniox provider — audio', () => {
     provider.startListening(vi.fn(), vi.fn());
 
     provider.feedAudio([0x40, 0x1f, 0x40, 0x1f]);
+    provider.stopListening();
 
-    expect(new Uint8Array(ws.binaryFrames[0] as ArrayBuffer)).toEqual(
-      new Uint8Array([0x40, 0x1f, 0x40, 0x1f]),
-    );
+    expect(allBytes(ws)).toEqual([0x40, 0x1f, 0x40, 0x1f]);
+  });
+
+  it('batches 10 ms frames instead of one send each', async () => {
+    // The glasses emit 320-byte frames every 10 ms. Sending each one straight
+    // through is 100 WebSocket writes a second, well outside the pacing Soniox
+    // documents, and got the stream dropped with a 408.
+    const { provider, ws } = await connected();
+    provider.startListening(vi.fn(), vi.fn());
+
+    for (let i = 0; i < 10; i++) provider.feedAudio(loudFrame(160)); // 10 × 320 B
+
+    expect(ws.binaryFrames).toHaveLength(1);
+    expect(ws.binaryFrames[0]?.byteLength).toBe(3200); // 100 ms
+  });
+
+  it('still measures every frame for the VAD while batching the wire traffic', async () => {
+    // Batching must not delay silence detection: onStop comes from the VAD,
+    // which has to see each frame as it arrives.
+    const { provider, ws } = await connected();
+    provider.startListening(vi.fn(), vi.fn());
+
+    provider.feedAudio(loudFrame(160)); // below the batch threshold
+    expect(ws.binaryFrames).toHaveLength(0);
+    expect(provider.isListening()).toBe(true);
+  });
+
+  it('flushes buffered audio before finalizing, so no tail is lost', async () => {
+    const { provider, ws } = await connected();
+    provider.startListening(vi.fn(), vi.fn());
+
+    provider.feedAudio(loudFrame(160)); // 320 B, well under the 3200 B batch
+    provider.stopListening();
+
+    const audio = ws.binaryFrames.filter((b) => b.byteLength > 0);
+    expect(audio).toHaveLength(1);
+    expect(audio[0]?.byteLength).toBe(320);
   });
 
   it('drops audio when no session is active', async () => {
@@ -217,6 +282,20 @@ describe('soniox provider — transcripts', () => {
     const empty = ws.binaryFrames.at(-1);
     expect(empty?.byteLength).toBe(0);
   });
+
+  it('terminates with an empty text frame as well as an empty binary one', async () => {
+    // The docs describe the terminator as "an empty WebSocket frame (binary or
+    // text)" in one place and the empty string in another. A zero-length binary
+    // frame is the kind of thing a WebSocket stack quietly drops, and losing
+    // the terminator means `finished` never arrives and the stream dies on a
+    // 408 — so send both.
+    const { provider, ws } = await connected();
+    provider.startListening(vi.fn(), vi.fn());
+    provider.stopListening();
+
+    expect(ws.textFrames).toContain('');
+    expect(ws.binaryFrames.some((b) => b.byteLength === 0)).toBe(true);
+  });
 });
 
 describe('soniox provider — failures', () => {
@@ -239,6 +318,68 @@ describe('soniox provider — failures', () => {
     ws.onclose?.();
 
     expect(onFinal).toHaveBeenCalledWith('');
+  });
+
+  it('keeps the transcript when the server closes instead of sending finished', async () => {
+    const { provider, ws } = await connected();
+    const onFinal = vi.fn();
+    provider.startListening(onFinal, vi.fn());
+
+    ws.receive({ tokens: [{ text: 'buy milk', is_final: true }] });
+    provider.stopListening();
+    ws.onclose?.();
+
+    // Waiting out the safety timeout with a finished transcript in hand would
+    // read as a hang and then throw the words away.
+    expect(onFinal).toHaveBeenCalledWith('buy milk');
+  });
+
+  it('keeps what was transcribed when the server never says finished', async () => {
+    vi.useFakeTimers();
+    try {
+      const provider = createSonioxProvider('key');
+      const ready = provider.ensureReady();
+      const ws = FakeWebSocket.last;
+      ws?.open();
+      await ready;
+
+      const onFinal = vi.fn();
+      provider.startListening(onFinal, vi.fn());
+      ws?.receive({ tokens: [{ text: 'buy milk', is_final: true }] });
+      provider.stopListening();
+
+      // No `finished` ever arrives — the failure mode that turned working
+      // recognition into "couldn't hear anything".
+      await vi.advanceTimersByTimeAsync(6000);
+      expect(onFinal).toHaveBeenCalledWith('buy milk');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('allows longer than the on-device backend for a cloud round trip', async () => {
+    vi.useFakeTimers();
+    try {
+      const provider = createSonioxProvider('key');
+      const ready = provider.ensureReady();
+      FakeWebSocket.last?.open();
+      await ready;
+
+      const onFinal = vi.fn();
+      provider.startListening(onFinal, vi.fn());
+      provider.stopListening();
+
+      // 3 s is the local recogniser's budget; finalising over mobile data is
+      // not comparable, and cutting it off there is what produced a spurious
+      // "couldn't hear anything".
+      await vi.advanceTimersByTimeAsync(3500);
+      expect(onFinal).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(7000);
+      expect(onFinal).toHaveBeenCalledWith('');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('stops listening and closes the socket on dispose', async () => {

@@ -16,7 +16,25 @@ const SILENCE_MS = 1200; // silence after speech triggers auto-stop
 const MIN_LISTEN_MS = 500; // don't auto-stop before this many ms
 const MAX_LISTEN_MS = 15000; // hard cap regardless of VAD
 const ENDPOINT_POLL_MS = 150; // how often VAD is evaluated
-const RESULT_TIMEOUT_MS = 3000; // safety timeout if the backend never delivers
+
+/**
+ * Safety timeout if the backend never delivers. Tuned for a local recogniser
+ * flushing in-process; a cloud backend passes a longer one, since finalising
+ * over a mobile connection is not comparable.
+ */
+const RESULT_TIMEOUT_MS = 3000;
+
+export interface ListenSessionOptions {
+  /** Overrides how long to wait for a transcript after asking the backend to flush. */
+  resultTimeoutMs?: number;
+  /**
+   * What to deliver when the backend never signals completion. Defaults to an
+   * empty transcript ("nothing was heard"), but a backend that has already
+   * received usable text should hand it over rather than throw it away — a
+   * missing end-of-stream signal is not the same as silence.
+   */
+  onTimeout?: () => string;
+}
 
 // ---------------------------------------------------------------------------
 // Audio helpers
@@ -87,7 +105,11 @@ export interface ListenSession {
   abort(): void;
 }
 
-export function createListenSession(flush: () => void): ListenSession {
+export function createListenSession(
+  flush: () => void,
+  opts: ListenSessionOptions = {},
+): ListenSession {
+  const resultTimeoutMs = opts.resultTimeoutMs ?? RESULT_TIMEOUT_MS;
   let listening = false;
   let heardSpeech = false;
   let lastVoiceAt = 0;
@@ -169,8 +191,8 @@ export function createListenSession(flush: () => void): ListenSession {
       resultTimer = setTimeout(() => {
         resultTimer = null;
         onFinal = null;
-        saved?.('');
-      }, RESULT_TIMEOUT_MS);
+        saved?.(opts.onTimeout?.() ?? '');
+      }, resultTimeoutMs);
     },
 
     deliver(text) {

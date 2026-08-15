@@ -149,6 +149,27 @@ version-specific, see `glasses/constants.ts`) with `pnpm --filter
   - Soniox ships exactly one real-time model, `stt-rt-v5`; there is no fast/accurate tier.
     `stt-rt-v4` is a retired alias — don't reintroduce it. The socket is opened in
     `ensureReady()`, **before** the mic, or the first word gets clipped.
+  - **End the Soniox stream with an empty *text* frame, not just an empty binary one.**
+    This is the one that actually bit: the docs call the terminator "an empty WebSocket
+    frame (binary or text)" in one place and the empty string in another, and a
+    zero-length *binary* frame gets dropped somewhere between the WebView and the server.
+    Without a terminator Soniox never sends `finished`, the transcript is never delivered,
+    and the stream dies 20 s later with `408 request_timeout` — which reads as "couldn't
+    hear anything" even though recognition worked. `soniox.ts` sends both, plus
+    `{"type":"finalize"}`.
+  - **One Soniox socket per recording.** The end-of-audio frame is terminal and the
+    server closes after `finished`, so a reused socket silently transcribes nothing —
+    `streamUsed` in `soniox.ts` forces a reconnect. And **batch the audio**: the glasses
+    emit 10 ms frames (320 B), which is 100 sends/s against the ~120 ms pacing Soniox
+    documents. The VAD still sees every frame; only the wire traffic is batched.
+  - **Never let a missing `finished` discard a transcript** — the session's `onTimeout`
+    hands back whatever was already finalised. And keep the `soniox finalize` trace line
+    honest: `sentBytes` / `buffered` / `tokens` are what separate "nothing left the
+    device" from "server said nothing", and the VAD reads each frame *before* the send,
+    so recording looks healthy either way.
+  - The `Test key` button in Settings (`testSonioxKey`) runs a whole miniature session —
+    config, audio, terminator, `finished` — rather than just a handshake, precisely so it
+    exercises the parts above.
 - **Server logging is a privacy contract, not a convenience.** `apps/server/src/lambda/logger.ts`
   wraps pino with no `transport` (pino-pretty/multi-target spawn a worker that loads a script
   by path, which doesn't survive the esbuild single-file bundle). What it logs is deliberately
