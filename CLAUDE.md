@@ -53,14 +53,15 @@ automation port; for headless inspection use the `simulator-debug` skill.
 ```bash
 pnpm test              # unit — vitest in both apps and contracts, fast
 pnpm test:integration  # glasses end-to-end in the simulator, ~1 min; local needs a desktop session (CI runs this in a separate job)
-pnpm mutation          # StrykerJS — unit-test quality on pure logic; slow, CI-blocking
+pnpm mutation          # StrykerJS — unit-test quality on pure logic; slow, local-only
 pnpm lint              # biome check .
 pnpm check-types       # tsc --noEmit
 ```
 
 **Finishing a change means running all four.** Report what actually
 happened — a suite you did not run is not a suite that passed, and "should
-pass" is not a result. CI also runs `pnpm test:integration` in a dedicated
+pass" is not a result. `pnpm mutation` is local-only (not CI); run it at the
+end of a task. CI also runs `pnpm test:integration` in a dedicated
 `integration` job (Xvfb on ubuntu-latest); that is not part of the four local
 commands above — run it locally when you touch simulator-facing flows.
 
