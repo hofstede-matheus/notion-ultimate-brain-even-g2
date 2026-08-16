@@ -44,8 +44,56 @@ pnpm build          # server → esbuild lambda bundle; glasses → Vite dist/
 Scope to one workspace with `pnpm --filter @notion-ub/server <task>` /
 `--filter @notion-ub/glasses <task>`. Package the `.ehpk` with
 `pnpm --filter @notion-ub/glasses pack`. Simulator (pinned to
-`@evenrealities/evenhub-simulator@0.7.3` — container caps are version-specific):
-`pnpm --filter @notion-ub/glasses sim`, with `pnpm dev` on :5173.
+`@evenrealities/evenhub-simulator@0.8.0` — container caps are version-specific):
+`pnpm --filter @notion-ub/glasses sim`, with `pnpm dev` on :5173. `sim` has no
+automation port; for headless inspection use the `simulator-debug` skill.
+
+## Testing
+
+```bash
+pnpm test              # unit — vitest in both apps and contracts, fast
+pnpm test:integration  # glasses end-to-end in the simulator, ~1 min, needs a desktop session
+pnpm mutation          # StrykerJS — unit-test quality on pure logic; slow, CI-blocking
+pnpm lint              # biome check .
+pnpm check-types       # tsc --noEmit
+```
+
+**Finishing a change means running all four.** Report what actually
+happened — a suite you did not run is not a suite that passed, and "should
+pass" is not a result.
+
+- **Every change ships unit tests**, in the same change as the behaviour.
+  Glasses tests live in `apps/glasses/src/__tests__/**` and use
+  `__tests__/glasses/harness.ts` + `fakes.ts`, not ad-hoc setup.
+- **Every fix ships a regression test** in the unit suite. Write it so it
+  fails against the unfixed code — a regression test that passes before the
+  fix is testing nothing.
+- **Integration tests are for high-level flows only.** They drive the real
+  simulator (`apps/glasses/src/__integration__/`), so they are slow and few.
+  Add one only when a change introduces or reshapes a whole user-facing
+  flow — a new screen tree, a new mutation round trip, a new render mode
+  (list → bitmap → reader). Every change should *consider* whether one is
+  warranted; most correctly conclude no. See
+  `apps/glasses/src/__integration__/README.md`.
+- **Never update a test to make it pass.** A failing test is a finding, not
+  an obstacle. Change a test only when the behaviour it describes was
+  deliberately changed, and say so in the commit body. Deleting a case,
+  adding `.skip`, loosening an assertion, or widening a matcher to reach
+  green is not allowed. If a test looks wrong, say so and stop — do not
+  quietly rewrite it.
+- **A UI change gets looked at, not just tested.** Tests confirm the data
+  and screen logic are right; they don't confirm anything actually painted.
+  Use the `simulator-debug` skill (`.claude/skills/simulator-debug/SKILL.md`)
+  to launch the app, drive it (tap/swipe/back via the automation API), and
+  `Read` the resulting screenshots yourself before calling a glasses-screen
+  or webview change done.
+- **Mutation testing scores the unit suite, not the product.** Scope is
+  pure logic only — SDK/HTTP glue (`api.ts`, `glasses/render/*`, `boot.ts`),
+  constant tables (`glasses/constants.ts`, `views.ts`, `db-roles-requirements.ts`,
+  `font5x7-glyphs.ts`, `soniox-language-codes.ts`, `event-type-names.ts`), `.tsx` components, and known
+  coverage gaps (`tenant-config.ts`, `logging/trace.ts`) are excluded so
+  survivors stay signal. Each workspace's `thresholds.break` is a ratchet:
+  raise it as holes are closed, never lower it to make a run green.
 
 ## Conventions
 
@@ -70,13 +118,19 @@ Scope to one workspace with `pnpm --filter @notion-ub/server <task>` /
   version label (session-only unlock; always visible in `vite dev`). Don't log the raw
   tenant token or `X-Notion-Config`
   outside `tenant-config.ts` (secrets are redacted automatically).
-- **Glasses tests** live in `apps/glasses/src/__tests__/**` and use
-  `__tests__/glasses/harness.ts` + `fakes.ts`, not ad-hoc setup.
+- **Testing rules** (what needs a test, unit vs. integration, never edit a
+  test to force it green) are in the **Testing** section above.
 - **Server logging is a privacy contract.** Successful requests log nothing; failures log only
   `{ method, route, status, errorCode? }` — `route` is the pattern (`/api/pages/:id`), never
   the raw path. No response bodies, error messages, or env var to widen this. See
   `apps/server/src/lambda/logger.ts` and `legal.html` before changing it.
 - Never commit without explicit user consent for that specific commit.
+- **Out-of-scope findings become GitHub issues.** If an investigation or
+  in-progress task turns up a real problem that is not part of the current
+  change, do not silently drop it and do not expand the change to fix it.
+  Open a GitHub issue on this repo that explains the problem in detail
+  (what you saw, where, why it matters, how to reproduce). Then stay on
+  the original task.
 
 ## Gotchas
 
@@ -84,7 +138,7 @@ Scope to one workspace with `pnpm --filter @notion-ub/server <task>` /
   (not "Complete"); Projects: `Doing`/`Ongoing` (not "In progress"); Tags Type:
   `Area`/`Resource`/`Entity`. Group labels silently match nothing.
 - **Duplicate database titles.** Settings disambiguates via
-  `packages/contracts/src/db-roles.ts` (`ROLE_REQUIREMENTS`). Keep that table in sync with
+  `packages/contracts/src/db-roles-requirements.ts` (`ROLE_REQUIREMENTS`). Keep that table in sync with
   `views.ts`/`routes.ts`/`mappers.ts` — `db-roles-drift.test.ts` fails if a new filter or
   sort isn't listed.
 - **G2 lists:** `MAX_LIST_ITEMS` 20, `MAX_ITEM_BYTES` 63 **UTF-8 bytes** (not JS chars).

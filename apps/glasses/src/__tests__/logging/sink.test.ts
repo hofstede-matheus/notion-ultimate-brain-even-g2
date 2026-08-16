@@ -51,6 +51,45 @@ describe('append', () => {
     expect(entries[0]?.msg).toBe('entry-10');
     expect(entries[entries.length - 1]?.msg).toBe(`entry-${LOG_BUFFER_SIZE + 9}`);
   });
+
+  it('caps a long string ctx value at 200 chars with an ellipsis', () => {
+    const long = `${'word '.repeat(50)}extra`; // 201 chars; spaces break base64 redaction
+    append('info', 'API', 'loaded', { detail: long });
+    const stored = getSnapshot()[0]?.ctx?.detail;
+    expect(typeof stored).toBe('string');
+    expect((stored as string).length).toBe(201); // 200 chars + ellipsis char
+    expect(stored).toMatch(/…$/);
+    expect(stored).toBe(`${long.slice(0, 200)}…`);
+  });
+
+  it('leaves a string ctx value at exactly 200 chars uncapped', () => {
+    const exact = 'word '.repeat(40); // 200 chars; spaces break base64 redaction
+    append('info', 'API', 'loaded', { detail: exact });
+    expect(getSnapshot()[0]?.ctx?.detail).toBe(exact);
+  });
+
+  it('summarises an array ctx value by length', () => {
+    append('info', 'API', 'loaded', { items: [1, 2, 3] });
+    expect(getSnapshot()[0]?.ctx?.items).toBe('<array len=3>');
+  });
+
+  it('stores a small object ctx value as redacted JSON', () => {
+    append('info', 'API', 'loaded', { meta: { count: 12 } });
+    expect(getSnapshot()[0]?.ctx?.meta).toBe('{"count":12}');
+  });
+
+  it('summarises an oversized object ctx value by serialised length', () => {
+    append('info', 'API', 'loaded', { meta: { blob: 'z'.repeat(250) } });
+    const stored = getSnapshot()[0]?.ctx?.meta;
+    expect(stored).toMatch(/^<object len=\d+>$/);
+  });
+
+  it('stores unserialisable object ctx values as a placeholder', () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    append('info', 'API', 'loaded', { bad: circular });
+    expect(getSnapshot()[0]?.ctx?.bad).toBe('<unserialisable>');
+  });
 });
 
 describe('seedPreviousSession', () => {
@@ -71,6 +110,15 @@ describe('seedPreviousSession', () => {
     const before = getSnapshot();
     seedPreviousSession([]);
     expect(getSnapshot()).toBe(before);
+  });
+
+  it('notifies subscribers', () => {
+    const listener = vi.fn();
+    subscribe(listener);
+    seedPreviousSession([
+      { seq: 1, t: 1, level: 'info', cat: 'NAV', msg: 'old line', line: 'old line' },
+    ]);
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 });
 

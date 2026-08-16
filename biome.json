@@ -7,6 +7,8 @@
       "!**/dist",
       "!**/dist-lambda",
       "!**/coverage",
+      "!**/reports",
+      "!**/.stryker-tmp",
       "!**/node_modules",
       "!**/.turbo",
       "!**/.kilo",

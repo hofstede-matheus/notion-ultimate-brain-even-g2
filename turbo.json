@@ -10,6 +10,10 @@
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"]
     },
+    "mutation": {
+      "dependsOn": ["^build"],
+      "outputs": ["reports/mutation/**"]
+    },
     "check-types": {
       "dependsOn": ["^check-types"]
     },

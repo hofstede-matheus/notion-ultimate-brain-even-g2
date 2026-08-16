@@ -29,10 +29,9 @@ describe('createBuffer / setPixel / getPixel', () => {
 
   it('silently drops out-of-bounds writes', () => {
     const buf = createBuffer(2, 2);
-    setPixel(buf, 2, 2, -1, 0, 1);
-    setPixel(buf, 2, 2, 5, 0, 1);
-    setPixel(buf, 2, 2, 0, -1, 1);
-    setPixel(buf, 2, 2, 0, 5, 1);
+    // Negative x/y wrap to in-bounds indices on Uint8Array without the guard.
+    setPixel(buf, 2, 2, -1, 1, 1);
+    setPixel(buf, 2, 2, 2, 0, 1);
     expect([...buf].every((v) => v === 0)).toBe(true);
   });
 });

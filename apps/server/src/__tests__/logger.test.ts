@@ -16,11 +16,24 @@ describe('summarizeFailure', () => {
 
   it('reports method, route and status for a failure', () => {
     const result: RouteResult = { status: 404, body: { error: 'No route' } };
-    expect(summarizeFailure('GET', 'unmatched', result)).toEqual({
+    expect(summarizeFailure('GET', 'unmatched', result)).toStrictEqual({
       method: 'GET',
       route: 'unmatched',
       status: 404,
     });
+  });
+
+  it('does not add errorCode when the route result has none', () => {
+    const entry = summarizeFailure('GET', '/api/tasks/inbox', {
+      status: 500,
+      body: { error: 'boom' },
+    });
+    expect(entry).toStrictEqual({
+      method: 'GET',
+      route: '/api/tasks/inbox',
+      status: 500,
+    });
+    expect(entry).not.toHaveProperty('errorCode');
   });
 
   it('includes the Notion error code when there is one', () => {
