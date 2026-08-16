@@ -117,6 +117,12 @@ pass" is not a result.
   the raw path. No response bodies, error messages, or env var to widen this. See
   `apps/server/src/lambda/logger.ts` and `legal.html` before changing it.
 - Never commit without explicit user consent for that specific commit.
+- **Out-of-scope findings become GitHub issues.** If an investigation or
+  in-progress task turns up a real problem that is not part of the current
+  change, do not silently drop it and do not expand the change to fix it.
+  Open a GitHub issue on this repo that explains the problem in detail
+  (what you saw, where, why it matters, how to reproduce). Then stay on
+  the original task.
 
 ## Gotchas
 
