@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.8.0](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.7.3...glasses-v2.8.0) (2026-08-16)
+
+
+### Features
+
+* **glasses:** add cloud voice input and download the on-device model at runtime ([#21](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/21)) ([fe97f7f](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/fe97f7ff666851e084893b386ab3a7c7d4eadacb))
+* **glasses:** implement debug log unlock feature ([#24](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/24)) ([e57afab](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/e57afab55e54671d5299181944400d31dff281dd))
+
 ## [2.7.3](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.7.2...glasses-v2.7.3) (2026-08-14)
 
 
