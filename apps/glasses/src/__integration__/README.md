@@ -10,9 +10,11 @@ pnpm --filter @notion-ub/glasses test:integration
 pnpm test:integration
 ```
 
-Needs a desktop session (the simulator is a real GUI window) and takes
-roughly a minute. Not part of `pnpm test` and not run in CI — see
-CLAUDE.md's Testing section for where this suite fits.
+Needs a desktop session locally (the simulator is a real GUI window) and takes
+roughly a minute. Not part of `pnpm test` — see CLAUDE.md's Testing section for
+where this suite fits. CI runs it as a separate job in `.github/workflows/ci.yml`
+(`integration`), under Xvfb on `ubuntu-latest`; a fresh runner avoids the stale
+WebKit-profile trap described below.
 
 Vitest sometimes prints `close timed out after 10000ms` / `something
 prevents Vite server from exiting` after the results table. That's Node's

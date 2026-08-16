@@ -192,9 +192,11 @@ export default async function setup(): Promise<() => Promise<void>> {
 
     const simEnv = { ...process.env };
     if (process.env.UB_E2E_SIM_DEBUG) simEnv.RUST_LOG = simEnv.RUST_LOG ?? 'debug';
+    const simArgs = [VITE_URL, '--automation-port', String(SIM_PORT)];
+    if (process.env.CI) simArgs.push('--no-aid');
     simProcess = spawnLogged(
       resolveRepoBin('evenhub-simulator'),
-      [VITE_URL, '--automation-port', String(SIM_PORT)],
+      simArgs,
       REPO_ROOT,
       `${RUNTIME_DIR}/simulator.log`,
       simEnv,
