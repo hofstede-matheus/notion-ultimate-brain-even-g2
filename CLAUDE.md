@@ -51,8 +51,9 @@ automation port; for headless inspection use the `simulator-debug` skill.
 ## Testing
 
 ```bash
-pnpm test              # unit — vitest in both apps, fast
+pnpm test              # unit — vitest in both apps and contracts, fast
 pnpm test:integration  # glasses end-to-end in the simulator, ~1 min, needs a desktop session
+pnpm mutation          # StrykerJS — unit-test quality on pure logic; slow, CI-blocking
 pnpm lint              # biome check .
 pnpm check-types       # tsc --noEmit
 ```
@@ -86,6 +87,13 @@ pass" is not a result.
   to launch the app, drive it (tap/swipe/back via the automation API), and
   `Read` the resulting screenshots yourself before calling a glasses-screen
   or webview change done.
+- **Mutation testing scores the unit suite, not the product.** Scope is
+  pure logic only — SDK/HTTP glue (`api.ts`, `glasses/render/*`, `boot.ts`),
+  constant tables (`glasses/constants.ts`, `views.ts`, `db-roles-requirements.ts`,
+  `font5x7-glyphs.ts`, `soniox-language-codes.ts`), `.tsx` components, and known
+  coverage gaps (`tenant-config.ts`, `logging/trace.ts`) are excluded so
+  survivors stay signal. Each workspace's `thresholds.break` is a ratchet:
+  raise it as holes are closed, never lower it to make a run green.
 
 ## Conventions
 
@@ -130,7 +138,7 @@ pass" is not a result.
   (not "Complete"); Projects: `Doing`/`Ongoing` (not "In progress"); Tags Type:
   `Area`/`Resource`/`Entity`. Group labels silently match nothing.
 - **Duplicate database titles.** Settings disambiguates via
-  `packages/contracts/src/db-roles.ts` (`ROLE_REQUIREMENTS`). Keep that table in sync with
+  `packages/contracts/src/db-roles-requirements.ts` (`ROLE_REQUIREMENTS`). Keep that table in sync with
   `views.ts`/`routes.ts`/`mappers.ts` — `db-roles-drift.test.ts` fails if a new filter or
   sort isn't listed.
 - **G2 lists:** `MAX_LIST_ITEMS` 20, `MAX_ITEM_BYTES` 63 **UTF-8 bytes** (not JS chars).

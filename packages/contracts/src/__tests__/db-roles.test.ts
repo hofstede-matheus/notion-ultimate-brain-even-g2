@@ -1,5 +1,5 @@
-import { evaluateRoles } from '@notion-ub/contracts';
 import { describe, expect, it } from 'vitest';
+import { evaluateRoles } from '../db-roles';
 
 // Property-type maps taken from the real Notion workspace involved in this incident (fetched
 // read-only via the Notion API during investigation) — not synthetic fixtures.
