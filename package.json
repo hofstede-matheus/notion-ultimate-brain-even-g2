@@ -11,6 +11,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "test": "turbo run test",
+    "test:integration": "pnpm --filter @notion-ub/glasses test:integration",
     "check-types": "turbo run check-types",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",

@@ -48,6 +48,45 @@ Scope to one workspace with `pnpm --filter @notion-ub/server <task>` /
 `pnpm --filter @notion-ub/glasses sim`, with `pnpm dev` on :5173. `sim` has no
 automation port; for headless inspection use the `simulator-debug` skill.
 
+## Testing
+
+```bash
+pnpm test              # unit — vitest in both apps, fast
+pnpm test:integration  # glasses end-to-end in the simulator, ~1 min, needs a desktop session
+pnpm lint              # biome check .
+pnpm check-types       # tsc --noEmit
+```
+
+**Finishing a change means running all four.** Report what actually
+happened — a suite you did not run is not a suite that passed, and "should
+pass" is not a result.
+
+- **Every change ships unit tests**, in the same change as the behaviour.
+  Glasses tests live in `apps/glasses/src/__tests__/**` and use
+  `__tests__/glasses/harness.ts` + `fakes.ts`, not ad-hoc setup.
+- **Every fix ships a regression test** in the unit suite. Write it so it
+  fails against the unfixed code — a regression test that passes before the
+  fix is testing nothing.
+- **Integration tests are for high-level flows only.** They drive the real
+  simulator (`apps/glasses/src/__integration__/`), so they are slow and few.
+  Add one only when a change introduces or reshapes a whole user-facing
+  flow — a new screen tree, a new mutation round trip, a new render mode
+  (list → bitmap → reader). Every change should *consider* whether one is
+  warranted; most correctly conclude no. See
+  `apps/glasses/src/__integration__/README.md`.
+- **Never update a test to make it pass.** A failing test is a finding, not
+  an obstacle. Change a test only when the behaviour it describes was
+  deliberately changed, and say so in the commit body. Deleting a case,
+  adding `.skip`, loosening an assertion, or widening a matcher to reach
+  green is not allowed. If a test looks wrong, say so and stop — do not
+  quietly rewrite it.
+- **A UI change gets looked at, not just tested.** Tests confirm the data
+  and screen logic are right; they don't confirm anything actually painted.
+  Use the `simulator-debug` skill (`.claude/skills/simulator-debug/SKILL.md`)
+  to launch the app, drive it (tap/swipe/back via the automation API), and
+  `Read` the resulting screenshots yourself before calling a glasses-screen
+  or webview change done.
+
 ## Conventions
 
 - **Server is a proxy; the client decides.** A handler attaches the tenant token, calls
@@ -71,8 +110,8 @@ automation port; for headless inspection use the `simulator-debug` skill.
   version label (session-only unlock; always visible in `vite dev`). Don't log the raw
   tenant token or `X-Notion-Config`
   outside `tenant-config.ts` (secrets are redacted automatically).
-- **Glasses tests** live in `apps/glasses/src/__tests__/**` and use
-  `__tests__/glasses/harness.ts` + `fakes.ts`, not ad-hoc setup.
+- **Testing rules** (what needs a test, unit vs. integration, never edit a
+  test to force it green) are in the **Testing** section above.
 - **Server logging is a privacy contract.** Successful requests log nothing; failures log only
   `{ method, route, status, errorCode? }` — `route` is the pattern (`/api/pages/:id`), never
   the raw path. No response bodies, error messages, or env var to widen this. See

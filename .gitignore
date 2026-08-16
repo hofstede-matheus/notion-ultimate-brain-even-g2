@@ -42,6 +42,10 @@ yarn-error.log*
 # Test / coverage
 **/coverage/
 
+# Integration test runtime (generated per run — synthetic env file, logs,
+# failure screenshots; see apps/glasses/src/__integration__/README.md)
+apps/glasses/src/__integration__/.runtime/
+
 # Kilo plans (local planning artifacts)
 .kilo/plans/
 

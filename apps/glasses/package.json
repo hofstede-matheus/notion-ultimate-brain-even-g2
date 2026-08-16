@@ -12,6 +12,7 @@
     "fetch:voice-model": "node scripts/fetch-vosk-model.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
@@ -31,10 +32,13 @@
     "@evenrealities/evenhub-simulator": "0.8.0",
     "@notion-ub/typescript-config": "workspace:*",
     "@tailwindcss/vite": "^4.1.16",
+    "@types/node": "^20",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^19.2.3",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "jsdom": "^29.1.1",
+    "pngjs": "^7.0.0",
     "tailwindcss": "^4.1.16",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
