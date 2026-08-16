@@ -90,7 +90,7 @@ pass" is not a result.
 - **Mutation testing scores the unit suite, not the product.** Scope is
   pure logic only — SDK/HTTP glue (`api.ts`, `glasses/render/*`, `boot.ts`),
   constant tables (`glasses/constants.ts`, `views.ts`, `db-roles-requirements.ts`,
-  `font5x7-glyphs.ts`, `soniox-language-codes.ts`), `.tsx` components, and known
+  `font5x7-glyphs.ts`, `soniox-language-codes.ts`, `event-type-names.ts`), `.tsx` components, and known
   coverage gaps (`tenant-config.ts`, `logging/trace.ts`) are excluded so
   survivors stay signal. Each workspace's `thresholds.break` is a ratchet:
   raise it as holes are closed, never lower it to make a run green.

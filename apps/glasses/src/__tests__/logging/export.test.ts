@@ -25,6 +25,17 @@ describe('buildLogText', () => {
     expect(text).toContain('scroll throttled');
   });
 
+  it('joins buffered lines with newlines', () => {
+    append('info', 'NAV', 'first line');
+    append('info', 'NAV', 'second line');
+    const text = buildLogText();
+    const body = text.split('─'.repeat(40)).pop() ?? '';
+    const logLines = body.trim().split('\n');
+    expect(logLines).toHaveLength(2);
+    expect(logLines[0]).toContain('first line');
+    expect(logLines[1]).toContain('second line');
+  });
+
   it('notes the previous-session count in the header and inserts a divider', () => {
     seedPreviousSession([
       { seq: 1, t: 1, level: 'info', cat: 'NAV', msg: 'old line', line: 'old line' },

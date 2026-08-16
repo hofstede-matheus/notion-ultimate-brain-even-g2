@@ -8,7 +8,7 @@
   "reporters": ["html", "clear-text", "progress"],
   "htmlReporter": { "fileName": "reports/mutation/index.html" },
   "timeoutMS": 15000,
-  "thresholds": { "high": 90, "low": 75, "break": 65 },
+  "thresholds": { "high": 90, "low": 75, "break": 70 },
   "mutate": [
     "src/glasses/content/markdown-to-pages.ts",
     "src/glasses/bitmap/bmp.ts",

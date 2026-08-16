@@ -53,6 +53,16 @@ describe('parseTenant', () => {
   it('returns null when a required field is the wrong type', () => {
     expect(parseTenant(encode({ ...validPayload, notesDb: 42 }))).toBeNull();
   });
+
+  it('keeps a non-empty timeZone on the tenant', () => {
+    const tenant = parseTenant(encode({ ...validPayload, timeZone: 'Asia/Tokyo' }));
+    expect(tenant?.timeZone).toBe('Asia/Tokyo');
+  });
+
+  it('omits timeZone when the payload field is missing or empty', () => {
+    expect(parseTenant(encode(validPayload))).not.toHaveProperty('timeZone');
+    expect(parseTenant(encode({ ...validPayload, timeZone: '' }))).not.toHaveProperty('timeZone');
+  });
 });
 
 describe('parseToken', () => {

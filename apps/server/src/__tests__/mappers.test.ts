@@ -28,6 +28,11 @@ describe('pageTitle', () => {
     expect(pageTitle({ properties: {} })).toBe('(untitled)');
     expect(pageTitle({ properties: { Name: { title: [] } } })).toBe('(untitled)');
   });
+
+  it('returns (untitled) when rich_text is empty or missing plain_text', () => {
+    expect(pageTitle({ properties: { Name: { rich_text: [] } } })).toBe('(untitled)');
+    expect(pageTitle({ properties: { Name: { rich_text: [{}] } } })).toBe('(untitled)');
+  });
 });
 
 describe('pageToTask', () => {

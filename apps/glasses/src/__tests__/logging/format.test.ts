@@ -34,6 +34,11 @@ describe('formatRecord', () => {
     const line = formatRecord(T, 'debug', 'CACHE', 'miss key');
     expect(line).toBe('09:05:03.042 DEBUG CACHE  miss key');
   });
+
+  it('omits the ctx suffix when ctx is an empty object', () => {
+    const line = formatRecord(T, 'info', 'API', 'loaded today', {});
+    expect(line).toBe('09:05:03.042 INFO  API    loaded today');
+  });
 });
 
 describe('formatArgs', () => {
@@ -70,5 +75,22 @@ describe('previewBody', () => {
   it('summarises a Blob without reading its content', async () => {
     const blob = new Blob(['hello'], { type: 'text/plain' });
     await expect(previewBody(blob, 200)).resolves.toBe('<blob:text/plain, 5b>');
+  });
+
+  it('caps URLSearchParams at maxBytes', async () => {
+    const params = new URLSearchParams({ q: 'x'.repeat(500) });
+    await expect(previewBody(params, 10)).resolves.toBe(params.toString().slice(0, 10));
+  });
+
+  it('serialises FormData with string and file fields', async () => {
+    const form = new FormData();
+    form.append('name', 'alice');
+    form.append('avatar', new Blob(['img']), 'photo.png');
+    await expect(previewBody(form, 200)).resolves.toBe('name=alice&avatar=<file>');
+  });
+
+  it('summarises an ArrayBuffer by byte length', async () => {
+    const buf = new ArrayBuffer(42);
+    await expect(previewBody(buf, 200)).resolves.toBe('<ArrayBuffer:42b>');
   });
 });

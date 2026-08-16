@@ -6,7 +6,7 @@
 
 import { type EvenHubEvent, OsEventTypeList } from '@evenrealities/even_hub_sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveEventType, toGlassAction } from '../../../glasses/events/resolve';
+import { eventTypeName, resolveEventType, toGlassAction } from '../../../glasses/events/resolve';
 
 function ev(partial: Partial<EvenHubEvent>): EvenHubEvent {
   return partial as EvenHubEvent;
@@ -27,6 +27,10 @@ describe('resolveEventType', () => {
 
   it('defaults a textEvent with no eventType to CLICK_EVENT', () => {
     expect(resolveEventType(ev({ textEvent: {} } as never))).toBe(OsEventTypeList.CLICK_EVENT);
+  });
+
+  it('defaults a sysEvent with no eventType to CLICK_EVENT', () => {
+    expect(resolveEventType(ev({ sysEvent: {} } as never))).toBe(OsEventTypeList.CLICK_EVENT);
   });
 
   it('returns undefined when no event object is present at all', () => {
@@ -77,6 +81,17 @@ describe('toGlassAction', () => {
       type: 'HIGHLIGHT_MOVE',
       direction: 'down',
     });
+  });
+
+  it('returns null for event types with no action mapping', () => {
+    expect(toGlassAction(ev({}), OsEventTypeList.IMU_DATA_REPORT)).toBeNull();
+    expect(toGlassAction(ev({}), OsEventTypeList.FOREGROUND_ENTER_EVENT)).toBeNull();
+  });
+});
+
+describe('eventTypeName', () => {
+  it('falls back to unknown(N) for an unmapped numeric type', () => {
+    expect(eventTypeName(999 as OsEventTypeList)).toBe('unknown(999)');
   });
 });
 
