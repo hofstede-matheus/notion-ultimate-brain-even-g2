@@ -10,7 +10,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "test": "turbo run test",
+    "test": "turbo run test && pnpm test:integration",
     "test:integration": "pnpm --filter @notion-ub/glasses test:integration",
     "mutation": "turbo run mutation",
     "check-types": "turbo run check-types",

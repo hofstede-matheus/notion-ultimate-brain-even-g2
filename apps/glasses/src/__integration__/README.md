@@ -11,8 +11,9 @@ pnpm test:integration
 ```
 
 Needs a desktop session locally (the simulator is a real GUI window) and takes
-roughly a minute. Not part of `pnpm test` — see CLAUDE.md's Testing section for
-where this suite fits. CI runs it as a separate job in `.github/workflows/ci.yml`
+roughly a minute. Root `pnpm test` runs this suite after unit tests; use
+`pnpm test:integration` to run only the simulator suite. CI runs it as a
+separate job in `.github/workflows/ci.yml`
 (`integration`), under Xvfb on `ubuntu-latest`; a fresh runner avoids the stale
 WebKit-profile trap described below. The job is skipped unless a git diff touches
 glasses source (not `CHANGELOG.md`), `packages/**`, lockfiles, or `ci.yml`

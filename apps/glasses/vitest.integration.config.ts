@@ -3,8 +3,10 @@ import { defineConfig } from 'vitest/config';
 /**
  * The end-to-end suite that drives the real evenhub-simulator — see
  * src/__integration__/README.md. Deliberately separate from vitest.config.ts
- * (whose `include` glob does not reach src/__integration__): `pnpm test`
- * must never pick these up, since they spawn a GUI app and bind real ports.
+ * (whose `include` glob does not reach src/__integration__): workspace
+ * `vitest run` / turbo `test` must not pick these up, since they spawn a GUI
+ * app and bind real ports. Root `pnpm test` chains them via `test:integration`
+ * on purpose.
  */
 export default defineConfig({
   test: {

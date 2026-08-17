@@ -110,7 +110,10 @@ describe('projects', () => {
     });
 
     // Toast auto-returns to the list the task was acted on from.
+    // enterView logs NAV before the list paints; currentScreen() reads the
+    // last RENDER line, so wait for that too (same as spec 03).
     await driver.waitForLine(/NAV\s+enterView\('today'\)/, { from: cursor, timeoutMs: 4000 });
+    await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
     expect(await driver.currentScreen()).toBe('today');
   });
 });
