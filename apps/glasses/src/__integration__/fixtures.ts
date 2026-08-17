@@ -1,5 +1,5 @@
 import type { Note, Project, Tag, Task } from '@notion-ub/contracts';
-import { todayDateStr } from '../glasses/modules/tasks/helpers';
+import { addDays, format } from 'date-fns';
 
 /**
  * Deterministic dataset for the fixture server — see fixture-server/server.ts.
@@ -11,21 +11,6 @@ import { todayDateStr } from '../glasses/modules/tasks/helpers';
  * other even though they share one fixture dataset for a whole test run.
  */
 
-/**
- * Local-calendar YYYY-MM-DD offset from today — same idiom as
- * `todayDateStr()` (never `toISOString()`). Today is a filtered view over
- * `/api/tasks/today`; literal dates go stale the next calendar day and the
- * Today specs time out in empty-state text mode.
- */
-export function fixtureIsoDate(dayOffset = 0): string {
-  const [y, m, d] = todayDateStr().split('-').map(Number);
-  const shifted = new Date(y, m - 1, d + dayOffset);
-  const yy = shifted.getFullYear();
-  const mm = String(shifted.getMonth() + 1).padStart(2, '0');
-  const dd = String(shifted.getDate()).padStart(2, '0');
-  return `${yy}-${mm}-${dd}`;
-}
-
 // ---------------------------------------------------------------------------
 // Tasks — spec 02 (task-list-loads), 03 (mark-done-round-trip), 05 (calendar)
 // ---------------------------------------------------------------------------
@@ -34,8 +19,10 @@ export function fixtureIsoDate(dayOffset = 0): string {
 const LONG_MULTIBYTE_TITLE =
   'Café résumé review for the naïve façade renovation project — à la carte';
 
-const TODAY_DUE = fixtureIsoDate(0);
-const NEXT_7_DAYS_DUE = fixtureIsoDate(1);
+// Today is a filtered view (dueDate === todayDateStr()); literal dates go stale
+// the next calendar day. Use local-calendar date-fns, never toISOString().
+const TODAY_DUE = format(new Date(), 'yyyy-MM-dd');
+const NEXT_7_DAYS_DUE = format(addDays(new Date(), 1), 'yyyy-MM-dd');
 
 export const TODAY_TASKS: Task[] = [
   { id: 'task-mark-done', name: 'Buy groceries', status: 'To Do', dueDate: TODAY_DUE },

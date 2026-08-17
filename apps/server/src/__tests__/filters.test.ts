@@ -1,13 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { translateFilter } from '../filters';
 
-// Mirror the implementation's date math so assertions stay timezone-agnostic.
-function isoOffset(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
-}
-
 describe('translateFilter', () => {
   describe('relative date keywords', () => {
     beforeEach(() => {
@@ -21,21 +14,21 @@ describe('translateFilter', () => {
     it('resolves "today" to the current ISO date', () => {
       expect(translateFilter({ property: 'Due', date: { on_or_before: 'today' } })).toEqual({
         property: 'Due',
-        date: { on_or_before: isoOffset(0) },
+        date: { on_or_before: '2026-07-07' },
       });
     });
 
     it('resolves "tomorrow" to +1 day', () => {
       expect(translateFilter({ property: 'Due', date: { equals: 'tomorrow' } })).toEqual({
         property: 'Due',
-        date: { equals: isoOffset(1) },
+        date: { equals: '2026-07-08' },
       });
     });
 
     it('resolves "one_week_from_now" to +7 days', () => {
       expect(
         translateFilter({ property: 'Due', date: { on_or_before: 'one_week_from_now' } }),
-      ).toEqual({ property: 'Due', date: { on_or_before: isoOffset(7) } });
+      ).toEqual({ property: 'Due', date: { on_or_before: '2026-07-14' } });
     });
 
     it('passes through non-keyword date values unchanged', () => {

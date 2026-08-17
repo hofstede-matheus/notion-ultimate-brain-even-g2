@@ -1,32 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  fixtureIsoDate,
-  NEXT_7_DAYS_TASKS,
-  PAGE_DETAILS,
-  TODAY_TASKS,
-} from '../../__integration__/fixtures';
+import { addDays, format } from 'date-fns';
+import { describe, expect, it } from 'vitest';
+import { NEXT_7_DAYS_TASKS, PAGE_DETAILS, TODAY_TASKS } from '../../__integration__/fixtures';
 import { todayDateStr } from '../../glasses/modules/tasks/helpers';
-
-describe('fixtureIsoDate', () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('rolls month boundaries in local time', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 0, 31, 12, 0, 0));
-
-    expect(fixtureIsoDate(0)).toBe('2026-01-31');
-    expect(fixtureIsoDate(1)).toBe('2026-02-01');
-  });
-
-  it('does not UTC-shift near local midnight', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 7, 17, 0, 30, 0));
-
-    expect(fixtureIsoDate(0)).toBe('2026-08-17');
-  });
-});
 
 describe('integration fixture due dates', () => {
   it('keeps Today tasks on the runner calendar day', () => {
@@ -38,7 +13,7 @@ describe('integration fixture due dates', () => {
   });
 
   it('keeps Next 7 Days tasks one day ahead', () => {
-    const tomorrow = fixtureIsoDate(1);
+    const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
     for (const task of NEXT_7_DAYS_TASKS) {
       expect(task.dueDate).toBe(tomorrow);
     }

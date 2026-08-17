@@ -1,9 +1,9 @@
 /**
- * Pure calendar date math for the due-date picker — no `Date`-to-ISO
- * round-tripping (no `toISOString()`), matching the local-components idiom
- * `../helpers.ts`'s `todayDateStr()` uses and for the same reason: a UTC
- * round-trip rolls the date back a day for users ahead of UTC.
+ * Pure calendar date math for the due-date picker — local calendar components
+ * via date-fns (same contract as `../helpers.ts`'s `todayDateStr()`).
  */
+
+import { addMonths as addCalendarMonths, format, getDay, getDaysInMonth } from 'date-fns';
 
 export interface MonthGridCell {
   iso: string;
@@ -14,22 +14,23 @@ export interface MonthGridCell {
 /** Always 6 rows × 7 columns (Sun–Sat) so the bitmap layout is a fixed size regardless of the month. */
 export type MonthGrid = MonthGridCell[][];
 
-function pad2(n: number): string {
-  return String(n).padStart(2, '0');
+/** `month` is 1-based (1 = January). */
+function dateFor(year: number, month: number, day = 1): Date {
+  return new Date(year, month - 1, day);
 }
 
 export function isoFor(year: number, month: number, day: number): string {
-  return `${year}-${pad2(month)}-${pad2(day)}`;
+  return format(dateFor(year, month, day), 'yyyy-MM-dd');
 }
 
 /** `month` is 1-based (1 = January). */
 export function daysInMonth(year: number, month: number): number {
-  return new Date(year, month, 0).getDate();
+  return getDaysInMonth(dateFor(year, month));
 }
 
 /** 0 = Sunday. `month` is 1-based. */
 export function firstWeekday(year: number, month: number): number {
-  return new Date(year, month - 1, 1).getDay();
+  return getDay(dateFor(year, month));
 }
 
 /** `month` is 1-based; `delta` may be negative. Rolls the year over correctly either direction. */
@@ -38,28 +39,12 @@ export function addMonths(
   month: number,
   delta: number,
 ): { year: number; month: number } {
-  const total = month - 1 + delta;
-  const newYear = year + Math.floor(total / 12);
-  const newMonth = ((total % 12) + 12) % 12;
-  return { year: newYear, month: newMonth + 1 };
+  const shifted = addCalendarMonths(dateFor(year, month), delta);
+  return { year: shifted.getFullYear(), month: shifted.getMonth() + 1 };
 }
 
 export function monthLabel(year: number, month: number): string {
-  const names = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-  return `${names[month - 1]} ${year}`;
+  return format(dateFor(year, month), 'MMMM yyyy');
 }
 
 /** Builds a fixed 6×7 grid for `month` (1-based), padded with adjacent months' days. */
