@@ -1,3 +1,5 @@
+import { TZDate } from '@date-fns/tz';
+import { addDays, format } from 'date-fns';
 import type { NotionFilter } from './views';
 
 // ---------------------------------------------------------------------------
@@ -14,33 +16,24 @@ import type { NotionFilter } from './views';
 
 /**
  * ISO calendar date (YYYY-MM-DD) `offsetDays` from today, as seen in the
- * given IANA timezone. We format the *current* instant in that zone to get its
- * local calendar day, then shift by whole days via UTC math (DST-safe, since
- * the arithmetic is date-only). An unknown/invalid zone falls back to UTC.
+ * given IANA timezone. Uses TZDate + date-fns calendar-day arithmetic
+ * (DST-safe). An unknown/invalid zone falls back to UTC.
  *
  * Resolving in the caller's zone (rather than UTC) keeps "today"/"tomorrow"
  * aligned with the user's local calendar day near local midnight.
  */
-function localDateISO(offsetDays: number, timeZone: string): string {
-  let ymd: string;
+function resolveTimeZone(timeZone: string): string {
   try {
-    ymd = new Intl.DateTimeFormat('en-CA', {
-      timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date());
+    Intl.DateTimeFormat('en-US', { timeZone }).format(new Date());
+    return timeZone;
   } catch {
-    ymd = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'UTC',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date());
+    return 'UTC';
   }
-  if (offsetDays === 0) return ymd;
-  const [y, m, d] = ymd.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d + offsetDays)).toISOString().split('T')[0];
+}
+
+function localDateISO(offsetDays: number, timeZone: string): string {
+  const zone = resolveTimeZone(timeZone);
+  return format(addDays(new TZDate(new Date(), zone), offsetDays), 'yyyy-MM-dd');
 }
 
 const RELATIVE_DATE_OFFSETS: Record<string, number> = {

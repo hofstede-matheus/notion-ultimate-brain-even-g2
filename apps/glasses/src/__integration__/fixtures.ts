@@ -1,4 +1,5 @@
 import type { Note, Project, Tag, Task } from '@notion-ub/contracts';
+import { addDays, format } from 'date-fns';
 
 /**
  * Deterministic dataset for the fixture server — see fixture-server/server.ts.
@@ -18,10 +19,15 @@ import type { Note, Project, Tag, Task } from '@notion-ub/contracts';
 const LONG_MULTIBYTE_TITLE =
   'Café résumé review for the naïve façade renovation project — à la carte';
 
+// Today is a filtered view (dueDate === todayDateStr()); literal dates go stale
+// the next calendar day. Use local-calendar date-fns, never toISOString().
+const TODAY_DUE = format(new Date(), 'yyyy-MM-dd');
+const NEXT_7_DAYS_DUE = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+
 export const TODAY_TASKS: Task[] = [
-  { id: 'task-mark-done', name: 'Buy groceries', status: 'To Do', dueDate: '2026-08-16' },
-  { id: 'task-due-date', name: 'Renew passport', status: 'To Do', dueDate: '2026-08-16' },
-  { id: 'task-long-title', name: LONG_MULTIBYTE_TITLE, status: 'To Do', dueDate: '2026-08-16' },
+  { id: 'task-mark-done', name: 'Buy groceries', status: 'To Do', dueDate: TODAY_DUE },
+  { id: 'task-due-date', name: 'Renew passport', status: 'To Do', dueDate: TODAY_DUE },
+  { id: 'task-long-title', name: LONG_MULTIBYTE_TITLE, status: 'To Do', dueDate: TODAY_DUE },
 ];
 
 /** 25 items — forces MAX_LIST_ITEMS (20) paging; see constants.ts. */
@@ -29,15 +35,15 @@ export const NEXT_7_DAYS_TASKS: Task[] = Array.from({ length: 23 }, (_, i) => ({
   id: `task-page-${i + 1}`,
   name: `Follow up item ${String(i + 1).padStart(2, '0')}`,
   status: 'To Do',
-  dueDate: '2026-08-17',
+  dueDate: NEXT_7_DAYS_DUE,
 })).concat([
-  { id: 'task-page-24', name: LONG_MULTIBYTE_TITLE, status: 'To Do', dueDate: '2026-08-17' },
-  { id: 'task-page-25', name: 'Last item on the list', status: 'To Do', dueDate: '2026-08-17' },
+  { id: 'task-page-24', name: LONG_MULTIBYTE_TITLE, status: 'To Do', dueDate: NEXT_7_DAYS_DUE },
+  { id: 'task-page-25', name: 'Last item on the list', status: 'To Do', dueDate: NEXT_7_DAYS_DUE },
 ]);
 
 /** Details for GET /api/pages/:id/details — spec 10. Anything absent resolves to nulls. */
 export const PAGE_DETAILS: Record<string, { project: string | null; due: string | null }> = {
-  'task-mark-done': { project: 'Alpha Rollout', due: '2026-08-16' },
+  'task-mark-done': { project: 'Alpha Rollout', due: TODAY_DUE },
 };
 
 // ---------------------------------------------------------------------------

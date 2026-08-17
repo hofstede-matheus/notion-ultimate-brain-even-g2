@@ -3,6 +3,7 @@
  * navigation/render. The bitmap itself is pure (see draw.ts); this is where
  * gestures turn into calendar-state transitions.
  */
+import { format } from 'date-fns';
 import { trace } from '../../../../logging/trace';
 import { state } from '../../../../state';
 import { renderFull } from '../../../render';
@@ -81,7 +82,7 @@ function pageMonth(p: DueDatePicker, delta: number): void {
   const next = addMonths(p.viewYear, p.viewMonth, delta);
   p.viewYear = next.year;
   p.viewMonth = next.month;
-  trace.info('CAL', `month -> ${next.year}-${String(next.month).padStart(2, '0')}`);
+  trace.info('CAL', `month -> ${format(new Date(next.year, next.month - 1, 1), 'yyyy-MM')}`);
   void renderFull();
 }
 

@@ -10,10 +10,10 @@ import { trace } from '../logging/trace';
 import type { VoiceConfig, VoiceStatus } from '../voice-config';
 import { clearVoskScratch, hasModel, openModelUrl } from '../voice-model';
 import { createSonioxProvider } from './soniox';
-import type { SttProvider } from './types';
+import type { SttFailure, SttProvider } from './types';
 import { createVoskProvider } from './vosk';
 
-export type { SttProvider } from './types';
+export type { SttFailure, SttProvider } from './types';
 
 let provider: SttProvider | null = null;
 /** Object URL backing the on-device model, revoked when the provider is replaced. */
@@ -106,6 +106,10 @@ export function stopListening(): void {
 
 export function isListening(): boolean {
   return provider?.isListening() ?? false;
+}
+
+export function takeFailure(): SttFailure | null {
+  return provider?.takeFailure() ?? null;
 }
 
 /** Tear down the active backend — used when the user switches modes. */

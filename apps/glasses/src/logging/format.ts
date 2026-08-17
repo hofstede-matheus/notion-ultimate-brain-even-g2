@@ -1,15 +1,8 @@
+import { format } from 'date-fns';
 import type { LogCategory, LogLevel } from './types';
 
-function pad2(n: number): string {
-  return n.toString().padStart(2, '0');
-}
-
 export function formatTime(t: number): string {
-  const d = new Date(t);
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}.${d
-    .getMilliseconds()
-    .toString()
-    .padStart(3, '0')}`;
+  return format(new Date(t), 'HH:mm:ss.SSS');
 }
 
 const LEVEL_WIDTH = 5; // 'ERROR', the longest level name

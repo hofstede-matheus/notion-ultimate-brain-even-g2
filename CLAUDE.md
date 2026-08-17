@@ -137,6 +137,10 @@ commands above — run it locally when you touch simulator-facing flows.
 
 ## Gotchas
 
+- **Integration Today fixtures must be date-relative.** The Today screen filters
+  `dueDate === todayDateStr()` client-side — `__integration__/fixtures.ts` must
+  use `format(addDays(new Date(), n), 'yyyy-MM-dd')` (local calendar), never a
+  literal `YYYY-MM-DD` or `toISOString()`, or the suite goes red the next day.
 - **Notion status/type names are option names, not group labels.** Tasks: `Done`
   (not "Complete"); Projects: `Doing`/`Ongoing` (not "In progress"); Tags Type:
   `Area`/`Resource`/`Entity`. Group labels silently match nothing.

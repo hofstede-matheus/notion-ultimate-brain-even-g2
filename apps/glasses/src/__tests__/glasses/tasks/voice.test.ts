@@ -46,6 +46,19 @@ describe('starting a recording', () => {
     expect(h.state.recording).toBe('error');
     expect(h.state.errorMessage).toContain('Voice input unavailable');
   });
+
+  it('shows the invalid-key message when ensureReady fails with a rejected key', async () => {
+    fakeStt.setReady(false);
+    fakeStt.setFailure('invalid-key');
+    const h = mount();
+    openAddTask(h);
+
+    h.dispatch(select());
+    await h.settle();
+
+    expect(h.state.recording).toBe('error');
+    expect(h.state.errorMessage).toContain('Soniox rejected the API key');
+  });
 });
 
 describe('the gate on an unconfigured backend', () => {
@@ -97,6 +110,22 @@ describe('the gate on an unconfigured backend', () => {
     expect(h.state.errorMessage).toContain('Voice input unavailable');
     expect(h.bridge.audioControl).toHaveBeenLastCalledWith(false);
   });
+
+  it('shows the invalid-key message when the backend drops out with a rejected key', async () => {
+    const h = mount();
+    openAddTask(h);
+    fakeStt.setFailure('invalid-key');
+    vi.mocked(stt.startListening).mockImplementationOnce(() => {
+      /* socket died — no session started */
+    });
+
+    h.dispatch(select());
+    await h.settle();
+
+    expect(h.state.recording).toBe('error');
+    expect(h.state.errorMessage).toContain('Soniox rejected the API key');
+    expect(h.bridge.audioControl).toHaveBeenLastCalledWith(false);
+  });
 });
 
 describe('ending a recording (VAD auto-stop or manual tap)', () => {
@@ -129,6 +158,20 @@ describe('ending a recording (VAD auto-stop or manual tap)', () => {
 
     expect(h.state.recording).toBe('error');
     expect(h.state.errorMessage).toContain("Couldn't hear anything");
+  });
+
+  it('an empty transcript with a rejected key shows the invalid-key message', async () => {
+    const h = mount();
+    openAddTask(h);
+    h.dispatch(select());
+    await h.settle();
+
+    fakeStt.setFailure('invalid-key');
+    fakeStt.fireStop();
+    fakeStt.fireFinal('');
+
+    expect(h.state.recording).toBe('error');
+    expect(h.state.errorMessage).toContain('Soniox rejected the API key');
   });
 
   it('tapping again while recording manually stops (same path as VAD)', async () => {

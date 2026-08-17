@@ -18,6 +18,18 @@ let startingRecognizer = false;
 // 'recording'/'processing') would still mutate state in the background.
 let recordingSession = 0;
 
+const SONIOX_INVALID_KEY_MSG = 'Soniox rejected the API key. Check Settings.';
+const VOICE_UNAVAILABLE_MSG = 'Voice input unavailable. Check Settings, then try again.';
+const NOTHING_HEARD_MSG = "Couldn't hear anything. Tap to try again.";
+
+function backendUnavailableMessage(): string {
+  return stt.takeFailure() === 'invalid-key' ? SONIOX_INVALID_KEY_MSG : VOICE_UNAVAILABLE_MSG;
+}
+
+function emptyTranscriptMessage(): string {
+  return stt.takeFailure() === 'invalid-key' ? SONIOX_INVALID_KEY_MSG : NOTHING_HEARD_MSG;
+}
+
 export async function startRecording(): Promise<void> {
   const b = getBridge();
   if (!b) return;
@@ -37,7 +49,7 @@ export async function startRecording(): Promise<void> {
     if (!ready) {
       trace.warn('VOICE', 'speech backend not ready');
       state.recording = 'error';
-      state.errorMessage = 'Voice input unavailable. Check Settings, then try again.';
+      state.errorMessage = backendUnavailableMessage();
       void renderUpdate('add-task');
       return;
     }
@@ -60,7 +72,7 @@ export async function startRecording(): Promise<void> {
         if (!text || text.trim().length === 0) {
           trace.warn('VOICE', 'no speech detected');
           state.recording = 'error';
-          state.errorMessage = "Couldn't hear anything. Tap to try again.";
+          state.errorMessage = emptyTranscriptMessage();
           void renderUpdate('add-task');
           return;
         }
@@ -88,7 +100,7 @@ export async function startRecording(): Promise<void> {
       trace.warn('VOICE', 'backend dropped out before the session started');
       await b.audioControl(false);
       state.recording = 'error';
-      state.errorMessage = 'Voice input unavailable. Check Settings, then try again.';
+      state.errorMessage = backendUnavailableMessage();
       void renderUpdate('add-task');
     }
     return;

@@ -33,7 +33,7 @@
 import { SONIOX_CONNECT_TIMEOUT_MS, SONIOX_MODEL, SONIOX_WS_URL } from '../glasses/constants';
 import { trace } from '../logging/trace';
 import { createListenSession, SAMPLE_RATE, toBytes } from './session';
-import type { SttProvider } from './types';
+import type { SttFailure, SttProvider } from './types';
 
 interface SonioxToken {
   text: string;
@@ -106,6 +106,15 @@ function configMessage(apiKey: string, options?: SonioxOptions): string {
 
 export type SonioxKeyCheck = 'valid' | 'invalid' | 'unreachable';
 
+/** Classify a Soniox error frame — shared by the provider and testSonioxKey. */
+function sonioxFailureFromError(
+  data: Pick<SonioxMessage, 'error_code' | 'error_message'>,
+): SttFailure | null {
+  if (!data.error_code && !data.error_message) return null;
+  if (data.error_code === 401) return 'invalid-key';
+  return 'unavailable';
+}
+
 /**
  * Check an API key by running a complete miniature session: connect, send the
  * config, stream a moment of silence, then end the stream.
@@ -162,8 +171,9 @@ export function testSonioxKey(apiKey: string, timeoutMs = 8000): Promise<SonioxK
       } catch {
         return;
       }
-      if (data.error_code === 401) return finish('invalid');
-      if (data.error_code) return finish('unreachable');
+      const failure = sonioxFailureFromError(data);
+      if (failure === 'invalid-key') return finish('invalid');
+      if (failure) return finish('unreachable');
       if (data.finished) return finish('valid');
     };
 
@@ -189,6 +199,8 @@ export function createSonioxProvider(apiKey: string, options?: SonioxOptions): S
   let sentBytes = 0;
   /** Token messages seen this session — distinguishes "silent server" from "silent user". */
   let tokenMessages = 0;
+  /** Set when Soniox rejects the key or the stream errors; taken once by the caller. */
+  let failure: SttFailure | null = null;
 
   /** Concatenate and send whatever is buffered. Returns false if the send failed. */
   function flushPending(): boolean {
@@ -294,10 +306,10 @@ export function createSonioxProvider(apiKey: string, options?: SonioxOptions): S
       return; // Non-JSON frame; nothing we can act on.
     }
 
-    if (data.error_code || data.error_message) {
-      // 401 is the one the user can actually fix, so it gets its own wording
-      // upstream — see glasses/modules/tasks/voice.ts.
+    const err = sonioxFailureFromError(data);
+    if (err) {
       trace.error('VOICE', `soniox error ${data.error_code ?? '?'}`);
+      failure = err;
       session.deliver('');
       teardown();
       return;
@@ -326,6 +338,7 @@ export function createSonioxProvider(apiKey: string, options?: SonioxOptions): S
       // what made the second recording silently transcribe nothing.
       if (ws?.readyState === WebSocket.OPEN && !streamUsed) return Promise.resolve(true);
       teardown();
+      failure = null;
 
       return new Promise<boolean>((resolve) => {
         let settled = false;
@@ -415,6 +428,12 @@ export function createSonioxProvider(apiKey: string, options?: SonioxOptions): S
 
     isListening() {
       return session.isListening();
+    },
+
+    takeFailure() {
+      const f = failure;
+      failure = null;
+      return f;
     },
 
     dispose() {
