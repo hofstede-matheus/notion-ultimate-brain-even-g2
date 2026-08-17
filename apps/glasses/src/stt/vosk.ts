@@ -93,6 +93,10 @@ export function createVoskProvider(modelUrl: string): SttProvider {
       return session.isListening();
     },
 
+    takeFailure() {
+      return null;
+    },
+
     dispose() {
       session.abort();
       try {

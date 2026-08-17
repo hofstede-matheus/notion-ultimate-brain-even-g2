@@ -271,6 +271,22 @@ Feature: Adding a task by voice
       When I fix it on my phone and tap again
       Then recording starts
 
+    Scenario: The Soniox API key is rejected
+      Given voice input is set to cloud
+      And a Soniox API key is saved
+      But Soniox rejects the key when I try to record
+      When I tap to start recording
+      Then the glasses show:
+        """
+        ADD TASK
+
+        Error:
+        Soniox rejected the API key. Check Settings.
+
+        Tap to try again.
+        Double-tap to go back.
+        """
+
     Scenario: Nothing was heard
       Given I tapped to record and said nothing
       When it finishes listening

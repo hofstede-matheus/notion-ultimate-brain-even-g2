@@ -6,6 +6,10 @@
  * glasses/modules/tasks/voice.ts consumes exactly one transcript per recording
  * and nothing else.
  */
+
+/** Why the last recording or connect attempt failed — consumed once by the caller. */
+export type SttFailure = 'invalid-key' | 'unavailable';
+
 export interface SttProvider {
   /**
    * Load the model / open the connection. Resolves false when the backend
@@ -31,6 +35,9 @@ export interface SttProvider {
   stopListening(): void;
 
   isListening(): boolean;
+
+  /** Most recent backend failure. Cleared by the next ensureReady(). */
+  takeFailure(): SttFailure | null;
 
   /** Release resources — called when the user switches backends. */
   dispose(): void;

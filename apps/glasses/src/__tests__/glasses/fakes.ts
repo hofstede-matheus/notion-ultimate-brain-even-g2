@@ -101,6 +101,8 @@ export interface SttController {
   fireStop(): void;
   /** Controls what the next ensureReady() call resolves to. */
   setReady(ready: boolean): void;
+  /** What takeFailure() returns on the next call; cleared after one read. */
+  setFailure(failure: import('../../stt').SttFailure | null): void;
   /**
    * Clears session state between tests. vi.clearAllMocks() only resets the
    * vi.fn call records, not the closure the fake keeps, so without this a test
@@ -117,6 +119,7 @@ export interface SttController {
 export function sttMock(): SttModule & SttController {
   let ready = true;
   let listening = false;
+  let failure: import('../../stt').SttFailure | null = null;
   let onFinal: ((text: string) => void) | null = null;
   let onStop: (() => void) | null = null;
 
@@ -152,6 +155,11 @@ export function sttMock(): SttModule & SttController {
     }),
     stopListening,
     isListening: vi.fn(() => listening),
+    takeFailure: vi.fn(() => {
+      const f = failure;
+      failure = null;
+      return f;
+    }),
     feedAudio: vi.fn(),
     dispose: vi.fn(() => {
       abortLikeProduction();
@@ -168,9 +176,13 @@ export function sttMock(): SttModule & SttController {
     setReady(r: boolean) {
       ready = r;
     },
+    setFailure(f: import('../../stt').SttFailure | null) {
+      failure = f;
+    },
     reset() {
       ready = true;
       listening = false;
+      failure = null;
       onFinal = null;
       onStop = null;
     },

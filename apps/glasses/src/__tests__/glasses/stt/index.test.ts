@@ -32,6 +32,7 @@ vi.mock('../../../stt/vosk', () => ({
       feedAudio: vi.fn(),
       stopListening: vi.fn(),
       isListening: vi.fn(() => false),
+      takeFailure: vi.fn(() => null),
       dispose: vi.fn(),
     };
   }),
@@ -46,6 +47,7 @@ vi.mock('../../../stt/soniox', () => ({
       feedAudio: vi.fn(),
       stopListening: vi.fn(),
       isListening: vi.fn(() => false),
+      takeFailure: vi.fn(() => null),
       dispose: vi.fn(),
     };
   }),

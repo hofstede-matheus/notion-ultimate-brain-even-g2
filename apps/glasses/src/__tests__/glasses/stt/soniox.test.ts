@@ -330,6 +330,28 @@ describe('soniox provider — failures', () => {
 
     expect(onFinal).toHaveBeenCalledWith('');
     expect(provider.isListening()).toBe(false);
+    expect(provider.takeFailure()).toBe('invalid-key');
+    expect(provider.takeFailure()).toBeNull();
+  });
+
+  it('records invalid-key when 401 arrives before startListening', async () => {
+    const { provider, ws } = await connected();
+
+    ws.receive({ error_code: 401, error_message: 'invalid api key' });
+
+    expect(provider.isListening()).toBe(false);
+    expect(provider.takeFailure()).toBe('invalid-key');
+  });
+
+  it('records unavailable for a non-401 Soniox error', async () => {
+    const { provider, ws } = await connected();
+    const onFinal = vi.fn();
+    provider.startListening(onFinal, vi.fn());
+
+    ws.receive({ error_code: 408, error_message: 'request timeout' });
+
+    expect(onFinal).toHaveBeenCalledWith('');
+    expect(provider.takeFailure()).toBe('unavailable');
   });
 
   it('does not strand the session when the socket closes mid-recording', async () => {
