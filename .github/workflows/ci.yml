@@ -47,7 +47,7 @@ jobs:
 
   verify:
     if: >
-      github.head_ref != 'release-please--branches--main' &&
+      !startsWith(github.head_ref, 'release-please--branches--') &&
       !contains(github.event.pull_request.labels.*.name, 'autorelease: pending') &&
       !startsWith(github.event.head_commit.message, 'chore: release') &&
       !startsWith(github.event.head_commit.message, 'chore(glasses): release')
@@ -78,7 +78,7 @@ jobs:
     needs: changes
     if: >
       needs.changes.outputs.integration == 'true' &&
-      github.head_ref != 'release-please--branches--main' &&
+      !startsWith(github.head_ref, 'release-please--branches--') &&
       !contains(github.event.pull_request.labels.*.name, 'autorelease: pending') &&
       !startsWith(github.event.head_commit.message, 'chore: release') &&
       !startsWith(github.event.head_commit.message, 'chore(glasses): release')
