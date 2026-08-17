@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.1](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.8.0...glasses-v2.8.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* better feedback when wrong api key ([#28](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/28)) ([d47ffaa](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/d47ffaaab7baf5fa9b3853fe11e2d1b4d3af8d49))
+
 ## [2.8.0](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.7.3...glasses-v2.8.0) (2026-08-16)
 
 
