@@ -3,13 +3,25 @@ import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { stripReactProdErrorUrlsFromBundle } from './src/build/strip-react-error-urls';
 
 const pkg = JSON.parse(
   readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8'),
 );
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    {
+      name: 'strip-react-prod-error-urls',
+      apply: 'build',
+      enforce: 'post',
+      generateBundle(_options, bundle) {
+        stripReactProdErrorUrlsFromBundle(bundle);
+      },
+    },
+  ],
   define: {
     // Baked in at build time so the exported log (see logging/export.ts)
     // always names the app version that produced it — stays in step with
