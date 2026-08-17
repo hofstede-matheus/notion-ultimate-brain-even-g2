@@ -1,4 +1,5 @@
 import type { Note, Project, Tag, Task } from '@notion-ub/contracts';
+import { todayDateStr } from '../glasses/modules/tasks/helpers';
 
 /**
  * Deterministic dataset for the fixture server — see fixture-server/server.ts.
@@ -10,6 +11,21 @@ import type { Note, Project, Tag, Task } from '@notion-ub/contracts';
  * other even though they share one fixture dataset for a whole test run.
  */
 
+/**
+ * Local-calendar YYYY-MM-DD offset from today — same idiom as
+ * `todayDateStr()` (never `toISOString()`). Today is a filtered view over
+ * `/api/tasks/today`; literal dates go stale the next calendar day and the
+ * Today specs time out in empty-state text mode.
+ */
+export function fixtureIsoDate(dayOffset = 0): string {
+  const [y, m, d] = todayDateStr().split('-').map(Number);
+  const shifted = new Date(y, m - 1, d + dayOffset);
+  const yy = shifted.getFullYear();
+  const mm = String(shifted.getMonth() + 1).padStart(2, '0');
+  const dd = String(shifted.getDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
 // ---------------------------------------------------------------------------
 // Tasks — spec 02 (task-list-loads), 03 (mark-done-round-trip), 05 (calendar)
 // ---------------------------------------------------------------------------
@@ -18,10 +34,13 @@ import type { Note, Project, Tag, Task } from '@notion-ub/contracts';
 const LONG_MULTIBYTE_TITLE =
   'Café résumé review for the naïve façade renovation project — à la carte';
 
+const TODAY_DUE = fixtureIsoDate(0);
+const NEXT_7_DAYS_DUE = fixtureIsoDate(1);
+
 export const TODAY_TASKS: Task[] = [
-  { id: 'task-mark-done', name: 'Buy groceries', status: 'To Do', dueDate: '2026-08-16' },
-  { id: 'task-due-date', name: 'Renew passport', status: 'To Do', dueDate: '2026-08-16' },
-  { id: 'task-long-title', name: LONG_MULTIBYTE_TITLE, status: 'To Do', dueDate: '2026-08-16' },
+  { id: 'task-mark-done', name: 'Buy groceries', status: 'To Do', dueDate: TODAY_DUE },
+  { id: 'task-due-date', name: 'Renew passport', status: 'To Do', dueDate: TODAY_DUE },
+  { id: 'task-long-title', name: LONG_MULTIBYTE_TITLE, status: 'To Do', dueDate: TODAY_DUE },
 ];
 
 /** 25 items — forces MAX_LIST_ITEMS (20) paging; see constants.ts. */
@@ -29,15 +48,15 @@ export const NEXT_7_DAYS_TASKS: Task[] = Array.from({ length: 23 }, (_, i) => ({
   id: `task-page-${i + 1}`,
   name: `Follow up item ${String(i + 1).padStart(2, '0')}`,
   status: 'To Do',
-  dueDate: '2026-08-17',
+  dueDate: NEXT_7_DAYS_DUE,
 })).concat([
-  { id: 'task-page-24', name: LONG_MULTIBYTE_TITLE, status: 'To Do', dueDate: '2026-08-17' },
-  { id: 'task-page-25', name: 'Last item on the list', status: 'To Do', dueDate: '2026-08-17' },
+  { id: 'task-page-24', name: LONG_MULTIBYTE_TITLE, status: 'To Do', dueDate: NEXT_7_DAYS_DUE },
+  { id: 'task-page-25', name: 'Last item on the list', status: 'To Do', dueDate: NEXT_7_DAYS_DUE },
 ]);
 
 /** Details for GET /api/pages/:id/details — spec 10. Anything absent resolves to nulls. */
 export const PAGE_DETAILS: Record<string, { project: string | null; due: string | null }> = {
-  'task-mark-done': { project: 'Alpha Rollout', due: '2026-08-16' },
+  'task-mark-done': { project: 'Alpha Rollout', due: TODAY_DUE },
 };
 
 // ---------------------------------------------------------------------------
