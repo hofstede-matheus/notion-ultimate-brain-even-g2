@@ -34,7 +34,7 @@ IDs via the `X-Notion-Config` header; the server stores no credentials.
 ```bash
 pnpm install
 pnpm dev            # Express :3210 + Vite :5173 (proxies /api/* to server)
-pnpm test           # vitest in both apps
+pnpm test           # unit (turbo) then glasses simulator e2e; needs a desktop session
 pnpm check-types    # tsc --noEmit across workspaces
 pnpm lint           # biome check .
 pnpm lint:fix       # biome check --write .
@@ -51,8 +51,8 @@ automation port; for headless inspection use the `simulator-debug` skill.
 ## Testing
 
 ```bash
-pnpm test              # unit — vitest in both apps and contracts, fast
-pnpm test:integration  # glasses end-to-end in the simulator, ~1 min; local needs a desktop session (CI runs this in a separate job)
+pnpm test              # unit (turbo) then glasses simulator e2e, ~1 min extra; needs a desktop session
+pnpm test:integration  # simulator suite only — same e2e as the second half of pnpm test
 pnpm mutation          # StrykerJS — unit-test quality on pure logic; slow, local-only
 pnpm lint              # biome check .
 pnpm check-types       # tsc --noEmit
@@ -61,13 +61,13 @@ pnpm check-types       # tsc --noEmit
 **Finishing a change means running all four.** Report what actually
 happened — a suite you did not run is not a suite that passed, and "should
 pass" is not a result. `pnpm mutation` is local-only (not CI); run it at the
-end of a task. CI also runs `pnpm test:integration` in a dedicated
-`integration` job (Xvfb on ubuntu-latest); that is not part of the four local
-commands above — run it locally when you touch simulator-facing flows. CI skips
-both `verify` and `integration` on release-please PRs (branch name, label, or
-release commit subject); `integration` also runs only when a git diff touches
-glasses source, `packages/**`, lockfiles, or `.github/workflows/ci.yml` (skipped
-jobs report success — not a failure).
+end of a task. CI runs unit tests in `verify` via `turbo run test` (not root
+`pnpm test`, so the simulator is not folded into that job) and runs
+`pnpm test:integration` in a dedicated `integration` job (Xvfb on
+ubuntu-latest). CI skips both `verify` and `integration` on release-please PRs
+(branch name, label, or release commit subject); `integration` also runs only
+when a git diff touches glasses source, `packages/**`, lockfiles, or
+`.github/workflows/ci.yml` (skipped jobs report success — not a failure).
 
 - **Every change ships unit tests**, in the same change as the behaviour.
   Glasses tests live in `apps/glasses/src/__tests__/**` and use

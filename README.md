@@ -151,9 +151,10 @@ pnpm --filter @notion-ub/glasses dev    # Vite only
 ## Testing
 
 ```bash
-pnpm test              # both apps, via turbo
-pnpm --filter @notion-ub/server test    # server only
-pnpm --filter @notion-ub/glasses test   # glasses only
+pnpm test              # unit (turbo) then glasses simulator e2e; needs a desktop session
+pnpm test:integration  # simulator suite only
+pnpm --filter @notion-ub/server test    # server unit only
+pnpm --filter @notion-ub/glasses test   # glasses unit only
 ```
 
 Glasses tests live in `apps/glasses/src/__tests__/`, mirroring the source tree, and drive
