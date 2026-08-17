@@ -63,7 +63,11 @@ happened — a suite you did not run is not a suite that passed, and "should
 pass" is not a result. `pnpm mutation` is local-only (not CI); run it at the
 end of a task. CI also runs `pnpm test:integration` in a dedicated
 `integration` job (Xvfb on ubuntu-latest); that is not part of the four local
-commands above — run it locally when you touch simulator-facing flows.
+commands above — run it locally when you touch simulator-facing flows. CI skips
+both `verify` and `integration` on release-please PRs (branch name, label, or
+release commit subject); `integration` also runs only when a git diff touches
+glasses source, `packages/**`, lockfiles, or `.github/workflows/ci.yml` (skipped
+jobs report success — not a failure).
 
 - **Every change ships unit tests**, in the same change as the behaviour.
   Glasses tests live in `apps/glasses/src/__tests__/**` and use

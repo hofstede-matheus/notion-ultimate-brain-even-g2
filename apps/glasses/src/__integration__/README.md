@@ -14,7 +14,10 @@ Needs a desktop session locally (the simulator is a real GUI window) and takes
 roughly a minute. Not part of `pnpm test` — see CLAUDE.md's Testing section for
 where this suite fits. CI runs it as a separate job in `.github/workflows/ci.yml`
 (`integration`), under Xvfb on `ubuntu-latest`; a fresh runner avoids the stale
-WebKit-profile trap described below.
+WebKit-profile trap described below. The job is skipped unless a git diff touches
+glasses source (not `CHANGELOG.md`), `packages/**`, lockfiles, or `ci.yml`
+itself; release-please PRs skip both CI jobs via workflow `if:` (skipped =
+success).
 
 Vitest sometimes prints `close timed out after 10000ms` / `something
 prevents Vite server from exiting` after the results table. That's Node's
