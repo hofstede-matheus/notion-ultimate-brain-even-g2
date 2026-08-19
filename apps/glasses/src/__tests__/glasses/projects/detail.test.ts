@@ -74,7 +74,9 @@ describe('drilling into a project', () => {
     h.dispatch(select(0)); // To Do
     await h.settle();
 
-    expect(fetchProjectTasksTodo).toHaveBeenCalledWith('p1', undefined);
+    expect(fetchProjectTasksTodo).toHaveBeenCalledWith('p1', undefined, {
+      deadline: expect.any(Number),
+    });
     expect(h.state.screen).toBe('project-tasks-todo');
     expect(h.state.lists['project-tasks-todo']).toEqual([
       { id: 't1', name: 'Pick tile', status: 'To Do' },
@@ -98,7 +100,9 @@ describe('drilling into a project', () => {
     h.dispatch(select(1)); // Done
     await h.settle();
 
-    expect(fetchProjectTasksDone).toHaveBeenCalledWith('p1', undefined);
+    expect(fetchProjectTasksDone).toHaveBeenCalledWith('p1', undefined, {
+      deadline: expect.any(Number),
+    });
     expect(h.state.screen).toBe('project-tasks-done');
     expect(h.state.lists['project-tasks-done']).toEqual([
       { id: 't2', name: 'Buy tile', status: 'Done' },
@@ -121,7 +125,9 @@ describe('drilling into a project', () => {
     h.dispatch(select(1)); // Notes
     await h.settle();
 
-    expect(fetchNotesForProject).toHaveBeenCalledWith('p1', undefined);
+    expect(fetchNotesForProject).toHaveBeenCalledWith('p1', undefined, {
+      deadline: expect.any(Number),
+    });
     expect(h.state.screen).toBe('project-notes');
     expect(h.state.lists['project-notes']).toEqual([{ id: 'n1', name: 'Design notes' }]);
   });

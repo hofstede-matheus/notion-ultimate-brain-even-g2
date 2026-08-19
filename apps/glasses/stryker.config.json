@@ -16,6 +16,7 @@
     "src/glasses/bitmap/pixels.ts",
     "src/glasses/modules/tasks/calendar/month-grid.ts",
     "src/glasses/modules/_shared/pagination.ts",
+    "src/http/retry.ts",
     "src/glasses/modules/_shared/screen-factories.ts",
     "src/glasses/events/resolve.ts",
     "src/logging/format.ts",

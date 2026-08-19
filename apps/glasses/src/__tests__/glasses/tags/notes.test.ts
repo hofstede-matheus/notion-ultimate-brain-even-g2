@@ -29,7 +29,9 @@ describe('tapping a tag', () => {
     h.dispatch(select(0));
     await h.settle();
 
-    expect(fetchNotesForTag).toHaveBeenCalledWith('g1', undefined);
+    expect(fetchNotesForTag).toHaveBeenCalledWith('g1', undefined, {
+      deadline: expect.any(Number),
+    });
     expect(h.state.screen).toBe('tag-notes');
     expect(h.state.lists['tag-notes']).toEqual([{ id: 'n1', name: 'Design notes' }]);
     const display = h.render();

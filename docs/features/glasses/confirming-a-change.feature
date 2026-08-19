@@ -45,15 +45,30 @@ Feature: Confirming a change
     Then that list reopens
     And not the item's action menu
 
+  Scenario: A hiccup while saving is tried again before it's shown as failed
+    Given I am confirming an action on an item
+    And saving it fails once, for a reason that might pass
+    When I tap the first choice
+    Then the spinner keeps turning while it tries again on its own
+    When the retry succeeds
+    Then the glasses acknowledge it as normal, with no failure ever shown
+
   Scenario: A change that fails can be tried again
     Given I am confirming an action on an item
-    And the change will not save
+    And the change will not save, even after trying again on its own
     When I tap the first choice
     Then the header shows "FAILED: " followed by what went wrong
     And the two choices are unchanged
     And the item is unchanged in its list
     When I tap the first choice again
     Then the change is attempted again
+
+  Scenario: A change that could not be sent at all says so plainly
+    Given I am confirming an action on an item
+    And the phone has no connection
+    When I tap the first choice
+    Then the header shows "FAILED: " followed by a message about the connection
+    And not a raw browser error
 
   Scenario: Leaving after a failure
     Given a change has failed and the header shows "FAILED: "
