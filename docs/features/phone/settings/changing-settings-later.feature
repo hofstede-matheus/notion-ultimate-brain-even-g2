@@ -25,6 +25,30 @@ Feature: Changing settings later
     Then the new setup replaces the old one
     And it is used from then on
 
+  Rule: Saving takes effect at once, whatever else the form is doing
+
+    Save also writes the voice settings and re-applies the speech backend. That second part used
+    to run first: on-device mode reads a 41 MB model out of storage and loads it, and the setup
+    was not committed until that finished. Nothing on screen said so, and backing out of the
+    apparently-stalled form threw the whole change away. Saving now commits the database and
+    token choice the instant Save is tapped, before anything else — there is nothing left in that
+    path for a slow or stuck voice backend to hold hostage.
+
+    Scenario: Saving takes effect while the voice model is still loading
+      Given voice input is set to on-device
+      When I change a database and tap "Save"
+      Then the setup is saved and in use immediately
+      And the form closes at once
+      And the model, the stored copy and the voice settings catch up in the background
+
+    Scenario: A voice backend that never comes back does not block the save
+      Given voice input is set to on-device
+      And the stored model cannot be loaded at all
+      When I change a database and tap "Save"
+      Then the setup is still saved and the form still closes immediately
+      # Voice input itself stays unavailable until that is fixed — a separate concern from
+      # whether Save works.
+
   Scenario: Reopening always starts from what was saved
     Given I reopened settings and typed a different token without saving
     When I back out and reopen settings

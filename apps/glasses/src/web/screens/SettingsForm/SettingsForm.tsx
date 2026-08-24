@@ -7,11 +7,17 @@ import { Select } from 'even-toolkit/web/select';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { trace } from '../../../logging/trace';
 import { formatLanguageHints } from '../../../stt/soniox-languages';
+import { setTenantConfig } from '../../../tenant-config';
 import { loadVoiceConfig, saveVoiceConfig, type VoiceMode } from '../../../voice-config';
 import { refreshVoiceStatus } from '../../../voice-runtime';
 import { useUiState } from '../../hooks/useUiState';
-import { resolveSettings } from '../../providers/uiController';
-import { type DbPickerState, loadDbPickerState, saveDbPickerState } from '../../services/config';
+import { settingsSaved } from '../../providers/uiController';
+import {
+  type DbPickerState,
+  loadDbPickerState,
+  saveDbPickerState,
+  saveStoredConfig,
+} from '../../services/config';
 import { fetchDatabases, InvalidTokenError } from '../../services/databases';
 import { LogConsole } from './components/LogConsole';
 import { VoiceSection } from './components/VoiceSection';
@@ -26,6 +32,7 @@ import {
   unfitReason,
   unfitSlots,
 } from './dbSelection';
+import { commitSettings } from './submit';
 import { voiceConfigFromDraft } from './voiceSection';
 
 /** How long to wait after the token stops changing before fetching its databases. */
@@ -53,9 +60,10 @@ export interface SettingsFormProps {
 
 /**
  * The Notion tenant-config form — opened via ../../providers/uiController's
- * settingsOpen flag (see promptForConfig) and resolved on valid submit,
- * which is the same contract ../../../boot.ts's `reconfigure()` already
- * relies on.
+ * settingsOpen flag (see promptForConfig). On valid submit it commits the config itself
+ * (./submit.ts's commitSettings: setTenantConfig, then settingsSaved) rather than handing it
+ * back to a caller to persist, which is the same contract ../../../boot.ts's `reconfigure()`
+ * already relies on.
  *
  * The four database fields are dropdowns rather than free-text ids: once a
  * token looks complete, its databases are fetched (see ../../services/databases.ts)
@@ -147,7 +155,7 @@ export function SettingsForm({ showLog, onVersionTap }: SettingsFormProps) {
     return () => clearTimeout(timer);
   }, [token]);
 
-  async function handleSubmit(e: FormEvent): Promise<void> {
+  function handleSubmit(e: FormEvent): void {
     e.preventDefault();
     setTouched(true);
 
@@ -178,12 +186,23 @@ export function SettingsForm({ showLog, onVersionTap }: SettingsFormProps) {
         slots: unfit.map((slot) => `${slot}=${selection[slot]}`).join(', '),
       });
     }
-    await saveDbPickerState({ overrides: nextOverrides, showAll });
 
-    const voiceCfg = voiceConfigFromDraft(voiceMode, apiKey, languageHints, languageHintsStrict);
-    await saveVoiceConfig(voiceCfg);
-    await refreshVoiceStatus(voiceCfg);
-    resolveSettings({ token: trimmedToken, ...selection });
+    commitSettings(
+      {
+        token: trimmedToken,
+        selection,
+        picker: { overrides: nextOverrides, showAll },
+        voiceCfg: voiceConfigFromDraft(voiceMode, apiKey, languageHints, languageHintsStrict),
+      },
+      {
+        setTenantConfig,
+        settingsSaved,
+        saveStoredConfig,
+        saveDbPickerState,
+        saveVoiceConfig,
+        refreshVoiceStatus,
+      },
+    );
   }
 
   const ready = databases !== null;
