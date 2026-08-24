@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.9.0](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.8.1...glasses-v2.9.0) (2026-08-24)
+
+
+### Features
+
+* **glasses:** name which lists actually break in the database fit warning ([#43](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/43)) ([967528e](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/967528ebe0202f4f01cbe5a0f673ffaa946a756c))
+
+
+### Bug Fixes
+
+* **glasses:** keep a database confirmed with "Save anyway" selected and visible ([#41](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/41)) ([ac8c4f9](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/ac8c4f953a97a8aac202a7bb38a11070e06f0052))
+
 ## [2.8.1](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.8.0...glasses-v2.8.1) (2026-08-17)
 
 
