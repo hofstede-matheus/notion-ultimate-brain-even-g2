@@ -9,6 +9,13 @@ import { NOTE_VIEWS, PROJECT_VIEWS, TAG_VIEWS, TASK_VIEWS, type ViewConfig } fro
  * Fails on purpose when a new filter/sort names a property the table doesn't list — the fix
  * is to add that property to ROLE_REQUIREMENTS, not to loosen this test. Mirrors how
  * views.test.ts pins PROJECT_STATUS_OPTIONS against the real Status options.
+ *
+ * Checked per view, not just per role (see issue #40): ROLE_REQUIREMENTS's `views` field claims
+ * which specific views break without a property, and the settings picker's warning names those
+ * views verbatim. A per-role check alone can't catch a `views` entry naming the wrong view (or
+ * missing one) as long as the property still shows up *somewhere* in the role — only a per-view
+ * comparison can, in both directions: a view referencing a property no requirement claims for
+ * it, and a requirement claiming a view that doesn't actually reference it.
  */
 
 function collectFilterProperties(filter: ViewConfig['filter']): string[] {
@@ -20,16 +27,34 @@ function collectFilterProperties(filter: ViewConfig['filter']): string[] {
   return names;
 }
 
-function collectViewProperties(views: ViewConfig[]): Set<string> {
-  const names = new Set<string>();
+/** path -> sorted, deduped property names that view's filter/sort actually reference. */
+function propertiesUsedByView(views: ViewConfig[]): Record<string, string[]> {
+  const map: Record<string, string[]> = {};
   for (const view of views) {
-    for (const name of collectFilterProperties(view.filter)) names.add(name);
+    const names = new Set(collectFilterProperties(view.filter));
     for (const sort of view.sorts ?? []) names.add(sort.property);
+    map[view.path] = [...names].sort();
   }
-  return names;
+  return map;
 }
 
-describe('ROLE_REQUIREMENTS stays in sync with views.ts', () => {
+/** path -> sorted, deduped property names ROLE_REQUIREMENTS claims that view needs. Uses
+ *  `names[0]` as the literal property name — the convention db-roles-requirements.ts documents
+ *  and relies on: views.ts always hardcodes one literal name per filter/sort clause. */
+function propertiesClaimedByView(
+  role: keyof typeof ROLE_REQUIREMENTS,
+  paths: string[],
+): Record<string, string[]> {
+  const map: Record<string, Set<string>> = Object.fromEntries(
+    paths.map((path) => [path, new Set()]),
+  );
+  for (const req of ROLE_REQUIREMENTS[role]) {
+    for (const path of req.views) map[path]?.add(req.names[0]);
+  }
+  return Object.fromEntries(Object.entries(map).map(([path, names]) => [path, [...names].sort()]));
+}
+
+describe('ROLE_REQUIREMENTS stays in sync with views.ts, view by view', () => {
   const cases: [string, keyof typeof ROLE_REQUIREMENTS, ViewConfig[]][] = [
     ['tasks', 'tasks', TASK_VIEWS],
     ['notes', 'notes', NOTE_VIEWS],
@@ -38,11 +63,10 @@ describe('ROLE_REQUIREMENTS stays in sync with views.ts', () => {
   ];
 
   for (const [label, role, views] of cases) {
-    it(`covers every property ${label} views filter or sort by`, () => {
-      const required = new Set(ROLE_REQUIREMENTS[role].flatMap((r) => r.names));
-      const used = collectViewProperties(views);
-      const uncovered = [...used].filter((name) => !required.has(name));
-      expect(uncovered).toEqual([]);
+    it(`claims exactly the properties each ${label} view filters or sorts by`, () => {
+      const used = propertiesUsedByView(views);
+      const claimed = propertiesClaimedByView(role, Object.keys(used));
+      expect(claimed).toEqual(used);
     });
   }
 });

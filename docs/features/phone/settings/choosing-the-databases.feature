@@ -141,6 +141,17 @@ Feature: Choosing the four databases
       Then all of them are named, not the first few
       # This message is the only place I find out what to rename in Notion.
 
+    Scenario: The warning says which lists actually fail, not just which role
+      Given the chosen database is missing a property that only some of the role's lists use
+      Then the warning names those specific lists as the ones that won't load
+      And it says the rest of that role still works
+      # A missing property breaks the handful of lists that filter or sort on it, not the whole
+      # role — the warning used to imply everything was broken when most of it still worked.
+
+    Scenario: A database missing something every list depends on says so plainly
+      Given the chosen database is missing a property every one of the role's lists uses
+      Then the warning says no list for that role will load
+
     Scenario: A second tap on Save goes through anyway
       Given the warning above is showing
       When I tap "Save" again

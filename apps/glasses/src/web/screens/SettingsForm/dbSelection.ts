@@ -99,21 +99,26 @@ export function fitsSlot(db: NotionDatabaseSummary, slot: DbSlotKey): boolean {
 }
 
 /**
- * "This database is missing Meta, Latest Activity. …" — null when `db` fits `slot`, or fitness
- * is unknown. Every missing property is named, not a sample: this string is the only place the
- * user learns what to rename in Notion.
+ * "This database is missing Note Date. Meetings, Journal won't load — the rest will." — null
+ * when `db` fits `slot`, or fitness is unknown. Every missing property is named, not a sample:
+ * this string is the only place the user learns what to rename in Notion.
  *
- * The consequence is a failed load, not an empty list — Notion rejects a query whose filter or
- * sort names a property the database doesn't have, so the view errors rather than returning
- * zero rows (see apps/server/src/views.ts and glasses/modules/_shared/screen-factories.ts's
- * LOAD_FAILED_MESSAGE).
+ * Which *views* actually fail is not the same claim as which properties are missing (issue
+ * #40): each view in apps/server/src/views.ts filters or sorts on only a few properties, so one
+ * missing property commonly breaks a handful of views and leaves the rest working — and the
+ * title, specifically, breaks none (it only degrades row labels via mappers.ts's pageTitle()).
+ * Naming the broken views specifically, rather than implying the whole role is unusable, is
+ * what makes the "Save anyway" override (#38) a real choice instead of a guess.
  */
 export function unfitReason(db: NotionDatabaseSummary, slot: DbSlotKey): string | null {
   const { unfit } = evaluateRoles(db.properties);
   const fit = unfit?.[SLOT_ROLE[slot]];
   if (!fit) return null;
 
-  return `This database is missing ${fit.missing.join(', ')}. Lists that use them won't load on the glasses.`;
+  const missingLine = `This database is missing ${fit.missing.join(', ')}.`;
+  if (fit.brokenViews.length === 0) return `${missingLine} Every list will still work.`;
+  if (fit.allViewsBroken) return `${missingLine} No list will load.`;
+  return `${missingLine} ${fit.brokenViews.join(', ')} won't load — the rest will.`;
 }
 
 /** availableOptionsFor(...) narrowed to databases that fit `slot`'s role. */
