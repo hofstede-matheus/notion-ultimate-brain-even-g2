@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { getState, promptForConfig, resolveSettings } from '../../web/providers/uiController';
+import {
+  cancelSettings,
+  getState,
+  promptForConfig,
+  settingsSaved,
+} from '../../web/providers/uiController';
 
 const config = {
   token: 'token',
@@ -21,8 +26,29 @@ describe('promptForConfig', () => {
       settingsCancellable: true,
     });
 
-    resolveSettings(config);
-    await expect(first).resolves.toEqual(config);
-    await expect(second).resolves.toEqual(config);
+    settingsSaved();
+    await expect(first).resolves.toBe(true);
+    await expect(second).resolves.toBe(true);
+  });
+
+  it('resolves false when the user backs out instead of saving', async () => {
+    const pending = promptForConfig(config, true);
+
+    cancelSettings();
+
+    expect(getState().settingsOpen).toBe(false);
+    await expect(pending).resolves.toBe(false);
+  });
+
+  it('is safe to prompt again after a previous prompt was saved', async () => {
+    const first = promptForConfig(config, true);
+    settingsSaved();
+    await first;
+
+    const second = promptForConfig(config, true);
+    cancelSettings();
+
+    expect(getState().settingsOpen).toBe(false);
+    await expect(second).resolves.toBe(false);
   });
 });

@@ -41,8 +41,9 @@ describe('evaluateRoles', () => {
   it('rejects the stock-template decoy, naming the properties it lacks', () => {
     const { roles, unfit } = evaluateRoles(STOCK_TEMPLATE_PROJECTS_DB);
     expect(roles).not.toContain('projects');
-    expect(unfit?.projects?.missing).toEqual(expect.arrayContaining(['Meta']));
-    expect(unfit?.projects?.missingCount).toBeGreaterThanOrEqual(4); // Name, Archived, Meta, Latest Activity
+    expect(unfit?.projects?.missing).toEqual(
+      expect.arrayContaining(['Name', 'Archived', 'Meta', 'Latest Activity']),
+    );
   });
 
   it('rejects a property present under the right name but the wrong type', () => {
@@ -76,11 +77,22 @@ describe('evaluateRoles', () => {
     expect(evaluateRoles(undefined)).toEqual({});
   });
 
-  it('caps the missing sample but reports the true count', () => {
+  it('names every missing property, not a sample of them', () => {
+    // A database with no properties at all is missing everything its role needs — the settings
+    // picker shows this list verbatim, so a user renaming properties in Notion sees all of them
+    // at once rather than three at a time.
     const { unfit } = evaluateRoles({});
-    expect(unfit?.projects?.missing.length).toBeLessThanOrEqual(3);
-    expect(unfit?.projects?.missingCount).toBeGreaterThanOrEqual(
-      unfit?.projects?.missing.length ?? 0,
-    );
+    expect(unfit?.notes?.missing).toEqual([
+      'Name',
+      'Archived',
+      'Favorite',
+      'Type',
+      'URL',
+      'Tag',
+      'Project',
+      'Content',
+      'Updated',
+      'Note Date',
+    ]);
   });
 });

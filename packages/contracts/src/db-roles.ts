@@ -18,16 +18,19 @@ import { ROLE_REQUIREMENTS } from './db-roles-requirements';
 
 export type DbRole = keyof typeof ROLE_REQUIREMENTS;
 
-/** Why a database can't fill a role. `missing` is a sample; `missingCount` is the true total. */
+/**
+ * Why a database can't fill a role: every property the role needs that this database doesn't
+ * have, under any of its accepted names and types.
+ *
+ * Complete, not a sample. The settings picker renders this list verbatim, and it is the only
+ * place a user finds out what to rename in Notion — a customised or older Ultimate Brain can
+ * miss several properties at once, and truncating the list hid the ones still to fix.
+ */
 export interface DbRoleFit {
   missing: string[];
-  missingCount: number;
 }
 
 export { ROLE_REQUIREMENTS };
-
-/** Sample size for the `missing` list in a DbRoleFit. */
-const MISSING_SAMPLE = 3;
 
 function fits(
   properties: Record<string, string>,
@@ -65,7 +68,7 @@ export function evaluateRoles(properties: Record<string, string> | undefined): {
     if (missing.length === 0) {
       roles.push(role);
     } else {
-      unfit[role] = { missing: missing.slice(0, MISSING_SAMPLE), missingCount: missing.length };
+      unfit[role] = { missing };
     }
   }
 

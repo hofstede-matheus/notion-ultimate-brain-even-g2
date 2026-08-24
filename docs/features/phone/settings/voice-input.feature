@@ -62,6 +62,12 @@ Feature: Setting up voice input
       And a "Remove" button
       And voice input works on the glasses without restarting the app once on-device is saved
 
+    Scenario: Saving does not wait for the model to load
+      Given the model is downloaded
+      And I pick on-device and tap "Save"
+      Then the settings are saved without waiting for the model
+      And voice input becomes ready once loading finishes
+
     Scenario: Changing my mind partway
       Given the download is running
       When I tap "Cancel"

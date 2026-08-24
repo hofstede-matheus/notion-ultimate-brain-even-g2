@@ -122,12 +122,24 @@ Feature: Choosing the four databases
       When I turn on "Show all databases"
       Then every shared database is offered in every dropdown again
 
+    Scenario: "Show all databases" is remembered
+      Given I turned on "Show all databases" and saved
+      When I reopen settings
+      Then "Show all databases" is still on
+      # Turning it on is a deliberate statement about my own workspace, not a transient view
+      # setting — resetting it meant re-checking it every time I changed a database.
+
     Scenario: Choosing a database that doesn't fit warns instead of blocking
       Given I have chosen a database for Projects that is missing properties the role needs
       When I tap "Save"
       Then the form stays open
-      And it explains that the database may show empty lists on the glasses
+      And it explains that the lists using those properties won't load on the glasses
       And "Save" is not yet done
+
+    Scenario: The warning names every property that is missing
+      Given the chosen database is missing several of the properties its role needs
+      Then all of them are named, not the first few
+      # This message is the only place I find out what to rename in Notion.
 
     Scenario: A second tap on Save goes through anyway
       Given the warning above is showing
@@ -135,6 +147,43 @@ Feature: Choosing the four databases
       Then the setup is saved with my choice, unfit or not
       # The requirement list is a guess about what a role needs — a customised Ultimate Brain
       # with a renamed property is a real possibility, so the form warns but never refuses.
+
+  Rule: A choice I confirmed anyway is kept, shown, and not asked about again
+
+    Saving an unfit database is a deliberate override of a guess about my schema. Until this
+    rule existed the override was honoured once and then looked undone: the database was
+    filtered out of its own dropdown, so the slot came back reading "Select a database..." even
+    though the saved setup was still using it.
+
+    Scenario: The confirmed database is still shown on the next open
+      Given I confirmed an unfit database for Notes with "Save anyway"
+      When I reopen settings and the databases load
+      Then the Notes slot shows that database, not "Select a database..."
+      And it is still flagged with what it's missing
+      And this holds whether or not "Show all databases" is on
+
+    Scenario: A confirmed database is not offered to the other three slots
+      Given the Notes slot holds a database I confirmed anyway
+      Then that database is still absent from the Tasks, Projects and Tags dropdowns
+
+    Scenario: Saving again takes one tap, not two
+      Given I confirmed an unfit database for Notes with "Save anyway"
+      When I reopen settings and tap "Save"
+      Then the setup is saved straight away
+      And the warning is not shown again
+
+    Scenario: Choosing a different unfit database asks again
+      Given I confirmed an unfit database for Notes with "Save anyway"
+      When I choose a different database for Notes that also doesn't fit
+      And I tap "Save"
+      Then the warning is shown again
+      # The confirmation was about one database, not about the slot.
+
+    Scenario: An unfit database that other databases are hidden behind is still offered
+      Given the Notes slot holds a database I confirmed anyway
+      And "Show all databases" is off
+      Then the Notes dropdown offers it alongside the databases that do fit
+      But the other unfit databases stay hidden
 
   @known-gap
   Scenario: A wrong token can be saved alongside the old databases
