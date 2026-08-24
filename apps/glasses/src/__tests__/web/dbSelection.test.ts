@@ -6,6 +6,7 @@ import {
   EMPTY_SELECTION,
   fitsSlot,
   isSelectionComplete,
+  optionsForSlot,
   reconcileSelection,
   unfitReason,
   unfitSlots,
@@ -132,6 +133,15 @@ describe('unfitReason', () => {
     expect(reason).toContain('Meta');
     expect(reason).toContain('missing');
   });
+
+  it('names every missing property and says the lists will fail to load', () => {
+    // Pinned in full: this sentence is the only place a user learns what to rename in Notion,
+    // and it must not promise "empty lists" — Notion rejects the query outright.
+    expect(unfitReason(DECOY_PROJECTS_DB, 'projectsDb')).toBe(
+      'This database is missing Name, Archived, Meta, Latest Activity, Target Deadline. ' +
+        "Lists that use them won't load on the glasses.",
+    );
+  });
 });
 
 describe('compatibleOptionsFor', () => {
@@ -145,6 +155,55 @@ describe('compatibleOptionsFor', () => {
     const dbs = [REAL_PROJECTS_DB, DECOY_PROJECTS_DB];
     const selection = { ...EMPTY_SELECTION, tasksDb: 'real-projects' };
     expect(compatibleOptionsFor('projectsDb', dbs, selection).map((d) => d.id)).toEqual([]);
+  });
+});
+
+describe('optionsForSlot', () => {
+  const dbs = [REAL_PROJECTS_DB, DECOY_PROJECTS_DB];
+
+  it("keeps an unfit database that is this slot's own current choice", () => {
+    // The #38 regression: a database confirmed through "Save anyway" is not offered by
+    // compatibleOptionsFor, and a Select whose value is missing from its options renders the
+    // placeholder — so a saved, in-use choice came back looking unselected.
+    const selection = { ...EMPTY_SELECTION, projectsDb: 'decoy-projects' };
+    const options = optionsForSlot('projectsDb', dbs, selection, false);
+    expect(options.map((d) => d.id)).toEqual(['real-projects', 'decoy-projects']);
+  });
+
+  it('still hides unfit databases that are not the current choice', () => {
+    const options = optionsForSlot('projectsDb', dbs, EMPTY_SELECTION, false);
+    expect(options.map((d) => d.id)).toEqual(['real-projects']);
+  });
+
+  it('offers every database when showAll is on', () => {
+    const options = optionsForSlot('projectsDb', dbs, EMPTY_SELECTION, true);
+    expect(options.map((d) => d.id)).toEqual(['real-projects', 'decoy-projects']);
+  });
+
+  it('never offers a database taken by another slot, even as an unfit current choice', () => {
+    // selection.projectsDb is what keeps the decoy visible; taking it for tasksDb must win.
+    const selection = { ...EMPTY_SELECTION, tasksDb: 'decoy-projects' };
+    expect(optionsForSlot('projectsDb', dbs, selection, false).map((d) => d.id)).toEqual([
+      'real-projects',
+    ]);
+    expect(optionsForSlot('projectsDb', dbs, selection, true).map((d) => d.id)).toEqual([
+      'real-projects',
+    ]);
+  });
+
+  it('preserves the fetched order rather than surfacing the current choice', () => {
+    const selection = { ...EMPTY_SELECTION, projectsDb: 'decoy-projects' };
+    const reversed = [DECOY_PROJECTS_DB, REAL_PROJECTS_DB];
+    expect(optionsForSlot('projectsDb', reversed, selection, false).map((d) => d.id)).toEqual([
+      'decoy-projects',
+      'real-projects',
+    ]);
+  });
+
+  it('matches compatibleOptionsFor when the slot is empty', () => {
+    expect(optionsForSlot('projectsDb', dbs, EMPTY_SELECTION, false)).toEqual(
+      compatibleOptionsFor('projectsDb', dbs, EMPTY_SELECTION),
+    );
   });
 });
 
