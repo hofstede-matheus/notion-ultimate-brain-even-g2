@@ -43,6 +43,24 @@ const DECOY_PROJECTS_DB = {
 };
 const UNKNOWN_SCHEMA_DB = { id: 'unknown', name: 'Something' }; // no `properties` — older server
 
+// A real Ultimate Brain Notes schema missing only Note Date — issue #40's own example: only the
+// two views that sort on it (Meetings, Journal) actually fail; the other eight still work.
+const NOTES_MISSING_NOTE_DATE = {
+  id: 'notes-missing-note-date',
+  name: 'Notes',
+  properties: {
+    Name: 'title',
+    Archived: 'checkbox',
+    Favorite: 'checkbox',
+    Type: 'select',
+    URL: 'url',
+    Tag: 'relation',
+    Project: 'relation',
+    Content: 'relation',
+    Updated: 'last_edited_time',
+  },
+};
+
 describe('availableOptionsFor', () => {
   it('offers every database when nothing else is chosen', () => {
     expect(availableOptionsFor('tasksDb', databases, EMPTY_SELECTION)).toEqual(databases);
@@ -134,12 +152,19 @@ describe('unfitReason', () => {
     expect(reason).toContain('missing');
   });
 
-  it('names every missing property and says the lists will fail to load', () => {
-    // Pinned in full: this sentence is the only place a user learns what to rename in Notion,
-    // and it must not promise "empty lists" — Notion rejects the query outright.
+  it('names every missing property, and says nothing will load when every view is broken', () => {
+    // Pinned in full: this sentence is the only place a user learns what to rename in Notion.
+    // DECOY_PROJECTS_DB is missing Archived, which every projects view filters on — so this is
+    // the "whole role is unusable" branch, not the partial one below (issue #40).
     expect(unfitReason(DECOY_PROJECTS_DB, 'projectsDb')).toBe(
       'This database is missing Name, Archived, Meta, Latest Activity, Target Deadline. ' +
-        "Lists that use them won't load on the glasses.",
+        'No list will load.',
+    );
+  });
+
+  it('names only the views that actually break when the rest of the role still works', () => {
+    expect(unfitReason(NOTES_MISSING_NOTE_DATE, 'notesDb')).toBe(
+      "This database is missing Note Date. Meetings, Journal won't load — the rest will.",
     );
   });
 });
