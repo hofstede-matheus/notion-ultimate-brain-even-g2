@@ -1,6 +1,7 @@
 import { type EvenHubEvent, OsEventTypeList } from '@evenrealities/even_hub_sdk';
 import { flush as flushLog } from '../../logging/persist';
 import { trace } from '../../logging/trace';
+import { drainQueue } from '../../offline-queue';
 import { getBridge, type ScreenName, state } from '../../state';
 import * as stt from '../../stt';
 import { createGlassCtx } from '../glass-ctx';
@@ -26,6 +27,9 @@ function handleForegroundEnter(): void {
   // container state (in particular the calendar's image containers) intact.
   resetRenderSession();
   void renderFull();
+  // The WebView has no network while backgrounded, so coming back is the
+  // closest thing to a reconnect event this platform exposes.
+  void drainQueue('foreground enter');
 }
 
 function handleForegroundExit(): void {

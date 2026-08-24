@@ -6,10 +6,18 @@ import { getTenantConfig } from './tenant-config';
 // localStorage keys
 // ---------------------------------------------------------------------------
 
+/**
+ * Namespace segment identifying the current Notion workspace. Every persisted
+ * key is scoped by this so switching workspaces neither reuses cached lists
+ * nor — see ./offline-queue.ts — writes queued tasks into the wrong database.
+ */
+export function tenantPrefix(): string {
+  return getTenantConfig()?.tasksDb.slice(0, 8) ?? 'unconfigured';
+}
+
 /** Cache key for a generic list-view screen — see _shared/navigation.ts's enterView(). */
 export function cacheKeyForScreen(screen: string): string {
-  const tenant = getTenantConfig()?.tasksDb.slice(0, 8) ?? 'unconfigured';
-  return `notionultimatebrain:${tenant}:${screen}`;
+  return `notionultimatebrain:${tenantPrefix()}:${screen}`;
 }
 
 // ---------------------------------------------------------------------------

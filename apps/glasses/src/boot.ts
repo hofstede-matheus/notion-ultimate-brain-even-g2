@@ -17,6 +17,7 @@ import { attachGlassesListeners, showGlassesScreen } from './glasses/events';
 import { StartupRejectedError } from './glasses/render';
 import { loadPreviousSession, startPersisting } from './logging/persist';
 import { trace } from './logging/trace';
+import { loadQueue, startDraining } from './offline-queue';
 import { setBridge, state } from './state';
 import { getDevEnvConfig, getTenantConfig, setTenantConfig } from './tenant-config';
 import { refreshVoiceStatus } from './voice-runtime';
@@ -144,6 +145,11 @@ export async function boot(): Promise<void> {
         setTenantConfig(cfg);
       }
       trace.info('BOOT', `config source = ${cfgSource}`);
+
+      // Only now: the queue's storage key is tenant-scoped and sending needs
+      // the tenant header. loadQueue() must land before startDraining(), the
+      // same ordering logging/persist.ts documents for its own pair.
+      void loadQueue().finally(startDraining);
 
       await holdSplash(splashAt);
       await showGlassesScreen('menu');

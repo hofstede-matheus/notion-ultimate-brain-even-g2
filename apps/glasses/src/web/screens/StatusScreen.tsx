@@ -4,6 +4,7 @@ import { StatusDot } from 'even-toolkit/web/status-dot';
 import { APP_DISPLAY_NAME } from '../../app-info';
 import { useUiState } from '../hooks/useUiState';
 import { triggerConnect } from '../providers/uiController';
+import { PendingTasksCard } from './components/PendingTasksCard';
 
 export function StatusScreen() {
   const ui = useUiState();
@@ -25,6 +26,7 @@ export function StatusScreen() {
           {ui.connect.label}
         </Button>
       )}
+      <PendingTasksCard />
     </div>
   );
 }

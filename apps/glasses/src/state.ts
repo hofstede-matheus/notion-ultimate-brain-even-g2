@@ -71,6 +71,8 @@ export type RecordingState =
   | 'confirm'
   | 'confirming'
   | 'done'
+  /** Saved to the offline queue instead of Notion — see offline-queue.ts. */
+  | 'queued'
   | 'error';
 
 /** Anything a generic list screen can render — every domain record has a `name`. */

@@ -41,6 +41,19 @@ export class ApiError extends Error {
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 
 /**
+ * Notified after any 2xx. A successful response is the only proof of
+ * connectivity this platform offers — there is no online/offline event in the
+ * Even WebView — so ./offline-queue.ts registers here to drain itself the
+ * moment the network is demonstrably back. Registered from that side to keep
+ * the import one-directional.
+ */
+let requestSuccessHook: (() => void) | null = null;
+
+export function onRequestSuccess(hook: () => void): void {
+  requestSuccessHook = hook;
+}
+
+/**
  * fetch() wrapper that attaches the current tenant's Notion config header,
  * throws on non-2xx responses, and parses the JSON body — narrowed to
  * `resultKey` when given (e.g. `{ tasks: [...] }` -> the `tasks` array).
@@ -77,6 +90,7 @@ async function request<T>(path: string, init: RequestInit = {}, resultKey?: stri
     throw new ApiError(`Request failed with status ${res.status}`, res.status, code);
   }
   trace.info('API', `${path} ${res.status} ${res.statusText}`);
+  requestSuccessHook?.();
   const data = await res.json();
   return resultKey ? data[resultKey] : data;
 }
