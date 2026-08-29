@@ -44,11 +44,12 @@ Two rules follow from that, and they are the ones most often broken:
 
 ## Vocabulary
 
-The glasses are driven entirely from the touchpad on the temple, with three gestures:
+The glasses are driven entirely from the touchpad on the temple, with four gestures:
 
 | Phrase in a spec | What the user does |
 |---|---|
 | **tap** | one tap |
+| **tap and hold** | tap, then keep holding — opens the OS contextual menu on a Tasks or Notes list |
 | **double-tap** | two taps — always means "go back" |
 | **swipe down** | move down a list, or turn to the next page |
 | **swipe up** | move up a list, or turn back a page |
@@ -90,7 +91,7 @@ root menu downward, wherever you happen to be.
 ```
 root-menu.feature                          Tasks · Notes · Projects · Tags
 startup.feature                            the message shown while the app starts
-the-three-gestures.feature                 tap, double-tap, swipe
+the-four-gestures.feature                  tap, tap-and-hold, double-tap, swipe
 how-a-list-looks.feature                   headers, counts, long names, empty lists
 paging-a-long-list.feature                 when there is more than a screenful
 opening-a-list-again.feature               what comes back instantly, and what is stale
@@ -102,7 +103,7 @@ tasks/
   add-task-by-voice.feature                dictating a new task
   task-lists.feature                       the five lists, and what they mean
   a-task/
-    action-menu.feature                    the six things a task can do
+    action-menu.feature                    tap opens it; tap-and-hold offers five more things
     task-details.feature                   its full name, project and due date
     open-page/
       reading.feature                      reading it a screenful at a time
@@ -121,7 +122,7 @@ notes/
   notes-menu.feature                       the ten note views
   note-lists.feature                       the lists themselves
   a-note/
-    action-menu.feature                    the four things a note can do
+    action-menu.feature                    tap opens it; tap-and-hold offers three more things
     note-details.feature                   its full title and project
     open-page/
       reading.feature                      reading it a screenful at a time
@@ -157,6 +158,7 @@ tags/
 status-screen/
   connecting.feature                       from "app opened" to "use your glasses"
   glasses-connection.feature               the connection dot and its warning
+  whats-new.feature                        the dismissible card announcing what changed
 
 settings/
   first-run-setup.feature                  the setup that cannot be skipped

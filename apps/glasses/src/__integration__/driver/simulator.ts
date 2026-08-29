@@ -1,6 +1,6 @@
 /**
  * Thin typed client for the evenhub-simulator automation HTTP API (pinned
- * 0.8.0 — see package.json). Mirrors what
+ * 0.9.3 — see package.json). Mirrors what
  * .claude/skills/simulator-debug/scripts/simctl.py does for manual/agent use;
  * this is the same surface, in TS, for vitest.
  *
@@ -15,7 +15,21 @@ export interface ConsoleEntry {
   ts: number;
 }
 
-export type InputAction = 'up' | 'down' | 'click' | 'double_click';
+/**
+ * `long_press` / `long_press_release` simulate the sustained-press gesture
+ * that raises the OS contextual menu (SDK 0.0.14+ / simulator 0.9.1+ — see
+ * docs/contextual-menu.md in even-g2-context). `context_menu` TOGGLES the
+ * overlay open/closed rather than only opening it — callers must track
+ * overlay state themselves rather than posting it unconditionally.
+ */
+export type InputAction =
+  | 'up'
+  | 'down'
+  | 'click'
+  | 'double_click'
+  | 'long_press'
+  | 'long_press_release'
+  | 'context_menu';
 
 export class SimulatorClient {
   constructor(private readonly baseUrl: string) {}

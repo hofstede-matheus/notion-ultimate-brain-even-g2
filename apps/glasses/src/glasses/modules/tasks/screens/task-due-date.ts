@@ -46,6 +46,10 @@ export const taskDueDateScreen: ScreenModule = {
       ctx.selectDueDateCell();
       return;
     }
+    // LONG_PRESS: the calendar declares no contextual menu (see
+    // screen-factories.ts's makeListScreen — only task/note list screens
+    // do), so there is nothing to stash here.
+    if (action.type === 'LONG_PRESS') return;
     ctx.moveDueDateCursor(action.direction);
   },
 };

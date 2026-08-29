@@ -14,10 +14,10 @@ import {
 } from './modules/_shared/navigation';
 import { openPage, turnPage } from './modules/_shared/page-reader';
 import { openProjectPicker, pickProject } from './modules/_shared/project-picker';
-import { enterNoteDetails, openNoteActions } from './modules/notes/actions';
+import { enterNoteDetails, selectNote } from './modules/notes/actions';
 import { openProjectDetail } from './modules/projects/actions';
 import { openTagNotes } from './modules/tags/actions';
-import { enterTaskDetails, openTaskActions } from './modules/tasks/actions';
+import { enterTaskDetails, selectTask } from './modules/tasks/actions';
 import {
   dueDatePickerBack,
   moveDueDateCursor,
@@ -57,13 +57,13 @@ export function createGlassCtx(): GlassCtx {
     confirmAction,
     dismissConfirm,
     dismissActionToast,
-    openTaskActions,
+    selectTask,
     enterTaskDetails: () => void enterTaskDetails(),
     openDueDatePicker,
     moveDueDateCursor,
     selectDueDateCell,
     dueDatePickerBack,
-    openNoteActions,
+    selectNote,
     enterNoteDetails: () => void enterNoteDetails(),
     openPage: (pageId, title, returnTo) => void openPage(pageId, title, returnTo),
     turnPage,

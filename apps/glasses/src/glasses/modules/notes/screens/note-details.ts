@@ -7,7 +7,7 @@ import { makeDetailsScreen } from '../../_shared/details-screen';
  */
 export const noteDetailsScreen = makeDetailsScreen({
   title: 'NOTE DETAILS',
-  parent: 'note-actions',
+  parent: (state) => state.selectedNote?.returnTo ?? 'notes-menu',
   read(state) {
     const details = state.noteDetails;
     if (!details) return null;

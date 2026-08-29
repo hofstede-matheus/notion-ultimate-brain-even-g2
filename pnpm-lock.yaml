@@ -30,8 +30,8 @@ importers:
   apps/glasses:
     dependencies:
       '@evenrealities/even_hub_sdk':
-        specifier: 0.0.13
-        version: 0.0.13
+        specifier: 0.0.14
+        version: 0.0.14
       '@notion-ub/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -46,7 +46,7 @@ importers:
         version: 4.4.0
       even-toolkit:
         specifier: ^1.7.7
-        version: 1.7.7(@evenrealities/even_hub_sdk@0.0.13)(@types/react@19.2.17)(class-variance-authority@0.7.1)(clsx@2.1.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(redux@5.0.1)(tailwind-merge@3.6.0)
+        version: 1.7.7(@evenrealities/even_hub_sdk@0.0.14)(@types/react@19.2.17)(class-variance-authority@0.7.1)(clsx@2.1.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(redux@5.0.1)(tailwind-merge@3.6.0)
       framer-motion:
         specifier: ^12.42.2
         version: 12.42.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -64,11 +64,11 @@ importers:
         version: 0.0.8
     devDependencies:
       '@evenrealities/evenhub-cli':
-        specifier: 0.1.13
-        version: 0.1.13(@types/node@20.19.43)(typescript@5.9.3)
+        specifier: 0.1.14
+        version: 0.1.14(@types/node@20.19.43)(typescript@5.9.3)
       '@evenrealities/evenhub-simulator':
-        specifier: 0.8.0
-        version: 0.8.0
+        specifier: 0.9.3
+        version: 0.9.3
       '@notion-ub/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -814,43 +814,43 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@evenrealities/even_hub_sdk@0.0.13':
-    resolution: {integrity: sha512-UTEvhrvuuoCeHMQFlImGNeYP8R1SvEWLDtHj+VfMw0IA4MZl5OSonVhNKjJz+cCY27hBkSnIVeKXd99F3ttNDw==}
+  '@evenrealities/even_hub_sdk@0.0.14':
+    resolution: {integrity: sha512-lNtyIldZfe0dhAVxCfNuJ7waH2lMPli8DyklA8jF4DlvByQtbK1janodPNo7M8+7Plp30mlQT8d+vYU3gO8vKQ==}
     engines: {node: ^20.0.0 || >=22.0.0}
 
-  '@evenrealities/evenhub-cli@0.1.13':
-    resolution: {integrity: sha512-glkkGfImds8ceh1YTbVvwuw7jlcSAKnI6Q7ATrDynKSvODs9/FV/R+0CliyCog3JJRTON0+EXBLW3lxU4x8NBQ==}
+  '@evenrealities/evenhub-cli@0.1.14':
+    resolution: {integrity: sha512-aSaCuj01LDaRUinXu1uAAw6743oGGB6Um8mEiXB5M0mj3dbqzdJ9dijSM1lGcuDX/+wFTa/qUdbx7QippBlDuQ==}
     hasBin: true
     peerDependencies:
       typescript: ^5
 
-  '@evenrealities/evenhub-simulator@0.8.0':
-    resolution: {integrity: sha512-mfogXHtRRTQl8ZsaiESf/nFAmNSlH1LtGbkEIcaERDFcDizWTrXomB5FULz3W1gG+qsMQuJYSmB+jLp0tPHtKg==}
+  '@evenrealities/evenhub-simulator@0.9.3':
+    resolution: {integrity: sha512-x431poPoSAV7FyVuYYR73VYDBkYMBtWGR9Ps6k6Td8lyj4zMoXMlRXUS8hb11aSFmXUiDsePNwl2ckFVy+dz4g==}
     hasBin: true
 
   '@evenrealities/pretext@0.1.4':
     resolution: {integrity: sha512-gSZk/uxIhZW3geOM5bP1IS0s1sg7cA7KLLpBDgH9T1+ZNHMIFTMcgQN1qw4+/Xi/rcxsDsWZ7UZndIS/s4fRcA==}
 
-  '@evenrealities/sim-darwin-arm64@0.8.0':
-    resolution: {integrity: sha512-k/yW7mUh+6HgvjP8VrSBlkPj2BBa9qp2kJB95ewdXKhwWeCLCfS/q6eFNK0IXCRXo7CkRg1mbvl68REN9UxQEA==}
+  '@evenrealities/sim-darwin-arm64@0.9.3':
+    resolution: {integrity: sha512-U47Pg3O8TQEuwd+bflSGh1Nn1GYBOuvtMHRddKEF4JtO/pB00Z/6yyp1LrEt1QiFzSbZLjNYU/H2dbJCjMYXuQ==}
     cpu: [arm64]
     os: [darwin]
     hasBin: true
 
-  '@evenrealities/sim-darwin-x64@0.8.0':
-    resolution: {integrity: sha512-eXKfEsa67wb1SQOHsIKiHCRmWry8arENBt501gC8qP5hbMvmdkFMNbBGi2EOUfxqMrd+3jl7TdneraAaU4NGtA==}
+  '@evenrealities/sim-darwin-x64@0.9.3':
+    resolution: {integrity: sha512-xQtGmElqncS74LQJqlyZ9J7UyPIeaFUOl2WyXsac8YM2N6dN9dMCDAPpEZs882pIe/EyuHr9ivT8pYWCNXOpuA==}
     cpu: [x64]
     os: [darwin]
     hasBin: true
 
-  '@evenrealities/sim-linux-x64@0.8.0':
-    resolution: {integrity: sha512-XIQX4IuHCAMFaJMiz9Jl9M8aakvGcefUgOc/PTj+8gAJANwdSmBLJhmoRcELlOHxPMeRG1RqfMrZI7neioqTJg==}
+  '@evenrealities/sim-linux-x64@0.9.3':
+    resolution: {integrity: sha512-mSt6AeUh/Y/IUuMCWsl9vSaydWaRjhGjkArfgGStbjKPxEnagpQvvyA3vrgIr8kfcDU5ZO6UJxQWYXFn3XXXFA==}
     cpu: [x64]
     os: [linux]
     hasBin: true
 
-  '@evenrealities/sim-win32-x64@0.8.0':
-    resolution: {integrity: sha512-PvcJr56lHUzDmHj889DOTR1iwPUC9NOplFkyd7UL7xvIZyhctO74BLoBKbyajZsEuqR8weVZQObUV89NGLpZ5A==}
+  '@evenrealities/sim-win32-x64@0.9.3':
+    resolution: {integrity: sha512-j7hHTpRXWiZOeWSj+loSko8yoaJGev7V7EGVL0ntnVj7E/ko0NhfsMj/8d2fxBwKl1laYhbwvZIB3Vm6oKsWsw==}
     cpu: [x64]
     os: [win32]
     hasBin: true
@@ -3883,9 +3883,9 @@ snapshots:
   '@esbuild/win32-x64@0.28.1':
     optional: true
 
-  '@evenrealities/even_hub_sdk@0.0.13': {}
+  '@evenrealities/even_hub_sdk@0.0.14': {}
 
-  '@evenrealities/evenhub-cli@0.1.13(@types/node@20.19.43)(typescript@5.9.3)':
+  '@evenrealities/evenhub-cli@0.1.14(@types/node@20.19.43)(typescript@5.9.3)':
     dependencies:
       chalk: 5.6.2
       commander: 14.0.3
@@ -3899,25 +3899,25 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@evenrealities/evenhub-simulator@0.8.0':
+  '@evenrealities/evenhub-simulator@0.9.3':
     optionalDependencies:
-      '@evenrealities/sim-darwin-arm64': 0.8.0
-      '@evenrealities/sim-darwin-x64': 0.8.0
-      '@evenrealities/sim-linux-x64': 0.8.0
-      '@evenrealities/sim-win32-x64': 0.8.0
+      '@evenrealities/sim-darwin-arm64': 0.9.3
+      '@evenrealities/sim-darwin-x64': 0.9.3
+      '@evenrealities/sim-linux-x64': 0.9.3
+      '@evenrealities/sim-win32-x64': 0.9.3
 
   '@evenrealities/pretext@0.1.4': {}
 
-  '@evenrealities/sim-darwin-arm64@0.8.0':
+  '@evenrealities/sim-darwin-arm64@0.9.3':
     optional: true
 
-  '@evenrealities/sim-darwin-x64@0.8.0':
+  '@evenrealities/sim-darwin-x64@0.9.3':
     optional: true
 
-  '@evenrealities/sim-linux-x64@0.8.0':
+  '@evenrealities/sim-linux-x64@0.9.3':
     optional: true
 
-  '@evenrealities/sim-win32-x64@0.8.0':
+  '@evenrealities/sim-win32-x64@0.9.3':
     optional: true
 
   '@exodus/bytes@1.15.1': {}
@@ -4974,9 +4974,9 @@ snapshots:
 
   etag@1.8.1: {}
 
-  even-toolkit@1.7.7(@evenrealities/even_hub_sdk@0.0.13)(@types/react@19.2.17)(class-variance-authority@0.7.1)(clsx@2.1.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(redux@5.0.1)(tailwind-merge@3.6.0):
+  even-toolkit@1.7.7(@evenrealities/even_hub_sdk@0.0.14)(@types/react@19.2.17)(class-variance-authority@0.7.1)(clsx@2.1.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(redux@5.0.1)(tailwind-merge@3.6.0):
     dependencies:
-      '@evenrealities/even_hub_sdk': 0.0.13
+      '@evenrealities/even_hub_sdk': 0.0.14
       '@evenrealities/pretext': 0.1.4
       react-is: 19.2.7
       recharts: 3.9.2(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-is@19.2.7)(react@19.2.7)(redux@5.0.1)

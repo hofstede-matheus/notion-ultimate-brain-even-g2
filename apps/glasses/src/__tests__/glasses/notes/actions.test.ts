@@ -1,6 +1,8 @@
 /**
- * Tapping a note on a list screen — opens the note action menu, and Note
- * Details fetches the note's project (notes have no due date).
+ * Tapping a note on a list screen opens the page reader directly; a
+ * long-press stashes the note for the OS contextual menu without
+ * navigating. Note Details fetches the note's project (notes have no due
+ * date).
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -10,39 +12,73 @@ vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { fetchPageDetails } from '../../../api';
-import { back, mount, select } from '../harness';
+import { NOTE_CONTEXT_MENU } from '../../../glasses/context-menu';
+import { back, longPress, menuItemId, mount, select } from '../harness';
 
 const NOTE = { id: 'n1', name: 'Meeting recap' };
 
+function menuId(label: string): number {
+  return menuItemId(NOTE_CONTEXT_MENU, label);
+}
+
 describe('tapping a note on a list screen', () => {
-  it('opens the note action menu with the tapped note selected', () => {
+  it('opens the page reader directly, with the note stashed for the contextual menu', async () => {
     const h = mount();
     h.state.screen = 'notes-inbox';
     h.state.lists['notes-inbox'] = [NOTE];
 
     h.dispatch(select(0));
+    await h.settle();
 
     expect(h.state.selectedNote).toEqual({
       noteId: 'n1',
       noteName: 'Meeting recap',
       returnTo: 'notes-inbox',
     });
-    expect(h.state.screen).toBe('note-actions');
-    expect(h.render()).toMatchObject({
-      mode: 'list',
-      items: ['Open page', 'Note Details', 'Change project', 'Delete note'],
-    });
+    expect(h.state.screen).toBe('page-content');
+    expect(h.state.pageContent).toMatchObject({ title: 'Meeting recap', returnTo: 'notes-inbox' });
   });
 
-  it('GO_BACK returns to the list the note was opened from', () => {
+  it('GO_BACK from the reader returns to the list the note was opened from', async () => {
     const h = mount();
     h.state.screen = 'notes-inbox';
     h.state.lists['notes-inbox'] = [NOTE];
     h.dispatch(select(0));
+    await h.settle();
 
     h.dispatch(back());
 
     expect(h.state.screen).toBe('notes-inbox');
+  });
+});
+
+describe('long-pressing a note on a list screen', () => {
+  it('stashes the tapped note without navigating', () => {
+    const h = mount();
+    h.state.screen = 'notes-inbox';
+    h.state.lists['notes-inbox'] = [NOTE];
+
+    h.dispatch(longPress(0));
+
+    expect(h.state.selectedNote).toEqual({
+      noteId: 'n1',
+      noteName: 'Meeting recap',
+      returnTo: 'notes-inbox',
+    });
+    expect(h.state.screen).toBe('notes-inbox');
+  });
+
+  it('declares the three note actions as the OS contextual menu — no Open page, no Mark as done', () => {
+    const h = mount();
+    h.state.screen = 'notes-inbox';
+    h.state.lists['notes-inbox'] = [NOTE];
+
+    const display = h.render();
+    expect(display.menu?.map((i) => i.label)).toEqual([
+      'Note Details',
+      'Change project',
+      'Delete note',
+    ]);
   });
 });
 
@@ -52,9 +88,9 @@ describe('Note Details', () => {
     const h = mount();
     h.state.screen = 'notes-inbox';
     h.state.lists['notes-inbox'] = [NOTE];
-    h.dispatch(select(0));
+    h.dispatch(longPress(0));
 
-    h.dispatch(select(1)); // Note Details
+    h.menuClick(menuId('Note Details'));
     await h.settle();
 
     expect(h.state.noteDetails).toEqual({ loading: false, project: 'Q3 Planning', error: '' });
@@ -76,9 +112,9 @@ describe('Note Details', () => {
     const h = mount();
     h.state.screen = 'notes-inbox';
     h.state.lists['notes-inbox'] = [{ id: 'n1', name: noteName }];
-    h.dispatch(select(0));
+    h.dispatch(longPress(0));
 
-    h.dispatch(select(1));
+    h.menuClick(menuId('Note Details'));
     await h.settle();
 
     const display = h.render();
@@ -118,24 +154,24 @@ describe('Note Details', () => {
     const h = mount();
     h.state.screen = 'notes-inbox';
     h.state.lists['notes-inbox'] = [NOTE];
-    h.dispatch(select(0));
+    h.dispatch(longPress(0));
 
-    h.dispatch(select(1));
+    h.menuClick(menuId('Note Details'));
     await h.settle();
 
     expect(h.state.noteDetails).toMatchObject({ loading: false, error: 'offline' });
   });
 
-  it('GO_BACK from the details screen returns to the note action menu', () => {
+  it('GO_BACK from the details screen returns to the list the note came from', () => {
     const h = mount();
     h.state.screen = 'notes-inbox';
     h.state.lists['notes-inbox'] = [NOTE];
-    h.dispatch(select(0));
-    h.dispatch(select(1));
+    h.dispatch(longPress(0));
+    h.menuClick(menuId('Note Details'));
 
     h.dispatch(back());
 
-    expect(h.state.screen).toBe('note-actions');
+    expect(h.state.screen).toBe('notes-inbox');
   });
 });
 

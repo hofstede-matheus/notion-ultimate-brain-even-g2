@@ -1,17 +1,17 @@
 @glasses @tasks
 Feature: Deleting a task
 
-  The last choice on a task's action menu, and the only one that removes something. It is confirmed
-  first, because there is no undo on the glasses.
+  The last choice on a task's contextual menu, and the only one that removes something. It is
+  confirmed first, because there is no undo on the glasses.
 
   Nothing is destroyed. The task goes to Notion's Bin, where it can be restored from any Notion
   app — the glasses just have no way to do that themselves.
 
   Background:
-    Given I have opened a task's action menu
+    Given I have opened a task's contextual menu
 
   Scenario: Confirming
-    When I tap "Delete task"
+    When I choose "Delete task"
     Then the glasses show the header "DELETE?"
     And the choices are "Confirm: " followed by the task's name, and "Cancel"
     When I tap the first choice
@@ -27,21 +27,21 @@ Feature: Deleting a task
     And it can be restored from Notion
 
   Scenario: Cancelling leaves the task alone
-    When I tap "Delete task"
+    When I choose "Delete task"
     And I tap "Cancel"
     Then the task is still in its list
     And nothing was deleted
 
   Scenario: A deletion that fails keeps the task
     Given the deletion will not save
-    When I tap "Delete task"
+    When I choose "Delete task"
     And I tap the first choice
     Then the header shows "FAILED: " followed by what went wrong
     And the task is still in its list
     And I can try again
 
   Scenario: The confirmation does not say what kind of thing is being deleted
-    When I tap "Delete task"
+    When I choose "Delete task"
     Then the header reads "DELETE?"
     # The same question is asked for a note — it names the item, not its type.
 

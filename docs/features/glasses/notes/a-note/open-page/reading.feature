@@ -1,17 +1,17 @@
 @glasses @notes
 Feature: Reading a note's page
 
-  "Open page" is the first choice on a note's menu, because reading is usually why a note was
-  opened at all. It reads the note a screenful at a time.
+  Tapping a note opens it directly — reading is usually why a note was opened at all. It reads
+  the note a screenful at a time.
 
   What the content itself looks like once it reaches the glasses is described separately, since it
   is the same for anything read this way.
 
   Background:
-    Given I have opened a note's action menu
+    Given a note in a list
 
   Scenario: Opening it
-    When I tap "Open page"
+    When I tap it
     Then the header shows the note's name
     And below it, "Loading…"
     And a spinner turns in the header
@@ -63,9 +63,9 @@ Feature: Reading a note's page
     When I tap
     Then nothing advances
 
-  Scenario: Leaving returns to the note's action menu
+  Scenario: Leaving returns to the list the note came from
     When I double-tap
-    Then that note's action menu reopens
+    Then that list reopens
 
   Scenario: A note Notion could not send in full says so at the end
     Given a note too long for Notion to send whole

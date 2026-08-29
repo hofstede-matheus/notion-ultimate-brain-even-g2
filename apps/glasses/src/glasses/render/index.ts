@@ -5,6 +5,8 @@ import {
   ImageRawDataUpdateResult,
   ListContainerProperty,
   ListItemContainerProperty,
+  MenuContainerProperty,
+  MenuItemProperty,
   RebuildPageContainer,
   StartUpPageCreateResult,
   TextContainerProperty,
@@ -39,6 +41,7 @@ import {
   SCREEN_W,
 } from '../constants';
 import { router } from '../router';
+import type { ContextMenuItem } from '../types';
 import {
   calendarBottomTextContainer,
   calendarImageContainers,
@@ -49,6 +52,23 @@ import {
 
 function currentDisplay() {
   return router.toDisplayData(state);
+}
+
+/**
+ * Builds the SDK's `menuObject` from a screen's declared contextual-menu
+ * items, or `undefined` when there are none — callers must omit the key
+ * entirely rather than pass `menuObject: undefined`, since `menuObject` is
+ * replaced wholesale on every rebuild and an OMITTED `menuObject` is what
+ * clears a previous screen's menu (see docs/contextual-menu.md in
+ * even-g2-context). Every full rebuild reads the current screen's `display`
+ * fresh, so re-declaring the menu on every rebuild that should keep it falls
+ * out for free rather than needing to be remembered per call site.
+ */
+function toMenuContainer(items: ContextMenuItem[] | undefined): MenuContainerProperty | undefined {
+  if (!items || items.length === 0) return undefined;
+  return new MenuContainerProperty({
+    menuItems: items.map((item) => new MenuItemProperty({ itemID: item.id, itemName: item.label })),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -93,6 +113,9 @@ async function rebuildPage(config: {
   textObject?: TextContainerProperty[];
   listObject?: ListContainerProperty[];
   imageObject?: ImageContainerProperty[];
+  /** The OS contextual menu — omitted (not `undefined`-valued) clears whatever menu the
+   * previous rebuild declared. See toMenuContainer(). */
+  menuObject?: MenuContainerProperty;
 }): Promise<void> {
   const b = getBridge();
   if (!b) {
@@ -249,6 +272,8 @@ async function renderFullOnce(): Promise<void> {
 
   clearCalendarSession();
 
+  const menuObject = toMenuContainer(display.menu);
+
   if (display.mode === 'text') {
     await rebuildPage({
       containerTotalNum: 2,
@@ -266,6 +291,7 @@ async function renderFullOnce(): Promise<void> {
         }),
       ],
       listObject: [placeholderListContainer()],
+      ...(menuObject ? { menuObject } : {}),
     });
     return;
   }
@@ -302,6 +328,7 @@ async function renderFullOnce(): Promise<void> {
         }),
       }),
     ],
+    ...(menuObject ? { menuObject } : {}),
   });
 }
 

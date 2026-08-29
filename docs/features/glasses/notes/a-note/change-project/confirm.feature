@@ -8,7 +8,7 @@ Feature: Filing a note under a project
   notes list means "filed here", so moving it elsewhere removes it. Every other list keeps it.
 
   Background:
-    Given I have opened a note's action menu and tapped "Change project"
+    Given I have opened a note's contextual menu and chosen "Change project"
 
   Scenario: Confirming a move
     When I tap one of the projects

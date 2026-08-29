@@ -1,6 +1,7 @@
 /**
- * Tapping a task on a list screen — opens the task action menu, and Task
- * Details fetches the task's project/due date.
+ * Tapping a task on a list screen opens the page reader directly; a
+ * long-press stashes the task for the OS contextual menu without
+ * navigating. Task Details is one of that menu's items.
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -10,7 +11,8 @@ vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { fetchPageDetails } from '../../../api';
-import { back, mount, select } from '../harness';
+import { TASK_CONTEXT_MENU } from '../../../glasses/context-menu';
+import { back, longPress, menuItemId, mount, select } from '../harness';
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -18,40 +20,62 @@ afterEach(() => {
 
 const TASK = { id: 't1', name: 'Buy milk' };
 
+function menuId(label: string): number {
+  return menuItemId(TASK_CONTEXT_MENU, label);
+}
+
 describe('tapping a task on a list screen', () => {
-  it('opens the task action menu with the tapped task selected', () => {
+  it('opens the page reader directly, with the task stashed for the contextual menu', async () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
 
     h.dispatch(select(0));
+    await h.settle();
 
     expect(h.state.selectedTask).toEqual({ taskId: 't1', taskName: 'Buy milk', returnTo: 'inbox' });
-    expect(h.state.screen).toBe('task-actions');
-
-    const display = h.render();
-    expect(display).toMatchObject({
-      mode: 'list',
-      items: [
-        'Task Details',
-        'Open page',
-        'Change due date',
-        'Change project',
-        'Mark as done',
-        'Delete task',
-      ],
-    });
+    expect(h.state.screen).toBe('page-content');
+    expect(h.state.pageContent).toMatchObject({ title: 'Buy milk', returnTo: 'inbox' });
   });
 
-  it('GO_BACK returns to the list the task was opened from', () => {
+  it('GO_BACK from the reader returns to the list the task was opened from', async () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
     h.dispatch(select(0));
+    await h.settle();
 
     h.dispatch(back());
 
     expect(h.state.screen).toBe('inbox');
+  });
+});
+
+describe('long-pressing a task on a list screen', () => {
+  it('stashes the tapped task without navigating', () => {
+    const h = mount();
+    h.state.screen = 'inbox';
+    h.state.lists.inbox = [TASK];
+
+    h.dispatch(longPress(0));
+
+    expect(h.state.selectedTask).toEqual({ taskId: 't1', taskName: 'Buy milk', returnTo: 'inbox' });
+    expect(h.state.screen).toBe('inbox');
+  });
+
+  it('declares the five task actions as the OS contextual menu', () => {
+    const h = mount();
+    h.state.screen = 'inbox';
+    h.state.lists.inbox = [TASK];
+
+    const display = h.render();
+    expect(display.menu?.map((i) => i.label)).toEqual([
+      'Task Details',
+      'Change due date',
+      'Change project',
+      'Mark as done',
+      'Delete task',
+    ]);
   });
 });
 
@@ -61,9 +85,9 @@ describe('Task Details', () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
-    h.dispatch(select(0)); // -> task-actions
+    h.dispatch(longPress(0));
 
-    h.dispatch(select(0)); // Task Details
+    h.menuClick(menuId('Task Details'));
     await h.settle();
 
     expect(h.state.taskDetails).toEqual({
@@ -121,8 +145,8 @@ describe('Task Details', () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: taskName }];
-    h.dispatch(select(0));
-    h.dispatch(select(0));
+    h.dispatch(longPress(0));
+    h.menuClick(menuId('Task Details'));
     await h.settle();
 
     const display = h.render();
@@ -139,23 +163,23 @@ describe('Task Details', () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
-    h.dispatch(select(0));
+    h.dispatch(longPress(0));
 
-    h.dispatch(select(0));
+    h.menuClick(menuId('Task Details'));
     await h.settle();
 
     expect(h.state.taskDetails).toMatchObject({ loading: false, error: 'offline' });
   });
 
-  it('GO_BACK from details returns to the task action menu', () => {
+  it('GO_BACK from details returns to the list the task came from', () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
-    h.dispatch(select(0));
-    h.dispatch(select(0)); // Task Details (still loading — fine for this assertion)
+    h.dispatch(longPress(0));
+    h.menuClick(menuId('Task Details')); // still loading — fine for this assertion
 
     h.dispatch(back());
 
-    expect(h.state.screen).toBe('task-actions');
+    expect(h.state.screen).toBe('inbox');
   });
 });

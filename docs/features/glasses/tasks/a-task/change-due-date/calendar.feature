@@ -8,20 +8,20 @@ Feature: Choosing a due date on the calendar
   arbitrary day one square at a time would take dozens of swipes.
 
   Background:
-    Given I have opened a task's action menu
+    Given I have opened a task's contextual menu
 
   Rule: The calendar opens somewhere useful
 
     Scenario: A task that already has a due date opens on that date
       Given the task is due on 2026-07-04
-      When I tap "Change due date"
+      When I choose "Change due date"
       Then the glasses show "CHANGE DUE" above "JULY 2026"
       And the week containing the 4th is highlighted
 
     Scenario: A task with no due date opens on today
       Given the task has no due date
       And today is 2026-07-04
-      When I tap "Change due date"
+      When I choose "Change due date"
       Then the glasses show "JULY 2026"
       And the week containing today is highlighted
 
@@ -86,7 +86,7 @@ Feature: Choosing a due date on the calendar
     Scenario: Leaving the calendar
       Given a week is highlighted
       When I double-tap
-      Then the task's action menu reopens
+      Then the list the task came from reopens
 
   Rule: The second step chooses a day
 

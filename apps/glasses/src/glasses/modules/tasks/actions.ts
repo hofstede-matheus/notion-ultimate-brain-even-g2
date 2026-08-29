@@ -6,19 +6,22 @@ import { renderFull, renderUpdate } from '../../render';
 import { navigate, startSpinner, stopSpinner } from '../_shared/navigation';
 
 // ---------------------------------------------------------------------------
-// Task action menu — reached by tapping a task in any Tasks list screen.
-// Offers Task Details / Mark as done / Delete task.
+// Task selection — stashes the task the contextual menu / details /
+// due-date / project-picker flows operate on. A tap on a list row follows
+// this with ctx.openPage(); a long-press leaves it here for whichever
+// contextual-menu item (see glasses/context-menu.ts) the wearer picks next.
+// Does not navigate — unlike the old task-actions screen this replaced,
+// selecting a task is no longer itself a screen transition.
 // ---------------------------------------------------------------------------
 
-export function openTaskActions(
+export function selectTask(
   taskId: string,
   taskName: string,
   returnTo: ScreenName,
   dueDate?: string,
 ): void {
-  trace.info('NAV', `openTaskActions "${taskName}"`, { id: taskId, dueDate });
+  trace.info('SEL', `selectTask "${taskName}"`, { id: taskId, dueDate });
   state.selectedTask = { taskId, taskName, returnTo, dueDate };
-  navigate('task-actions');
 }
 
 export async function enterTaskDetails(): Promise<void> {

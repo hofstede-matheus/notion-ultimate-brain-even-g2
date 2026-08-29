@@ -55,6 +55,24 @@ export function toGlassAction(
       return { type: 'HIGHLIGHT_MOVE', direction: 'up' };
     case OsEventTypeList.SCROLL_BOTTOM_EVENT:
       return { type: 'HIGHLIGHT_MOVE', direction: 'down' };
+    case OsEventTypeList.LONG_PRESS_EVENT:
+      // Same shape as CLICK_EVENT/SELECT_HIGHLIGHTED — the OS contextual menu
+      // is page-scoped, not row-scoped, so the app still needs to know which
+      // row was highlighted when the press started (see
+      // modules/_shared/screen-factories.ts's makeListScreen LONG_PRESS
+      // branch, and context-menu.ts for what the menu does with it).
+      return {
+        type: 'LONG_PRESS',
+        itemIndex: event.listEvent ? (event.listEvent.currentSelectItemIndex ?? 0) : undefined,
+        itemName: event.listEvent?.currentSelectItemName,
+      };
+    case OsEventTypeList.LONG_PRESS_RELEASE_EVENT:
+      // Nothing to do — the OS overlay itself owns everything from here
+      // until a menuItemClickEvent (handled before toGlassAction is ever
+      // called — see events/index.ts) or a dismissal with no selection.
+      // Not routed through the `default` warn below since this is an
+      // expected, frequent event, not an unmapped one.
+      return null;
     default:
       trace.warn('EVT', `${eventTypeName(eventType)} has no action mapping`);
       return null;

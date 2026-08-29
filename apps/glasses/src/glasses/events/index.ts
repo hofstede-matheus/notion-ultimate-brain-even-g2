@@ -3,6 +3,7 @@ import { flush as flushLog } from '../../logging/persist';
 import { trace } from '../../logging/trace';
 import { getBridge, type ScreenName, state } from '../../state';
 import * as stt from '../../stt';
+import { CONTEXT_MENU_OVERLAY_MS } from '../constants';
 import { createGlassCtx } from '../glass-ctx';
 import { renderFull, resetRenderSession } from '../render';
 import { router } from '../router';
@@ -14,6 +15,38 @@ const ctx = createGlassCtx();
 let unsubscribeHub: (() => void) | null = null;
 /** Guards against attaching a second pagehide listener across repeated attachGlassesListeners() calls. */
 let pagehideAttached = false;
+
+// ---------------------------------------------------------------------------
+// Contextual-menu overlay guard — a menu selection is bracketed by
+// FOREGROUND_ENTER_EVENT -> menuItemClickEvent -> FOREGROUND_EXIT_EVENT (see
+// docs/contextual-menu.md in even-g2-context); the trailing exit means the
+// OS overlay closed, not that the app backgrounded. Without this, every menu
+// tap would also trigger handleForegroundEnter's full
+// resetRenderSession()+renderFull() and handleForegroundExit's log flush.
+// ---------------------------------------------------------------------------
+
+let contextMenuOverlayOpen = false;
+let overlayGuardTimeout: ReturnType<typeof setTimeout> | null = null;
+
+/** Arms the guard on LONG_PRESS_EVENT (the gesture that raises the overlay). Bounded by
+ * CONTEXT_MENU_OVERLAY_MS so an overlay dismissed with no selection can never wedge real
+ * foreground handling — see that constant's doc comment for the trade-off this accepts. */
+function armContextMenuOverlay(): void {
+  contextMenuOverlayOpen = true;
+  if (overlayGuardTimeout !== null) clearTimeout(overlayGuardTimeout);
+  overlayGuardTimeout = setTimeout(() => {
+    overlayGuardTimeout = null;
+    contextMenuOverlayOpen = false;
+  }, CONTEXT_MENU_OVERLAY_MS);
+}
+
+function clearContextMenuOverlay(): void {
+  contextMenuOverlayOpen = false;
+  if (overlayGuardTimeout !== null) {
+    clearTimeout(overlayGuardTimeout);
+    overlayGuardTimeout = null;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Lifecycle events — pushed via sysEvent, handled before toGlassAction (which
@@ -61,6 +94,17 @@ export function onEvenHubEvent(event: EvenHubEvent): void {
     return;
   }
 
+  // menuItemClickEvent (SDK 0.0.14+) is a TOP-LEVEL field, never an
+  // OsEventTypeList ordinal — resolveEventType only reads
+  // listEvent/textEvent/sysEvent and would drop this through the
+  // "unrecognised event dropped" warning, so it's handled first.
+  const menuItemId = event.menuItemClickEvent?.itemID;
+  if (menuItemId !== undefined) {
+    trace.info('EVT', 'menuItemClickEvent', { screen: state.screen, itemID: menuItemId });
+    router.onMenuItemClick(menuItemId, state, ctx);
+    return;
+  }
+
   const eventType = resolveEventType(event);
   if (eventType === undefined) return;
 
@@ -71,10 +115,22 @@ export function onEvenHubEvent(event: EvenHubEvent): void {
   });
 
   switch (eventType) {
+    case OsEventTypeList.LONG_PRESS_EVENT:
+      armContextMenuOverlay();
+      break; // still carries which row was highlighted — falls through to toGlassAction below
     case OsEventTypeList.FOREGROUND_ENTER_EVENT:
+      if (contextMenuOverlayOpen) {
+        trace.debug('EVT', 'foreground enter suppressed — contextual menu overlay open');
+        return;
+      }
       handleForegroundEnter();
       return;
     case OsEventTypeList.FOREGROUND_EXIT_EVENT:
+      if (contextMenuOverlayOpen) {
+        trace.debug('EVT', 'foreground exit suppressed — contextual menu overlay closed');
+        clearContextMenuOverlay();
+        return;
+      }
       handleForegroundExit();
       return;
     case OsEventTypeList.ABNORMAL_EXIT_EVENT:

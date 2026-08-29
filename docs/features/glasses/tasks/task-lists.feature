@@ -2,7 +2,7 @@
 Feature: The five task lists
 
   Today, Overdue, Inbox, Next 7 Days and Tomorrow. Each has its own title and its own way of
-  saying "nothing here", and tapping any task opens what can be done with it.
+  saying "nothing here", and tapping any task opens it to read.
 
   Background:
     Given I am on the "TASKS" menu
@@ -71,11 +71,15 @@ Feature: The five task lists
       | NEXT 7 DAYS   |
       | TOMORROW      |
 
-  Scenario: Tapping a task opens what can be done with it
+  Scenario: Tapping a task opens it
     Given a task in any of these lists
     When I tap it
-    Then the glasses show the task's name as the header
-    And its six choices are listed
+    Then it opens in the page reader
+
+  Scenario: Tapping and holding a task opens its contextual menu
+    Given a task in any of these lists
+    When I tap and hold it
+    Then a menu of that task's actions opens over the list
 
   Rule: Today means today where I am
 

@@ -1,7 +1,7 @@
 /**
- * Delete confirm/toast flow, reached from the task action menu. The screens
- * themselves (_shared/delete-confirm.ts, _shared/delete-toast.ts) are shared
- * with notes — see notes/delete.test.ts for that side.
+ * Delete confirm/toast flow, reached from the task's OS contextual menu. The
+ * screens themselves (_shared/delete-confirm.ts, _shared/delete-toast.ts)
+ * are shared with notes — see notes/delete.test.ts for that side.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,15 +11,18 @@ vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { deletePage } from '../../../api';
-import { back, mount, select } from '../harness';
+import { TASK_CONTEXT_MENU } from '../../../glasses/context-menu';
+import { back, longPress, menuItemId, mount, select } from '../harness';
 
 const TASK = { id: 't1', name: 'Buy milk' };
+
+const DELETE_TASK_ID = menuItemId(TASK_CONTEXT_MENU, 'Delete task');
 
 function openConfirm(h: ReturnType<typeof mount>) {
   h.state.screen = 'inbox';
   h.state.lists.inbox = [TASK];
-  h.dispatch(select(0)); // -> task-actions
-  h.dispatch(select(5)); // Delete task
+  h.dispatch(longPress(0));
+  h.menuClick(DELETE_TASK_ID);
 }
 
 describe('opening the delete confirm dialog from a task', () => {
@@ -52,8 +55,8 @@ describe('opening the delete confirm dialog from a task', () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: longName }];
-    h.dispatch(select(0));
-    h.dispatch(select(5)); // Delete task
+    h.dispatch(longPress(0));
+    h.menuClick(DELETE_TASK_ID);
 
     const display = h.render();
     expect(display.mode).toBe('list');

@@ -1,6 +1,6 @@
 # Integration tests
 
-Drives the real `evenhub-simulator` (pinned 0.8.0) headlessly over its
+Drives the real `evenhub-simulator` (pinned 0.9.3) headlessly over its
 automation HTTP API, against a real Vite dev server, against a fixture HTTP
 server standing in for `apps/server`. Run with:
 
@@ -137,6 +137,29 @@ and picker second, because the picker test poisons project browsing for
 everything after it. Splitting them into two files would break the drill-down
 test whenever vitest happened to schedule it second. Leave them together until
 the leak is fixed.
+
+## Known test-only hazard: `state.lastHighlightedIndex` and `long_press`
+
+The simulator's `long_press`/`long_press_release` inputs deliver
+`LONG_PRESS_EVENT`/`RELEASE` as a bare `sysEvent` with no row index at all
+(confirmed against 0.9.3 — unlike real hardware, which is documented to
+carry the OS's own `currentSelectItemIndex`). The app falls back to
+`state.lastHighlightedIndex[screen]` (the last row a tap or indexed
+long-press resolved on that screen), defaulting to row 0 when nothing is
+known — see screen-factories.ts's LONG_PRESS branch.
+
+That fallback is per-screen state that, like `projectPicker` above, is never
+reset between specs sharing this suite's one simulator session. A spec that
+calls `driver.holdToOpenContextMenu()` on a screen another spec already
+tapped a different row on will resolve the *other* spec's row, not row 0 —
+confirmed while writing 10/11: running the suite in isolation passed, running
+it alongside 03/05/07 (which tap other rows on `today`) did not. Every spec
+that opens the contextual menu tap-and-backs its own target row immediately
+beforehand (see 03/05/09/10/11) rather than relying on the default — do the
+same for any new one, even if it looks redundant in isolation. This is a
+simulator-testing artifact, not a production bug: real hardware's
+`LONG_PRESS_EVENT` is expected to carry its own index and never consult the
+fallback.
 
 ## Adding a spec
 

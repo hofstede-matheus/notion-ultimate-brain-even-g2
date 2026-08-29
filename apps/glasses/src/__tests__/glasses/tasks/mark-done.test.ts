@@ -1,5 +1,5 @@
 /**
- * Mark-done confirm/toast flow, reached from the task action menu.
+ * Mark-done confirm/toast flow, reached from the task's OS contextual menu.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,15 +9,18 @@ vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { markTaskDone } from '../../../api';
-import { back, mount, select } from '../harness';
+import { TASK_CONTEXT_MENU } from '../../../glasses/context-menu';
+import { back, longPress, menuItemId, mount, select } from '../harness';
 
 const TASK = { id: 't1', name: 'Buy milk' };
+
+const MARK_AS_DONE_ID = menuItemId(TASK_CONTEXT_MENU, 'Mark as done');
 
 function openConfirm(h: ReturnType<typeof mount>) {
   h.state.screen = 'inbox';
   h.state.lists.inbox = [TASK];
-  h.dispatch(select(0)); // -> task-actions
-  h.dispatch(select(4)); // Mark as done
+  h.dispatch(longPress(0));
+  h.menuClick(MARK_AS_DONE_ID);
 }
 
 describe('opening the confirm dialog', () => {
@@ -60,8 +63,8 @@ describe('opening the confirm dialog', () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: longName }];
-    h.dispatch(select(0));
-    h.dispatch(select(4)); // Mark as done
+    h.dispatch(longPress(0));
+    h.menuClick(MARK_AS_DONE_ID);
 
     const display = h.render();
     expect(display.mode).toBe('list');

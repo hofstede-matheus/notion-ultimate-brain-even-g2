@@ -6,14 +6,15 @@ import { driver } from './_setup';
  * docs/features/glasses/confirming-a-change.feature,
  * a-task/mark-as-done/confirm.feature.
  *
- * The canonical mutation round trip: confirm -> API call -> toast ->
- * auto-return. Exercises the full chain over real HTTP and asserts the
- * fixture server actually received the PATCH — the unit suite already
- * covers the exact screen text at every step (tasks/mark-done.test.ts), so
- * this only checks that the pipeline moves the real request end to end.
+ * The canonical mutation round trip: long-press -> OS contextual menu ->
+ * confirm -> API call -> toast -> auto-return. Exercises the full chain over
+ * real HTTP and asserts the fixture server actually received the PATCH — the
+ * unit suite already covers the exact screen text at every step
+ * (tasks/mark-done.test.ts), so this only checks that the pipeline moves the
+ * real request end to end.
  */
 describe('mark-done round trip', () => {
-  it('confirm -> PATCH /api/tasks/:id/done -> toast -> back to Today', async () => {
+  it('long-press -> Mark as done -> PATCH /api/tasks/:id/done -> toast -> back to Today', async () => {
     await fetch(`${FIXTURE_URL}/__reset`, { method: 'POST' });
 
     let cursor = await driver.latestId();
@@ -25,15 +26,31 @@ describe('mark-done round trip', () => {
     await driver.tap();
     await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
 
+    // Tap row 0 ("Buy groceries"/task-mark-done) once to prime which row a
+    // following long-press resolves to — the simulator's LONG_PRESS_EVENT
+    // carries no row index of its own (state.lastHighlightedIndex's doc
+    // comment), and a previous spec's own tap can otherwise leave 'today'
+    // pointed at a different row for the rest of the shared simulator
+    // session.
     cursor = await driver.latestId();
-    await driver.tap(); // row 0 = "Buy groceries" (task-mark-done)
+    await driver.tap();
     await driver.waitForLine(/SEL\s+today row 0 "Buy groceries"/, { from: cursor });
-    await driver.waitForLine(/NAV\s+today -> task-actions/, { from: cursor });
+    await driver.waitForLine(/NAV\s+openPage "Buy groceries"/, { from: cursor });
 
     cursor = await driver.latestId();
-    for (let i = 0; i < 4; i++) await driver.swipeDown(); // idx0 -> idx4 "Mark as done"
-    await driver.tap();
-    await driver.waitForLine(/NAV\s+task-actions -> mark-done-confirm/, { from: cursor });
+    await driver.back(); // page-content -> today, row 0 still remembered
+    await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
+
+    cursor = await driver.latestId();
+    await driver.holdToOpenContextMenu();
+    await driver.waitForLine(/SEL\s+today long-press row "Buy groceries"/, { from: cursor });
+
+    cursor = await driver.latestId();
+    // TASK_CONTEXT_MENU order: Task Details, Change due date, Change project,
+    // Mark as done, Delete task — see glasses/context-menu.ts.
+    await driver.selectContextMenuItem(3);
+    await driver.waitForLine(/MENU\s+item \d+ selected/, { from: cursor });
+    await driver.waitForLine(/NAV\s+today -> mark-done-confirm/, { from: cursor });
 
     cursor = await driver.latestId();
     await driver.tap(); // idx0 "Confirm: Buy groceries"

@@ -296,7 +296,18 @@ def main() -> None:
     shot.add_argument("--prefix", default="", help="filename prefix, e.g. 'after-' for before/after pairs")
 
     inp = sub.add_parser("input", help="POST /api/input")
-    inp.add_argument("action", choices=["up", "down", "click", "double_click"])
+    inp.add_argument(
+        "action",
+        choices=[
+            "up",
+            "down",
+            "click",
+            "double_click",
+            "long_press",
+            "long_press_release",
+            "context_menu",
+        ],
+    )
 
     sub.add_parser("clear", help="DELETE /api/console (read startup lines first)")
 

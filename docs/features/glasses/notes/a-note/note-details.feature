@@ -9,10 +9,10 @@ Feature: Note details
   line, with the value below it.
 
   Background:
-    Given I have opened a note's action menu
+    Given I have opened a note's contextual menu
 
   Scenario: Loading the details
-    When I tap "Note Details"
+    When I choose "Note Details"
     Then the glasses show:
       """
       NOTE DETAILS
@@ -25,7 +25,7 @@ Feature: Note details
 
   Scenario: A note filed under a project
     Given the note is named "Meeting recap" and filed under "Website"
-    When I tap "Note Details"
+    When I choose "Note Details"
     Then the glasses show:
       """
       NOTE DETAILS
@@ -41,7 +41,7 @@ Feature: Note details
 
   Scenario: A note with no project
     Given the note is filed nowhere
-    When I tap "Note Details"
+    When I choose "Note Details"
     Then the glasses show "(none)" under "Project:"
     And the note's title is still shown in full
 
@@ -60,23 +60,23 @@ Feature: Note details
     Given a note whose title and project together run past the bottom of the display
     When I load its details
     Then swiping moves through the rest of them
-    And double-tapping still returns to the action menu
+    And double-tapping still returns to the list the note came from
 
   Scenario: Details that cannot be loaded say why
     Given the details cannot be loaded
-    When I tap "Note Details"
+    When I choose "Note Details"
     Then the glasses show what went wrong instead of the note and project lines
     And below it "Double-tap to go back."
 
   Scenario: A long message is shortened
     Given the details fail with a message wider than the display
-    When I tap "Note Details"
+    When I choose "Note Details"
     Then it is shortened to one line
 
-  Scenario: Returning to the action menu
+  Scenario: Returning to the list
     Given I am viewing "NOTE DETAILS"
     When I double-tap
-    Then the note's action menu reopens
+    Then the list the note came from reopens
 
   Scenario: There is nothing to choose here
     Given I am viewing "NOTE DETAILS"

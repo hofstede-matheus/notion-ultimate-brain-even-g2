@@ -2,6 +2,7 @@ import { trace } from '../logging/trace';
 import type { AppState } from '../state';
 import { bootErrorScreen, bootingScreen, setupNeededScreen } from './boot-screens';
 import { FALLBACK_SCREEN } from './constants';
+import { handleMenuItemClick } from './context-menu';
 import { menuScreen } from './menu';
 import { deleteConfirmScreen } from './modules/_shared/delete-confirm';
 import { deleteToastScreen } from './modules/_shared/delete-toast';
@@ -17,7 +18,6 @@ import { notesInboxScreen } from './modules/notes/screens/inbox';
 import { journalScreen } from './modules/notes/screens/journal';
 import { meetingsScreen } from './modules/notes/screens/meetings';
 import { notesMenuScreen } from './modules/notes/screens/menu';
-import { noteActionsScreen } from './modules/notes/screens/note-actions';
 import { noteDetailsScreen } from './modules/notes/screens/note-details';
 import { notesListScreen } from './modules/notes/screens/notes';
 import { voiceNotesScreen } from './modules/notes/screens/voice';
@@ -54,7 +54,6 @@ import { markDoneToastScreen } from './modules/tasks/screens/mark-done-toast';
 import { tasksMenuScreen } from './modules/tasks/screens/menu';
 import { next7DaysScreen } from './modules/tasks/screens/next-7-days';
 import { overdueScreen } from './modules/tasks/screens/overdue';
-import { taskActionsScreen } from './modules/tasks/screens/task-actions';
 import { taskDetailsScreen } from './modules/tasks/screens/task-details';
 import { taskDueDateScreen } from './modules/tasks/screens/task-due-date';
 import { todayScreen } from './modules/tasks/screens/today';
@@ -109,12 +108,10 @@ export const SCREENS: Record<string, ScreenModule> = {
   'tag-notes': tagNotesScreen,
   'mark-done-confirm': markDoneConfirmScreen,
   'mark-done-toast': markDoneToastScreen,
-  'task-actions': taskActionsScreen,
   'task-details': taskDetailsScreen,
   'task-due-date': taskDueDateScreen,
   'due-date-confirm': dueDateConfirmScreen,
   'due-date-toast': dueDateToastScreen,
-  'note-actions': noteActionsScreen,
   'note-details': noteDetailsScreen,
   'page-content': pageContentScreen,
   'delete-confirm': deleteConfirmScreen,
@@ -150,5 +147,10 @@ export const router = {
   onGlassAction(action: AppGlassAction, snapshot: AppState, ctx: GlassCtx): void {
     trace.debug('NAV', `dispatch screen=${snapshot.screen} action=${action.type}`);
     getScreen(snapshot.screen).action(action, snapshot, ctx);
+  },
+  /** A `menuItemClickEvent` from the OS contextual menu — top-level, independent of
+   * which screen is showing (see glasses/events/index.ts). */
+  onMenuItemClick(itemID: number, snapshot: AppState, ctx: GlassCtx): void {
+    handleMenuItemClick(itemID, snapshot, ctx);
   },
 };
