@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.10.0](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.9.0...glasses-v2.10.0) (2026-08-30)
+
+
+### Features
+
+* **glasses:** add contextual menu for tasks and notes ([#44](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/44)) ([f8b0c07](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/f8b0c07c70c9d1583dc9378db105830503c57c40))
+
 ## [2.9.0](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.8.1...glasses-v2.9.0) (2026-08-24)
 
 
