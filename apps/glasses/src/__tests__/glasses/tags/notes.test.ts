@@ -1,8 +1,7 @@
 /**
  * Tapping a tag opens the tag-scoped notes list — dynamic "TAG: <name>"
  * header, GO_BACK returns to whichever tags list screen the tap came from,
- * and tapping a note opens its page reader directly (same as any other
- * notes list).
+ * and tapping a note opens its Note Details (same as any other notes list).
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -50,7 +49,7 @@ describe('tapping a tag', () => {
     expect(h.state.screen).toBe('tags-favorites');
   });
 
-  it('tapping a note in the tag-notes list opens its page reader directly', async () => {
+  it('tapping a note in the tag-notes list opens its Note Details', async () => {
     vi.mocked(fetchNotesForTag).mockResolvedValue({
       items: [{ id: 'n1', name: 'Design notes' }],
       hasMore: false,
@@ -70,8 +69,7 @@ describe('tapping a tag', () => {
       noteName: 'Design notes',
       returnTo: 'tag-notes',
     });
-    expect(h.state.screen).toBe('page-content');
-    expect(h.state.pageContent).toMatchObject({ title: 'Design notes', returnTo: 'tag-notes' });
+    expect(h.state.screen).toBe('note-details');
   });
 });
 

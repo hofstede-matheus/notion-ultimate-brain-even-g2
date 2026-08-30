@@ -1,17 +1,18 @@
 @glasses @notes
 Feature: Reading a note's page
 
-  Tapping a note opens it directly — reading is usually why a note was opened at all. It reads
-  the note a screenful at a time.
+  Choosing "Open page" from a note's contextual menu reads the note a screenful at a time. A tap
+  on the list opens its details instead — reading costs a further fetch, so it is asked for
+  explicitly.
 
   What the content itself looks like once it reaches the glasses is described separately, since it
   is the same for anything read this way.
 
   Background:
-    Given a note in a list
+    Given I have opened a note's contextual menu
 
   Scenario: Opening it
-    When I tap it
+    When I choose "Open page"
     Then the header shows the note's name
     And below it, "Loading…"
     And a spinner turns in the header
@@ -63,9 +64,9 @@ Feature: Reading a note's page
     When I tap
     Then nothing advances
 
-  Scenario: Leaving returns to the list the note came from
+  Scenario: Leaving returns to the details it was opened from
     When I double-tap
-    Then that list reopens
+    Then the glasses show "NOTE DETAILS" again
 
   Scenario: A note Notion could not send in full says so at the end
     Given a note too long for Notion to send whole

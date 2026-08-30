@@ -26,31 +26,26 @@ describe('mark-done round trip', () => {
     await driver.tap();
     await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
 
-    // Tap row 0 ("Buy groceries"/task-mark-done) once to prime which row a
-    // following long-press resolves to — the simulator's LONG_PRESS_EVENT
-    // carries no row index of its own (state.lastHighlightedIndex's doc
-    // comment), and a previous spec's own tap can otherwise leave 'today'
-    // pointed at a different row for the rest of the shared simulator
-    // session.
+    // A tap opens the task's details — which is where its contextual menu lives, and the only
+    // place the app knows for certain which task is meant (see glasses/context-menu.ts).
     cursor = await driver.latestId();
     await driver.tap();
     await driver.waitForLine(/SEL\s+today row 0 "Buy groceries"/, { from: cursor });
-    await driver.waitForLine(/NAV\s+openPage "Buy groceries"/, { from: cursor });
-
-    cursor = await driver.latestId();
-    await driver.back(); // page-content -> today, row 0 still remembered
-    await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
+    await driver.waitForLine(/NAV\s+today -> task-details/, { from: cursor });
 
     cursor = await driver.latestId();
     await driver.holdToOpenContextMenu();
-    await driver.waitForLine(/SEL\s+today long-press row "Buy groceries"/, { from: cursor });
+    await driver.waitForLine(/EVT\s+LONG_PRESS_EVENT/, { from: cursor });
+    // The overlay's arrival cancels the hold shortcut, so tap-and-hold shows the menu
+    // rather than marking the task done behind it.
+    await driver.waitForLine(/EVT\s+hold action cancelled/, { from: cursor });
 
     cursor = await driver.latestId();
-    // TASK_CONTEXT_MENU order: Task Details, Change due date, Change project,
+    // TASK_CONTEXT_MENU order: Open page, Change due date, Change project,
     // Mark as done, Delete task — see glasses/context-menu.ts.
     await driver.selectContextMenuItem(3);
     await driver.waitForLine(/MENU\s+item \d+ selected/, { from: cursor });
-    await driver.waitForLine(/NAV\s+today -> mark-done-confirm/, { from: cursor });
+    await driver.waitForLine(/NAV\s+task-details -> mark-done-confirm/, { from: cursor });
 
     cursor = await driver.latestId();
     await driver.tap(); // idx0 "Confirm: Buy groceries"

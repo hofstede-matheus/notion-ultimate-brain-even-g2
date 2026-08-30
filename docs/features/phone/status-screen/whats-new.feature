@@ -2,8 +2,8 @@
 Feature: What's new
 
   A card on the status screen tells someone who already knows the app that something changed —
-  right now, that tapping a task or note opens its page directly, and tap-and-hold is the new way
-  to reach its other actions.
+  right now, that tapping a task or note opens its details, that holding those details marks a
+  task done, and that tap-and-hold is the new way to reach everything else.
 
   It stays until it is dismissed by hand. There is no timer and no auto-expiry.
 

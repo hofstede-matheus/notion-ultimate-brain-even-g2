@@ -74,27 +74,18 @@ describe('projects', () => {
     await driver.tap();
     await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
 
-    // Tap row 0 ("Buy groceries") once to prime which row a following
-    // long-press resolves to — the simulator's LONG_PRESS_EVENT carries no
-    // row index of its own (state.lastHighlightedIndex's doc comment), and
-    // a previous spec's own tap can otherwise leave 'today' pointed at a
-    // different row for the rest of the shared simulator session.
+    // A tap opens the task's details, where its contextual menu is declared.
     cursor = await driver.latestId();
     await driver.tap();
     await driver.waitForLine(/SEL\s+today row 0 "Buy groceries"/, { from: cursor });
-    await driver.waitForLine(/NAV\s+openPage "Buy groceries"/, { from: cursor });
-
-    cursor = await driver.latestId();
-    await driver.back(); // page-content -> today, row 0 still remembered
-    await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
+    await driver.waitForLine(/NAV\s+today -> task-details/, { from: cursor });
 
     cursor = await driver.latestId();
     await driver.holdToOpenContextMenu();
-    await driver.waitForLine(/SEL\s+today long-press row "Buy groceries"/, { from: cursor });
 
     cursor = await driver.latestId();
-    // TASK_CONTEXT_MENU order: Task Details, Change due date, Change
-    // project, Mark as done, Delete task — see glasses/context-menu.ts.
+    // TASK_CONTEXT_MENU order: Open page, Change due date, Change project,
+    // Mark as done, Delete task — see glasses/context-menu.ts.
     await driver.selectContextMenuItem(2);
     await driver.waitForLine(/MENU\s+item \d+ selected/, { from: cursor });
     await driver.waitForLine(/NAV\s+openProjectPicker "Buy groceries"/, { from: cursor });

@@ -13,7 +13,7 @@ vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 import { fetchDoingProjects, fetchInboxTasks, setPageProject } from '../../../api';
 import { TASK_CONTEXT_MENU } from '../../../glasses/context-menu';
 import type { ScreenName } from '../../../state';
-import { back, longPress, menuItemId, mount, select } from '../harness';
+import { back, menuItemId, mount, select } from '../harness';
 
 const TASK = { id: 't1', name: 'Buy milk' };
 const PROJECTS = [
@@ -26,7 +26,7 @@ const CHANGE_PROJECT_ID = menuItemId(TASK_CONTEXT_MENU, 'Change project');
 async function openPicker(h: ReturnType<typeof mount>, returnScreen: ScreenName = 'inbox') {
   h.state.screen = returnScreen;
   h.state.lists[returnScreen] = [TASK];
-  h.dispatch(longPress(0));
+  h.dispatch(select(0));
   h.menuClick(CHANGE_PROJECT_ID);
   await h.settle();
   h.dispatch(select(2)); // Doing
@@ -50,7 +50,7 @@ describe('opening the project picker', () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
-    h.dispatch(longPress(0));
+    h.dispatch(select(0));
     h.menuClick(CHANGE_PROJECT_ID);
     await h.settle();
     expect(h.render()).toMatchObject({
@@ -163,7 +163,7 @@ describe('confirming a project change', () => {
     h.state.screen = 'project-tasks-todo';
     h.state.selectedProject = { id: 'p1', name: 'Groceries', returnTo: 'projects-doing' };
     h.state.lists['project-tasks-todo'] = [TASK];
-    h.dispatch(longPress(0));
+    h.dispatch(select(0));
     h.menuClick(CHANGE_PROJECT_ID);
     await h.settle();
 

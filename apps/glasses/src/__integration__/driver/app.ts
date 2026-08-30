@@ -175,15 +175,17 @@ export class AppDriver {
   }
 
   /**
-   * The full gesture a wearer performs to raise the contextual menu on a
-   * highlighted row: `long_press` + `long_press_release` (so the app fires
-   * LONG_PRESS_EVENT/RELEASE and stashes the row — see
-   * glasses/context-menu.ts, state.lastHighlightedIndex), THEN
-   * `context_menu` to actually raise the simulator's overlay so `up`/`down`/
-   * `click` reach it. On real hardware a single physical long-press is
-   * expected to do both at once; the simulator's automation API keeps them
-   * separate (confirmed against 0.9.3 — `long_press` alone leaves the
-   * screenshot showing the underlying list, unchanged).
+   * The full tap-and-hold a wearer performs to raise the contextual menu, as the app sees it:
+   * `long_press` (hardware delivers LONG_PRESS_EVENT for this gesture too — Even's docs are
+   * explicit that the menu-raising gesture "also surfaces as LONG_PRESS_EVENT") followed by
+   * `context_menu`, which is what actually makes the simulator's overlay appear and take
+   * `up`/`down`/`click` (confirmed against 0.9.3 — `long_press` alone leaves the screenshot
+   * unchanged).
+   *
+   * Ordering matters: sending `long_press` first is what exercises the app's hold-vs-tap-and-hold
+   * disambiguation (HOLD_ACTION_DELAY_MS), so a spec that raises the menu also proves the hold
+   * shortcut correctly stands down. The simulator emits the overlay's FOREGROUND_ENTER_EVENT on
+   * `context_menu`, which is the signal that cancels the pending hold.
    */
   async holdToOpenContextMenu(): Promise<void> {
     await this.longPress();

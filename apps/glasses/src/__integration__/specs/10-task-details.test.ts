@@ -3,7 +3,8 @@ import { assertLit } from '../driver/app';
 import { driver } from './_setup';
 
 /**
- * docs/features/glasses/tasks/a-task/task-details.feature.
+ * docs/features/glasses/tasks/a-task/task-details.feature — the screen a tap
+ * on a task row opens, and the anchor for its contextual menu (spec 11).
  *
  * A details screen is `mode: 'text'` whose body is assembled from a fetch
  * that happens *after* navigation — the screen paints "Loading…" first, then
@@ -14,7 +15,7 @@ import { driver } from './_setup';
  * without re-arming the firmware scroll.
  */
 describe('task details', () => {
-  it('OS contextual menu -> Task Details fetches and repaints with the fetched fields', async () => {
+  it('tapping a task row fetches its details and repaints with the fetched fields', async () => {
     let cursor = await driver.latestId();
     await driver.tap(); // menu -> tasks-menu
     await driver.waitForLine(/NAV\s+menu -> tasks-menu/, { from: cursor });
@@ -24,28 +25,10 @@ describe('task details', () => {
     await driver.tap();
     await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
 
-    // Tap row 0 ("Buy groceries") once to prime which row a following
-    // long-press resolves to — the simulator's LONG_PRESS_EVENT carries no
-    // row index of its own (state.lastHighlightedIndex's doc comment), and
-    // a previous spec's own tap can otherwise leave 'today' pointed at a
-    // different row for the rest of the shared simulator session.
+    // A tap is now the whole route in — no menu step, and no page-reader fetch on the way.
     cursor = await driver.latestId();
     await driver.tap();
     await driver.waitForLine(/SEL\s+today row 0 "Buy groceries"/, { from: cursor });
-    await driver.waitForLine(/NAV\s+openPage "Buy groceries"/, { from: cursor });
-
-    cursor = await driver.latestId();
-    await driver.back(); // page-content -> today, row 0 still remembered
-    await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
-
-    cursor = await driver.latestId();
-    await driver.holdToOpenContextMenu();
-    await driver.waitForLine(/SEL\s+today long-press row "Buy groceries"/, { from: cursor });
-
-    cursor = await driver.latestId();
-    // TASK_CONTEXT_MENU order: Task Details is idx0 — see glasses/context-menu.ts.
-    await driver.selectContextMenuItem(0);
-    await driver.waitForLine(/MENU\s+item \d+ selected/, { from: cursor });
     await driver.waitForLine(/NAV\s+today -> task-details/, { from: cursor });
     await driver.waitForLine(/API\s+.*\/api\/pages\/task-mark-done\/details 200/, { from: cursor });
 
