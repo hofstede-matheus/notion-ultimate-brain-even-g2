@@ -1,16 +1,18 @@
 @glasses @tasks
 Feature: Reading a task's page
 
-  Tapping a task reads whatever is written against it, a screenful at a time.
+  Choosing "Open page" from a task's contextual menu reads whatever is written against it, a
+  screenful at a time. A tap on the list opens its details instead — reading costs a further
+  fetch, so it is asked for explicitly.
 
   What the content itself looks like once it reaches the glasses is described separately, since it
   is the same for anything read this way.
 
   Background:
-    Given a task in a list
+    Given I have opened a task's contextual menu
 
   Scenario: Opening it
-    When I tap it
+    When I choose "Open page"
     Then the header shows the task's name
     And below it, "Loading…"
     And a spinner turns in the header
@@ -70,9 +72,9 @@ Feature: Reading a task's page
     When I tap
     Then nothing advances
 
-  Scenario: Leaving returns to the list the task came from
+  Scenario: Leaving returns to the details it was opened from
     When I double-tap
-    Then that list reopens
+    Then the glasses show "TASK DETAILS" again
 
   Scenario: A page Notion could not send in full says so at the end
     Given a page too long for Notion to send whole

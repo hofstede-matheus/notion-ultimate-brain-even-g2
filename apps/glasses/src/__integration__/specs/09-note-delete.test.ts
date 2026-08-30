@@ -28,32 +28,25 @@ describe('note delete round trip', () => {
     await driver.tap(); // notes-menu idx0 "Inbox"
     await driver.waitForLine(/RENDER full mode=list screen=notes-inbox/, { from: cursor });
 
-    // Tap row 1 ("Disposable Note") once to prime which row a following
-    // long-press resolves to — the simulator's LONG_PRESS_EVENT carries no
-    // row index of its own (see state.lastHighlightedIndex's doc comment).
+    // A tap opens the note's details, where its contextual menu is declared.
     cursor = await driver.latestId();
     await driver.swipeDown(); // row 0 -> row 1 "Disposable Note"
     await driver.tap();
     await driver.waitForLine(/SEL\s+notes-inbox row 1 "Disposable Note"/, { from: cursor });
-    await driver.waitForLine(/NAV\s+openPage "Disposable Note"/, { from: cursor });
-
-    cursor = await driver.latestId();
-    await driver.back(); // page-content -> notes-inbox, row 1 still remembered
-    await driver.waitForLine(/RENDER full mode=list screen=notes-inbox/, { from: cursor });
+    await driver.waitForLine(/NAV\s+notes-inbox -> note-details/, { from: cursor });
 
     cursor = await driver.latestId();
     await driver.holdToOpenContextMenu();
-    await driver.waitForLine(/SEL\s+notes-inbox long-press row "Disposable Note"/, {
-      from: cursor,
-    });
+    // A note's details declare no hold action, so nothing to stand down — just the overlay.
+    await driver.waitForLine(/EVT\s+LONG_PRESS_EVENT/, { from: cursor });
 
     cursor = await driver.latestId();
-    // NOTE_CONTEXT_MENU order: Note Details, Change project, Delete note —
+    // NOTE_CONTEXT_MENU order: Open page, Change project, Delete note —
     // see glasses/context-menu.ts.
     await driver.selectContextMenuItem(2);
     await driver.waitForLine(/MENU\s+item \d+ selected/, { from: cursor });
     await driver.waitForLine(/ACT\s+confirm open kind=delete/, { from: cursor });
-    await driver.waitForLine(/NAV\s+notes-inbox -> delete-confirm/, { from: cursor });
+    await driver.waitForLine(/NAV\s+note-details -> delete-confirm/, { from: cursor });
 
     cursor = await driver.latestId();
     await driver.tap(); // idx0 "Confirm: Disposable Note"

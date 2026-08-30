@@ -24,32 +24,22 @@ describe('due-date calendar renders as a bitmap', () => {
     await driver.tap();
     await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
 
-    // Tap row 1 ("Renew passport"/task-due-date) once to prime which row a
-    // following long-press resolves to — the simulator's LONG_PRESS_EVENT
-    // carries no row index of its own (see state.lastHighlightedIndex's doc
-    // comment), so the fallback needs a prior tap on this exact row. Going
-    // back leaves that memory intact, matching what the OS's own highlight
-    // cursor would still show on real hardware.
+    // A tap opens the task's details, where its contextual menu is declared.
     cursor = await driver.latestId();
     await driver.swipeDown(); // idx0 -> idx1 "Renew passport"
     await driver.tap();
     await driver.waitForLine(/SEL\s+today row 1 "Renew passport"/, { from: cursor });
-    await driver.waitForLine(/NAV\s+openPage "Renew passport"/, { from: cursor });
-
-    cursor = await driver.latestId();
-    await driver.back(); // page-content -> today, row 1 still remembered
-    await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
+    await driver.waitForLine(/NAV\s+today -> task-details/, { from: cursor });
 
     cursor = await driver.latestId();
     await driver.holdToOpenContextMenu();
-    await driver.waitForLine(/SEL\s+today long-press row "Renew passport"/, { from: cursor });
 
     cursor = await driver.latestId();
-    // TASK_CONTEXT_MENU order: Task Details, Change due date, Change
-    // project, Mark as done, Delete task — see glasses/context-menu.ts.
+    // TASK_CONTEXT_MENU order: Open page, Change due date, Change project,
+    // Mark as done, Delete task — see glasses/context-menu.ts.
     await driver.selectContextMenuItem(1);
     await driver.waitForLine(/MENU\s+item \d+ selected/, { from: cursor });
-    await driver.waitForLine(/NAV\s+today -> task-due-date/, { from: cursor });
+    await driver.waitForLine(/NAV\s+task-details -> task-due-date/, { from: cursor });
     await driver.waitForLine(/RENDER full mode=bitmap screen=task-due-date/, { from: cursor });
     const tiles = await driver.waitForLine(/CAL\s+tiles sent/, { from: cursor });
     expect(tiles.message).toMatch(/tiles=\d+/);

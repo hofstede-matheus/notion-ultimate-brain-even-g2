@@ -3,8 +3,7 @@ import { buildHeaderLine } from 'even-toolkit/text-utils';
 import { trace } from '../../../logging/trace';
 import type { AppState, ListItem, ScreenName } from '../../../state';
 import { LIST_ITEM_PADDING_X, MAX_ITEM_BYTES, MAX_LIST_ITEMS, SCREEN_W } from '../../constants';
-import { NOTE_CONTEXT_MENU, TASK_CONTEXT_MENU } from '../../context-menu';
-import type { ContextMenuItem, GlassCtx, MenuDef, ScreenModule } from '../../types';
+import type { GlassCtx, MenuDef, ScreenModule } from '../../types';
 
 export { MAX_LIST_ITEMS } from '../../constants';
 
@@ -347,21 +346,11 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
         : items;
     });
 
-  /** Same resolution `display()` and `action()` both need — kept in one place so the menu a
-   * screen declares can never drift from what SELECT_HIGHLIGHTED/LONG_PRESS route to. */
+  /** What a tap on a row does — resolved once here so `action()` never has to re-derive it. */
   function resolveKind(state: AppState): SelectKind | undefined {
     const configuredKind =
       typeof config.onSelect === 'function' ? config.onSelect(state) : config.onSelect;
     return configuredKind ?? selectKindFor(config.screen);
-  }
-
-  /** The OS contextual menu for this screen's rows, or undefined for screens whose rows have
-   * no item actions (projects, tags, the project picker). */
-  function menuFor(state: AppState): ContextMenuItem[] | undefined {
-    const kind = resolveKind(state);
-    if (kind === 'task') return TASK_CONTEXT_MENU;
-    if (kind === 'note') return NOTE_CONTEXT_MENU;
-    return undefined;
   }
 
   return {
@@ -418,7 +407,9 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
       if (hasPrev) listItems.push(PREV_PAGE_LABEL);
       listItems.push(...pageItems.map((i) => truncateListLabel(formatLabel(i))));
       if (hasNext) listItems.push(NEXT_PAGE_LABEL);
-      return { mode: 'list', header, items: listItems, menu: menuFor(state) };
+      // No `menu` here on purpose — a contextual menu on a list cannot tell which row is
+      // highlighted (see glasses/context-menu.ts). It lives on the details screen a tap opens.
+      return { mode: 'list', header, items: listItems };
     },
 
     action(action, state, ctx) {
@@ -436,20 +427,6 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
         state.listPages[config.screen] ?? 0,
       );
 
-      // Resolves a raw itemIndex (from either SELECT_HIGHLIGHTED or LONG_PRESS) through the
-      // same Prev/More offset paginateItems reserves rows for — a row on a later page would
-      // otherwise resolve to the wrong underlying item. Returns undefined for a Prev/More row
-      // itself (the caller already turned the page) or an out-of-range index.
-      function resolveItem(itemIndex: number): ListItem | undefined {
-        let idx = itemIndex;
-        if (hasPrev) {
-          if (idx === 0) return undefined;
-          idx -= 1;
-        }
-        if (hasNext && idx === pageItems.length) return undefined;
-        return items[start + idx];
-      }
-
       if (action.type === 'SELECT_HIGHLIGHTED') {
         if (typeof action.itemIndex === 'number') {
           let idx = action.itemIndex;
@@ -466,14 +443,15 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
           }
           const item = items[start + idx];
           if (item) {
-            // Remembered as the LONG_PRESS fallback below — see
-            // state.lastHighlightedIndex's doc comment for why this exists.
-            state.lastHighlightedIndex[config.screen] = action.itemIndex;
             const kind = resolveKind(state);
             trace.info('SEL', `${config.screen} row ${idx} "${item.name}"`, {
               id: item.id,
               kind: kind ?? 'unknown',
             });
+            // A tap opens the item's details, not its page: the reader costs a markdown
+            // fetch on top of the details call, and reading is the rarer intent. The details
+            // screen is also where the contextual menu and the hold shortcut live, since it
+            // is the only place the target is unambiguous — see glasses/context-menu.ts.
             if (kind === 'task') {
               ctx.selectTask(
                 item.id,
@@ -481,11 +459,11 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
                 config.screen,
                 'dueDate' in item ? item.dueDate : undefined,
               );
-              ctx.openPage(item.id, item.name, config.screen);
+              void ctx.enterTaskDetails();
             } else if (kind === 'project') ctx.openProjectDetail(item.id, item.name, config.screen);
             else if (kind === 'note') {
               ctx.selectNote(item.id, item.name, config.screen);
-              ctx.openPage(item.id, item.name, config.screen);
+              void ctx.enterNoteDetails();
             } else if (kind === 'tag') ctx.openTagNotes(item.id, item.name, config.screen);
             else if (kind === 'project-pick') ctx.pickProject(item.id, item.name);
             else
@@ -498,52 +476,13 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
       }
 
       if (action.type === 'LONG_PRESS') {
-        // The OS contextual menu is page-scoped, not row-scoped — this stashes which row was
-        // highlighted so context-menu.ts's handlers have a target once the wearer picks an
-        // item, without navigating anywhere itself (the overlay is OS-drawn).
-        //
-        // LONG_PRESS_EVENT is documented to carry the OS's own
-        // currentSelectItemIndex (SDK 0.0.14+), but the desktop simulator
-        // delivers it with none at all (confirmed against 0.9.3 — a bare
-        // sysEvent, not a listEvent) — fall back to the last row a tap
-        // resolved on this screen, and failing that, row 0: a freshly
-        // entered list highlights its first row by default (the same
-        // assumption the CLICK_EVENT index-0 quirk above already makes), so
-        // a long-press before ever tapping anything on this screen still
-        // has a sensible target. See state.lastHighlightedIndex's doc
-        // comment.
-        const rawIndex =
-          typeof action.itemIndex === 'number'
-            ? action.itemIndex
-            : (state.lastHighlightedIndex[config.screen] ?? 0);
-        // The index landed on a Prev/More row (or, in principle, still
-        // resolved nothing) — clear any stale target so the menu (still
-        // shown by the OS regardless) can't act against a leftover
-        // selection.
-        const item = resolveItem(rawIndex);
-        if (!item) {
-          trace.warn('SEL', `${config.screen} long-press has no target row`, {
-            itemIndex: rawIndex,
-          });
-          state.selectedTask = null;
-          state.selectedNote = null;
-          return;
-        }
-        state.lastHighlightedIndex[config.screen] = rawIndex;
-        const kind = resolveKind(state);
-        trace.info('SEL', `${config.screen} long-press row "${item.name}"`, { id: item.id, kind });
-        if (kind === 'task') {
-          ctx.selectTask(
-            item.id,
-            item.name,
-            config.screen,
-            'dueDate' in item ? item.dueDate : undefined,
-          );
-        } else if (kind === 'note') {
-          ctx.selectNote(item.id, item.name, config.screen);
-        }
-        // 'project' / 'tag' / 'project-pick' screens declare no menu (menuFor() above), so a
-        // long-press there has nothing to stash.
+        // Deliberately inert on a list, and no menu is declared here either. A hold on a list
+        // row cannot be acted on: LONG_PRESS_EVENT arrives as a bare sysEvent (Sys_ItemEvent
+        // has no row index at all), and moving a native list's highlight emits nothing
+        // whatsoever to the app — the firmware owns list scrolling. Guessing the row (the
+        // last-tapped one, or row 0) targeted the wrong task on both the simulator and real
+        // hardware. Both the hold shortcut and the contextual menu therefore live on the
+        // details screen a tap opens, where the target is exact — see glasses/context-menu.ts.
         return;
       }
 

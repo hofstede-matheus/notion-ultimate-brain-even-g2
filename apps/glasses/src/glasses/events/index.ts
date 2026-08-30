@@ -3,10 +3,11 @@ import { flush as flushLog } from '../../logging/persist';
 import { trace } from '../../logging/trace';
 import { getBridge, type ScreenName, state } from '../../state';
 import * as stt from '../../stt';
-import { CONTEXT_MENU_OVERLAY_MS } from '../constants';
+import { CONTEXT_MENU_OVERLAY_MS, HOLD_ACTION_DELAY_MS } from '../constants';
 import { createGlassCtx } from '../glass-ctx';
 import { renderFull, resetRenderSession } from '../render';
 import { router } from '../router';
+import type { AppGlassAction } from '../types';
 import { eventTypeName, isScrollThrottled, resolveEventType, toGlassAction } from './resolve';
 
 const ctx = createGlassCtx();
@@ -46,6 +47,31 @@ function clearContextMenuOverlay(): void {
     clearTimeout(overlayGuardTimeout);
     overlayGuardTimeout = null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Hold vs tap-and-hold — both arrive as the same LONG_PRESS_EVENT, so the
+// hold's action is deferred and cancelled if the OS overlay turns up inside
+// HOLD_ACTION_DELAY_MS (see that constant for the full reasoning).
+// ---------------------------------------------------------------------------
+
+let pendingHoldTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function schedulePendingHold(action: AppGlassAction): void {
+  cancelPendingHold();
+  pendingHoldTimeout = setTimeout(() => {
+    pendingHoldTimeout = null;
+    trace.debug('EVT', 'hold settled — no overlay, running the hold action');
+    router.onGlassAction(action, state, ctx);
+  }, HOLD_ACTION_DELAY_MS);
+}
+
+/** Called the moment the overlay announces itself: the gesture was a tap-and-hold, not a hold. */
+function cancelPendingHold(reason?: string): void {
+  if (pendingHoldTimeout === null) return;
+  clearTimeout(pendingHoldTimeout);
+  pendingHoldTimeout = null;
+  if (reason) trace.debug('EVT', `hold action cancelled — ${reason}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -101,6 +127,9 @@ export function onEvenHubEvent(event: EvenHubEvent): void {
   const menuItemId = event.menuItemClickEvent?.itemID;
   if (menuItemId !== undefined) {
     trace.info('EVT', 'menuItemClickEvent', { screen: state.screen, itemID: menuItemId });
+    // Belt and braces: the overlay's FOREGROUND_ENTER should already have cancelled this,
+    // but a selection is proof on its own that the gesture was a tap-and-hold.
+    cancelPendingHold('menu item selected');
     router.onMenuItemClick(menuItemId, state, ctx);
     return;
   }
@@ -115,12 +144,19 @@ export function onEvenHubEvent(event: EvenHubEvent): void {
   });
 
   switch (eventType) {
-    case OsEventTypeList.LONG_PRESS_EVENT:
+    case OsEventTypeList.LONG_PRESS_EVENT: {
       armContextMenuOverlay();
-      break; // still carries which row was highlighted — falls through to toGlassAction below
+      // Deferred rather than dispatched here: a tap-and-hold delivers this same event on its
+      // way to opening the contextual menu, and only the FOREGROUND_ENTER that follows tells
+      // the two apart. See HOLD_ACTION_DELAY_MS.
+      const holdAction = toGlassAction(event, eventType);
+      if (holdAction) schedulePendingHold(holdAction);
+      return;
+    }
     case OsEventTypeList.FOREGROUND_ENTER_EVENT:
       if (contextMenuOverlayOpen) {
         trace.debug('EVT', 'foreground enter suppressed — contextual menu overlay open');
+        cancelPendingHold('contextual menu overlay opened');
         return;
       }
       handleForegroundEnter();

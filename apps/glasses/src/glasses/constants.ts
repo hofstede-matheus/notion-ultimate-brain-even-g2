@@ -206,6 +206,25 @@ export const SCROLL_COOLDOWN_MS = 300;
  */
 export const CONTEXT_MENU_OVERLAY_MS = 2000;
 
+/**
+ * How long a hold's action waits before running, so it can be told apart
+ * from a tap-and-hold.
+ *
+ * Both gestures deliver the same `LONG_PRESS_EVENT` — Even's own docs say the
+ * tap-then-long-press that raises the contextual menu "also surfaces as
+ * `OsEventTypeList.LONG_PRESS_EVENT`", and on real hardware both gestures were
+ * observed firing it. The only thing that distinguishes them is what comes
+ * *next*: raising the menu is followed by a FOREGROUND_ENTER_EVENT as the OS
+ * overlay opens, whereas a plain hold is followed by nothing.
+ *
+ * So a hold's action (details-screen.ts's `onHold`) is scheduled rather than
+ * run on the spot, and cancelled if the overlay announces itself inside this
+ * window. Long enough to cover the overlay's own latency, short enough that
+ * the shortcut still feels like a shortcut; the menu itself is unaffected,
+ * since the OS draws it immediately either way.
+ */
+export const HOLD_ACTION_DELAY_MS = 400;
+
 // ---------------------------------------------------------------------------
 // Spinner
 // ---------------------------------------------------------------------------

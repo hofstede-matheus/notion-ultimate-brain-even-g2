@@ -11,7 +11,7 @@ vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { fetchInboxTasks, setTaskDueDate } from '../../../api';
 import { TASK_CONTEXT_MENU } from '../../../glasses/context-menu';
-import { back, longPress, menuItemId, mount, move, select } from '../harness';
+import { back, menuItemId, mount, move, select } from '../harness';
 
 const TASK: { id: string; name: string; dueDate?: string } = { id: 't1', name: 'Buy milk' };
 
@@ -20,7 +20,7 @@ const CHANGE_DUE_DATE_ID = menuItemId(TASK_CONTEXT_MENU, 'Change due date');
 function openPicker(h: ReturnType<typeof mount>, task: typeof TASK = TASK) {
   h.state.screen = 'inbox';
   h.state.lists.inbox = [task];
-  h.dispatch(longPress(0));
+  h.dispatch(select(0));
   h.menuClick(CHANGE_DUE_DATE_ID);
 }
 

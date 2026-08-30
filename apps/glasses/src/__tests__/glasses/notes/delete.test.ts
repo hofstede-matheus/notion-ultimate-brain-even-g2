@@ -11,7 +11,7 @@ vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { deletePage } from '../../../api';
 import { NOTE_CONTEXT_MENU } from '../../../glasses/context-menu';
-import { back, longPress, menuItemId, mount, select } from '../harness';
+import { back, menuItemId, mount, select } from '../harness';
 
 const NOTE = { id: 'n1', name: 'Meeting recap' };
 
@@ -20,7 +20,7 @@ const DELETE_NOTE_ID = menuItemId(NOTE_CONTEXT_MENU, 'Delete note');
 function openConfirm(h: ReturnType<typeof mount>) {
   h.state.screen = 'notes-inbox';
   h.state.lists['notes-inbox'] = [NOTE];
-  h.dispatch(longPress(0));
+  h.dispatch(select(0));
   h.menuClick(DELETE_NOTE_ID);
 }
 
@@ -43,7 +43,7 @@ describe('opening the delete confirm dialog from a note', () => {
     const h = mount();
     h.state.screen = 'notes-inbox';
     h.state.lists['notes-inbox'] = [{ id: 'n1', name: longName }];
-    h.dispatch(longPress(0));
+    h.dispatch(select(0));
     h.menuClick(DELETE_NOTE_ID);
 
     const display = h.render();

@@ -91,17 +91,6 @@ export interface AppState {
   // whenever a screen is freshly entered via enterView().
   listPages: Partial<Record<ScreenName, number>>;
 
-  // Last raw itemIndex a SELECT_HIGHLIGHTED or LONG_PRESS resolved to a real
-  // row on this screen (the same raw index paginateItems' Prev/More offset
-  // expects — see screen-factories.ts's resolveItem). A LONG_PRESS_EVENT is
-  // documented to carry the OS's own currentSelectItemIndex (SDK 0.0.14+),
-  // but the desktop simulator (0.9.x, confirmed against 0.9.3) delivers it as
-  // a bare sysEvent with no index at all — this is the fallback for that
-  // gap: the row the wearer most recently interacted with is the best
-  // available guess for "what's currently highlighted" when the gesture
-  // itself doesn't say. Real hardware is expected not to need it.
-  lastHighlightedIndex: Partial<Record<ScreenName, number>>;
-
   // Confirm dialog for a mutating item action — kind is 'markDone' (tasks
   // only), 'delete' (tasks and notes), 'setDue' (tasks only), or 'setProject'
   // (tasks and notes); returnTo is the list screen to navigate back to.
@@ -250,7 +239,6 @@ export const state: AppState = {
   startupRendered: false,
   lists: {},
   listPages: {},
-  lastHighlightedIndex: {},
   pendingAction: null,
   selectedTask: null,
   dueDatePicker: null,

@@ -12,7 +12,7 @@ vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { deletePage } from '../../../api';
 import { TASK_CONTEXT_MENU } from '../../../glasses/context-menu';
-import { back, longPress, menuItemId, mount, select } from '../harness';
+import { back, menuItemId, mount, select } from '../harness';
 
 const TASK = { id: 't1', name: 'Buy milk' };
 
@@ -21,7 +21,7 @@ const DELETE_TASK_ID = menuItemId(TASK_CONTEXT_MENU, 'Delete task');
 function openConfirm(h: ReturnType<typeof mount>) {
   h.state.screen = 'inbox';
   h.state.lists.inbox = [TASK];
-  h.dispatch(longPress(0));
+  h.dispatch(select(0));
   h.menuClick(DELETE_TASK_ID);
 }
 
@@ -55,7 +55,7 @@ describe('opening the delete confirm dialog from a task', () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: longName }];
-    h.dispatch(longPress(0));
+    h.dispatch(select(0));
     h.menuClick(DELETE_TASK_ID);
 
     const display = h.render();

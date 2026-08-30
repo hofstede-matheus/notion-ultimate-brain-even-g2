@@ -27,8 +27,9 @@ export const WHATS_NEW_ENTRY: WhatsNewEntry = {
   id: 'context-menu',
   title: "What's new",
   bullets: [
-    'Tapping a task or note now opens its page directly.',
-    'Tap and hold it to mark done, change its project, delete it, and more.',
+    'Tapping a task or note now opens its details, not its page.',
+    'From there, hold to mark a task done — with a confirmation, no menu needed.',
+    'Tap and hold for the rest: open the page, change the due date or project, delete.',
   ],
 };
 
