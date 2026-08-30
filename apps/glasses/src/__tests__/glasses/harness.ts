@@ -20,6 +20,7 @@ export function resetState(): void {
   state.startupRendered = true;
   state.lists = {};
   state.listPages = {};
+  state.lastHighlightedIndex = {};
   state.pendingAction = null;
   state.selectedTask = null;
   state.dueDatePicker = null;
