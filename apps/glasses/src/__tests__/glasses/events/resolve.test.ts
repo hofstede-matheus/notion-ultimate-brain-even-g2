@@ -87,6 +87,39 @@ describe('toGlassAction', () => {
     expect(toGlassAction(ev({}), OsEventTypeList.IMU_DATA_REPORT)).toBeNull();
     expect(toGlassAction(ev({}), OsEventTypeList.FOREGROUND_ENTER_EVENT)).toBeNull();
   });
+
+  it('LONG_PRESS on a list event carries the selected index and name, same as CLICK', () => {
+    const event = ev({
+      listEvent: { currentSelectItemIndex: 2, currentSelectItemName: 'Inbox' },
+    } as never);
+    expect(toGlassAction(event, OsEventTypeList.LONG_PRESS_EVENT)).toEqual({
+      type: 'LONG_PRESS',
+      itemIndex: 2,
+      itemName: 'Inbox',
+    });
+  });
+
+  it('LONG_PRESS defaults a missing index to 0 when a listEvent is present (same quirk as CLICK)', () => {
+    const event = ev({ listEvent: {} } as never);
+    expect(toGlassAction(event, OsEventTypeList.LONG_PRESS_EVENT)).toEqual({
+      type: 'LONG_PRESS',
+      itemIndex: 0,
+      itemName: undefined,
+    });
+  });
+
+  it('LONG_PRESS leaves itemIndex/itemName undefined when there is no listEvent (e.g. a bare sysEvent)', () => {
+    const event = ev({ sysEvent: {} } as never);
+    expect(toGlassAction(event, OsEventTypeList.LONG_PRESS_EVENT)).toEqual({
+      type: 'LONG_PRESS',
+      itemIndex: undefined,
+      itemName: undefined,
+    });
+  });
+
+  it('LONG_PRESS_RELEASE is a no-op action, not routed through the "no action mapping" warning', () => {
+    expect(toGlassAction(ev({}), OsEventTypeList.LONG_PRESS_RELEASE_EVENT)).toBeNull();
+  });
 });
 
 describe('eventTypeName', () => {

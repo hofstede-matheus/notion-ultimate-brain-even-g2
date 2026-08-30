@@ -44,7 +44,7 @@ pnpm build          # server → esbuild lambda bundle; glasses → Vite dist/
 Scope to one workspace with `pnpm --filter @notion-ub/server <task>` /
 `--filter @notion-ub/glasses <task>`. Package the `.ehpk` with
 `pnpm --filter @notion-ub/glasses pack`. Simulator (pinned to
-`@evenrealities/evenhub-simulator@0.8.0` — container caps are version-specific):
+`@evenrealities/evenhub-simulator@0.9.3` — container caps are version-specific):
 `pnpm --filter @notion-ub/glasses sim`, with `pnpm dev` on :5173. `sim` has no
 automation port; for headless inspection use the `simulator-debug` skill.
 

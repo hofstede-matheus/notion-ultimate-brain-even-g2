@@ -66,16 +66,20 @@ Feature: The ten note lists
       | JOURNAL          |
       | ALL NOTES        |
 
-  Scenario: Tapping a note opens what can be done with it
+  Scenario: Tapping a note opens it
     Given a note in any of these lists
     When I tap it
-    Then the glasses show the note's name as the header
-    And its four choices are listed
+    Then it opens in the page reader
+
+  Scenario: Tapping and holding a note opens its contextual menu
+    Given a note in any of these lists
+    When I tap and hold it
+    Then a menu of that note's actions opens over the list
 
   Scenario: A note only shows its name
     Given "ALL NOTES" holds notes with icons, tags and projects in Notion
     Then each row shows the note's name only
-    # Its full name and where it is filed are one tap away, under "Note Details".
+    # Its full name and where it is filed are a tap-and-hold away, under "Note Details".
 
   Scenario: A note can appear in more than one list
     Given a voice note that is also marked favourite

@@ -3,18 +3,20 @@ import { assertLit } from '../driver/app';
 import { driver } from './_setup';
 
 /**
- * docs/features/glasses/tasks/a-task/task-details.feature.
+ * docs/features/glasses/the-three-gestures.feature (long-press),
+ * tasks/a-task/action-menu.feature.
  *
- * A details screen is `mode: 'text'` whose body is assembled from a fetch
- * that happens *after* navigation — the screen paints "Loading…" first, then
- * repaints with the fetched fields. Unit tests cover the field formatting
- * (details-screen + formatDueDate); what only the simulator can confirm is
- * that the second paint actually lands, and that the fully-expanded text
- * (values are printed in full, never truncated) still fits its container
- * without re-arming the firmware scroll.
+ * The OS contextual menu is a whole new input mode (SDK 0.0.14+ / simulator
+ * 0.9.1+) that replaced the app-drawn task-actions/note-actions screens —
+ * spec 03/05/07/09/10 each exercise one menu item end to end, but none of
+ * them look at the overlay itself. This is the one place that proves the
+ * `menuObject` payload the app declares (see render/index.ts's
+ * toMenuContainer) actually reaches the OS and paints — a mocked bridge
+ * (every unit test) accepts any payload unconditionally and can't catch a
+ * rejected or malformed menu.
  */
-describe('task details', () => {
-  it('OS contextual menu -> Task Details fetches and repaints with the fetched fields', async () => {
+describe('the OS contextual menu', () => {
+  it('long-press raises the overlay with the five task actions, in order, and a selection reaches the app', async () => {
     let cursor = await driver.latestId();
     await driver.tap(); // menu -> tasks-menu
     await driver.waitForLine(/NAV\s+menu -> tasks-menu/, { from: cursor });
@@ -42,19 +44,19 @@ describe('task details', () => {
     await driver.holdToOpenContextMenu();
     await driver.waitForLine(/SEL\s+today long-press row "Buy groceries"/, { from: cursor });
 
+    // The overlay is OS-drawn, not one of the app's own screens — there is
+    // no RENDER/NAV line for it, only the framebuffer itself.
+    assertLit(await driver.screenshotGlasses(), '11-glasses-context-menu');
+
+    // Task Details (idx0) — a different item than spec 03's Mark as done, so
+    // this spec's own final screenshot is unambiguously the details screen.
     cursor = await driver.latestId();
-    // TASK_CONTEXT_MENU order: Task Details is idx0 — see glasses/context-menu.ts.
     await driver.selectContextMenuItem(0);
+    await driver.waitForLine(/EVT\s+menuItemClickEvent/, { from: cursor });
     await driver.waitForLine(/MENU\s+item \d+ selected/, { from: cursor });
     await driver.waitForLine(/NAV\s+today -> task-details/, { from: cursor });
-    await driver.waitForLine(/API\s+.*\/api\/pages\/task-mark-done\/details 200/, { from: cursor });
-
-    // The repaint after the fetch resolves — the whole point of this screen.
-    const loaded = await driver.waitForLine(/API\s+task details loaded/, { from: cursor });
-    expect(loaded.message).toMatch(/project="?Alpha Rollout"?/);
     await driver.waitForLine(/RENDER full mode=text screen=task-details/, { from: cursor });
 
     expect(await driver.currentScreen()).toBe('task-details');
-    assertLit(await driver.screenshotGlasses(), '10-glasses-task-details');
   });
 });

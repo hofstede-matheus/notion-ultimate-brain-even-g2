@@ -27,8 +27,10 @@ export interface DetailsData {
 export interface DetailsScreenConfig {
   /** Header title, e.g. "TASK DETAILS". */
   title: string;
-  /** Screen to return to on GO_BACK — the item's action menu. */
-  parent: ScreenName;
+  /** Screen to return to on GO_BACK — the list the item was selected from. Can depend on
+   * state (e.g. task-details reads it off state.selectedTask.returnTo, since there's no
+   * longer an intermediate action-menu screen to fall back on). */
+  parent: ScreenName | ((state: AppState) => ScreenName);
   /** Reads this screen's slice of state; null before the fetch was started. */
   read(state: AppState): DetailsData | null;
 }
@@ -82,14 +84,15 @@ export function makeDetailsScreen(config: DetailsScreenConfig): ScreenModule {
       return { mode: 'text', content: lines.join('\n') };
     },
 
-    action(action, _state, ctx) {
+    action(action, state, ctx) {
       if (action.type === 'GO_BACK') {
         ctx.stopSpinner();
-        ctx.navigate(config.parent);
+        const parent = typeof config.parent === 'function' ? config.parent(state) : config.parent;
+        ctx.navigate(parent);
         return;
       }
 
-      // SELECT_HIGHLIGHTED / HIGHLIGHT_MOVE: the text container scrolls overflow.
+      // SELECT_HIGHLIGHTED / LONG_PRESS / HIGHLIGHT_MOVE: the text container scrolls overflow.
     },
   };
 }

@@ -8,7 +8,7 @@ Feature: Filing a task under a project
   list means "filed here", so moving it elsewhere removes it. A list about dates keeps it.
 
   Background:
-    Given I have opened a task's action menu and tapped "Change project"
+    Given I have opened a task's contextual menu and chosen "Change project"
 
   Scenario: Confirming a move
     When I tap one of the projects

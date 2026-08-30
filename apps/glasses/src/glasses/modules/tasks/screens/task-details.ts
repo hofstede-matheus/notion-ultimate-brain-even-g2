@@ -8,7 +8,7 @@ import { formatDueDate } from '../helpers';
  */
 export const taskDetailsScreen = makeDetailsScreen({
   title: 'TASK DETAILS',
-  parent: 'task-actions',
+  parent: (state) => state.selectedTask?.returnTo ?? 'tasks-menu',
   read(state) {
     const details = state.taskDetails;
     if (!details) return null;

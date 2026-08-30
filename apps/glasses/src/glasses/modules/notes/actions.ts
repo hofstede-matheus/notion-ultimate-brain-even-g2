@@ -6,16 +6,18 @@ import { renderFull, renderUpdate } from '../../render';
 import { navigate, startSpinner, stopSpinner } from '../_shared/navigation';
 
 // ---------------------------------------------------------------------------
-// Note action menu — reached by tapping a note in any Notes list screen.
-// Offers Open page / Note Details / Delete note. A note's details are its
-// name and Project — Notes have no Due property, so note-details.ts (unlike
-// task-details.ts) never shows one.
+// Note selection — stashes the note the contextual menu / details /
+// project-picker flows operate on, mirroring tasks/actions.ts's selectTask.
+// A note's details are its name and Project — Notes have no Due property, so
+// note-details.ts (unlike task-details.ts) never shows one. Does not
+// navigate — a tap on a list row follows this with ctx.openPage(); a
+// long-press leaves it here for whichever contextual-menu item (see
+// glasses/context-menu.ts) the wearer picks next.
 // ---------------------------------------------------------------------------
 
-export function openNoteActions(noteId: string, noteName: string, returnTo: ScreenName): void {
-  trace.info('NAV', `openNoteActions "${noteName}"`, { id: noteId });
+export function selectNote(noteId: string, noteName: string, returnTo: ScreenName): void {
+  trace.info('SEL', `selectNote "${noteName}"`, { id: noteId });
   state.selectedNote = { noteId, noteName, returnTo };
-  navigate('note-actions');
 }
 
 export async function enterNoteDetails(): Promise<void> {

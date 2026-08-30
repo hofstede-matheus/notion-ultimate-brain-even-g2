@@ -193,6 +193,19 @@ export const BRIDGE_WAIT_TIMEOUT_MS = 20_000;
 /** Minimum interval between scroll events, in milliseconds. */
 export const SCROLL_COOLDOWN_MS = 300;
 
+/**
+ * Bound on how long the OS contextual-menu overlay guard stays armed after a
+ * LONG_PRESS_EVENT (see glasses/events/index.ts). A menu selection is
+ * bracketed by FOREGROUND_ENTER_EVENT -> menuItemClickEvent ->
+ * FOREGROUND_EXIT_EVENT (docs/contextual-menu.md in even-g2-context), which
+ * the guard suppresses so a menu tap doesn't also trigger a full
+ * resetRenderSession()+renderFull() and a log flush. If the wearer dismisses
+ * the overlay without picking anything, this timer clears the guard anyway
+ * so real foreground/background handling (redrawing after the phone
+ * returns, flushing the log before it backgrounds) can never get wedged.
+ */
+export const CONTEXT_MENU_OVERLAY_MS = 2000;
+
 // ---------------------------------------------------------------------------
 // Spinner
 // ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 /**
- * The Notion page reader (openPage/turnPage) — reached from a task's or a
- * note's action menu via ctx.openPage.
+ * The Notion page reader (openPage/turnPage) — reached by tapping a task or
+ * note row on its list screen via ctx.openPage.
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -16,16 +16,16 @@ describe('openPage', () => {
   it('loads the markdown, paginates it, and lands on page-content', async () => {
     vi.mocked(fetchPageMarkdown).mockResolvedValue({ markdown: 'Hello world', truncated: false });
     const h = mount();
-    h.state.screen = 'task-actions';
+    h.state.screen = 'inbox';
 
-    h.ctx.openPage('p1', 'My Task', 'task-actions');
+    h.ctx.openPage('p1', 'My Task', 'inbox');
     await h.settle();
 
     expect(h.state.screen).toBe('page-content');
     expect(h.state.pageContent).toMatchObject({
       loading: false,
       title: 'My Task',
-      returnTo: 'task-actions',
+      returnTo: 'inbox',
     });
     expect(h.state.pageContent?.pages).toEqual([['Hello world']]);
   });
@@ -34,7 +34,7 @@ describe('openPage', () => {
     vi.mocked(fetchPageMarkdown).mockReturnValue(new Promise(() => {}));
     const h = mount();
 
-    h.ctx.openPage('p1', 'My Task', 'task-actions');
+    h.ctx.openPage('p1', 'My Task', 'inbox');
     await h.settle();
 
     expect(h.state.pageContent?.loading).toBe(true);
@@ -47,7 +47,7 @@ describe('openPage', () => {
     vi.mocked(fetchPageMarkdown).mockResolvedValue({ markdown: 'Hello world', truncated: true });
     const h = mount();
 
-    h.ctx.openPage('p1', 'My Task', 'task-actions');
+    h.ctx.openPage('p1', 'My Task', 'inbox');
     await h.settle();
 
     const pages = h.state.pageContent?.pages ?? [];
@@ -58,7 +58,7 @@ describe('openPage', () => {
     vi.mocked(fetchPageMarkdown).mockRejectedValue(new Error('offline'));
     const h = mount();
 
-    h.ctx.openPage('p1', 'My Task', 'task-actions');
+    h.ctx.openPage('p1', 'My Task', 'inbox');
     await h.settle();
 
     expect(h.state.pageContent?.error).toBe('offline');
@@ -72,7 +72,7 @@ describe('turnPage', () => {
   async function openMultiPage(h: ReturnType<typeof mount>) {
     const markdown = Array.from({ length: 16 }, (_, i) => `line ${i}`).join('\n');
     vi.mocked(fetchPageMarkdown).mockResolvedValue({ markdown, truncated: false });
-    h.ctx.openPage('p1', 'My Task', 'task-actions');
+    h.ctx.openPage('p1', 'My Task', 'inbox');
     await h.settle();
   }
 
@@ -104,7 +104,7 @@ describe('turnPage', () => {
   it('is a no-op while loading', async () => {
     vi.mocked(fetchPageMarkdown).mockReturnValue(new Promise(() => {}));
     const h = mount();
-    h.ctx.openPage('p1', 'My Task', 'task-actions');
+    h.ctx.openPage('p1', 'My Task', 'inbox');
     await h.settle();
     expect(h.state.pageContent?.loading).toBe(true);
 

@@ -1,8 +1,8 @@
 @glasses @navigation
-Feature: The three gestures
+Feature: The four gestures
 
-  Everything on the glasses is done from the temple touchpad, with three gestures: a tap, a
-  double-tap, and a swipe.
+  Everything on the glasses is done from the temple touchpad, with four gestures: a tap, a
+  tap-and-hold, a double-tap, and a swipe.
 
   What a tap or a swipe does depends on what is on screen, and is described with the screen it
   belongs to. Only the rules that hold everywhere are here.
@@ -11,6 +11,17 @@ Feature: The three gestures
     Given a screen with something highlighted
     When I tap
     Then that is what is acted on, and nothing else
+
+  Scenario: Tapping a task or note opens it
+    Given a task or a note highlighted in any list
+    When I tap
+    Then it opens in the page reader directly
+
+  Scenario: Tapping and holding opens the contextual menu
+    Given a task or a note highlighted in a Tasks or Notes list
+    When I tap and hold
+    Then a menu of that item's actions opens over the current screen
+    And it acts on whatever was highlighted when I started holding
 
   Scenario: A double-tap goes back
     Given I am anywhere in the app but the root menu
