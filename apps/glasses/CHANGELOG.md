@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.11.0](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.10.0...glasses-v2.11.0) (2026-08-30)
+
+
+### Features
+
+* **glasses:** add hold to mark as done action ([#46](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/46)) ([56a6804](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/56a6804b79301572bc8826d23ae9ffe1410eb38e))
+
+
+### Bug Fixes
+
+* **glasses:** update what's new entry ([#48](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/48)) ([b6b54cf](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/b6b54cf1855698ac0cea81b3e907393ca08715d3))
+
 ## [2.10.0](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.9.0...glasses-v2.10.0) (2026-08-30)
 
 
