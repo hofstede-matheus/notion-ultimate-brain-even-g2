@@ -166,6 +166,14 @@ when a git diff touches glasses source, `packages/**`, lockfiles, or
   Vosk model is a runtime download, not packed. Optional language hints from Settings (empty
   = auto-detect). Don't "simplify" the Soniox close: empty **text** frame + `finalize` (binary
   empty is dropped), one socket per recording, batch 10 ms frames on the wire.
+- **Web component-level tests are `.test.tsx`, not `.test.ts`.** Most of `__tests__/web/**`
+  tests pure logic under the default `node` environment; a test that renders a real React tree
+  (e.g. `statusScreen.test.tsx`) needs a `// @vitest-environment jsdom` docblock at the top of
+  the file instead, and must call `@testing-library/react`'s `cleanup()` itself in `afterEach`
+  — its own auto-cleanup only self-registers when `test.globals: true`, which this repo doesn't
+  set. `vitest.config.ts` also inlines `even-toolkit` (`server.deps.inline`): left externalized,
+  Vitest's SSR runner loads it via plain Node `import()`, which can't resolve its extensionless
+  relative imports and throws `Cannot find module` for any file rendering `even-toolkit/web/*`.
 
 ## Versions
 
