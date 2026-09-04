@@ -1,6 +1,7 @@
 import { AudioInputSource } from '@evenrealities/even_hub_sdk';
 import { createTask } from '../../../api';
 import { trace } from '../../../logging/trace';
+import { classifyFailure, enqueueTask } from '../../../offline-queue';
 import { getBridge, state } from '../../../state';
 import * as stt from '../../../stt';
 import { renderUpdate } from '../../render';
@@ -34,7 +35,12 @@ export async function startRecording(): Promise<void> {
   const b = getBridge();
   if (!b) return;
 
-  if (state.recording === 'idle' || state.recording === 'done' || state.recording === 'error') {
+  if (
+    state.recording === 'idle' ||
+    state.recording === 'done' ||
+    state.recording === 'queued' ||
+    state.recording === 'error'
+  ) {
     // No backend configured at all — the screen already explains what to fix on
     // the phone, so there is nothing to start here.
     if (state.voice !== 'ready') return;
@@ -128,10 +134,21 @@ export async function confirmAddTask(): Promise<void> {
     state.recording = 'done';
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
-    trace.error('VOICE', `task creation failed: ${msg}`);
-    state.pendingTranscript = '';
-    state.errorMessage = msg;
-    state.recording = 'error';
+    if (classifyFailure(e) === 'transient') {
+      // The words are the expensive part — a connectivity blip must not cost
+      // the user another dictation. Hand off to the queue and report success:
+      // the transcript is durably stored and will be sent on its own.
+      await enqueueTask(transcript);
+      trace.warn('VOICE', `task queued offline: ${msg}`);
+      state.createdTaskName = transcript;
+      state.pendingTranscript = '';
+      state.recording = 'queued';
+    } else {
+      trace.error('VOICE', `task creation failed: ${msg}`);
+      state.pendingTranscript = '';
+      state.errorMessage = msg;
+      state.recording = 'error';
+    }
   } finally {
     stopSpinner(spinner);
   }

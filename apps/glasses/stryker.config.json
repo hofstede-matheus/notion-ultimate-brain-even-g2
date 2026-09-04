@@ -30,6 +30,8 @@
     "src/logging/redact.ts",
     "src/logging/sink.ts",
     "src/logging/export.ts",
+    "src/offline-queue.ts",
+    "src/web/screens/pendingTasks.ts",
     "src/cache.ts",
     "src/page-loader.ts",
     "src/stt/soniox-languages.ts",

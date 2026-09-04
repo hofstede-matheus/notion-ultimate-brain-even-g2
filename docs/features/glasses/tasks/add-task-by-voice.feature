@@ -309,7 +309,37 @@ Feature: Adding a task by voice
       And what I said is discarded
       When I tap
       Then recording starts from scratch
-      # A failed save means saying it again — the words are not kept.
+      # Something is wrong with the request itself, so saying it again is the
+      # only thing that can help — retrying the same words would fail the same way.
+
+    Scenario: There is no connection when I confirm
+      Given "buy oat milk" is waiting to be confirmed
+      And there is no connection
+      When I tap to confirm
+      Then the glasses show:
+        """
+        ADD TASK
+
+        Saved offline.
+
+        "buy oat milk"
+
+        Syncs when online.
+        Tap to add another.
+        """
+      And what I said is kept
+      # The words are the expensive part. A connection problem is not my
+      # problem to solve twice — it is saved and sent on its own later.
+
+    Scenario: Adding another straight away after saving offline
+      Given a task was just saved offline
+      When I tap
+      Then recording starts again
+
+    Scenario: Leaving after saving offline
+      Given a task was just saved offline
+      When I double-tap
+      Then the glasses show the header "TASKS"
 
     Scenario: Leaving after an error
       Given an error is showing

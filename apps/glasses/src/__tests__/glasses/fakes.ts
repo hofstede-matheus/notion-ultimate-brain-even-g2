@@ -63,6 +63,8 @@ export function apiMock(): ApiModule {
   return {
     ...base,
     createTask: vi.fn(async (name: string) => ({ id: 't1', name })),
+    // offline-queue.ts registers here at startDraining(); a no-op is enough.
+    onRequestSuccess: vi.fn(),
     markTaskDone: vi.fn().mockResolvedValue(undefined),
     setTaskDueDate: vi.fn().mockResolvedValue(undefined),
     setPageProject: vi.fn().mockResolvedValue(undefined),
@@ -91,7 +93,30 @@ export function cacheMock(): CacheModule {
     loadCachedList: vi.fn().mockResolvedValue(null),
     saveCachedList: vi.fn().mockResolvedValue(undefined),
     cacheKeyForScreen: (screen: string) => `notionultimatebrain:${screen}`,
+    tenantPrefix: () => 'test',
   } as unknown as CacheModule;
+}
+
+/**
+ * even-toolkit/storage mock — an in-memory store standing in for the bridge.
+ * Needed by any flow that reaches offline-queue.ts, whose real storage leaf
+ * would otherwise block forever on waitForEvenAppBridge() under vitest's node
+ * environment.
+ */
+export function storageMock() {
+  const store = new Map<string, unknown>();
+  return {
+    store,
+    storageGet: vi.fn(async (key: string, fallback: unknown) =>
+      store.has(key) ? store.get(key) : fallback,
+    ),
+    storageSet: vi.fn(async (key: string, value: unknown) => {
+      store.set(key, value);
+    }),
+    storageRemove: vi.fn(async (key: string) => {
+      store.delete(key);
+    }),
+  };
 }
 
 export interface SttController {
