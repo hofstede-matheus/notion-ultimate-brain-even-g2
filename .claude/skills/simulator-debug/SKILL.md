@@ -107,10 +107,14 @@ server before starting anything. Only stop processes you started this session.
    simctl.py input click
    ```
 
-   Actions are exactly `up`, `down`, `click`, `double_click` — anything else is
-   a 400. `up`/`down` move the list highlight; `double_click` is the standard
-   back/exit gesture. Allow a beat for async work (a fetch on navigation) before
-   screenshotting.
+   Actions are exactly `up`, `down`, `click`, `double_click`, `long_press`,
+   `long_press_release`, `context_menu` — anything else is a 400. `up`/`down`
+   move the list highlight; `double_click` is the standard back/exit gesture;
+   `long_press` + `long_press_release` raise the OS contextual menu (simulator
+   0.9.1+ — with the menu open, `up`/`down` move its highlight and `click`
+   selects); `context_menu` TOGGLES the overlay directly (opens if closed,
+   closes if open — track state rather than posting it blindly). Allow a beat
+   for async work (a fetch on navigation) before screenshotting.
 
 8. **Clean up** only what you started. There is no shutdown endpoint; `stop`
    kills the process `up` recorded:
@@ -130,7 +134,7 @@ Base URL `http://127.0.0.1:<PORT>` (available since simulator 0.7.0).
 | GET | `/api/screenshot/webview` | native webview capture, PNG |
 | GET | `/api/console` | `{ entries, total }`; `?since_id=N` is exclusive |
 | DELETE | `/api/console` | clears the buffer |
-| POST | `/api/input` | `{"action": "up\|down\|click\|double_click"}` → `{"ok": true}` |
+| POST | `/api/input` | `{"action": "up\|down\|click\|double_click\|long_press\|long_press_release\|context_menu"}` → `{"ok": true}` |
 
 Console entry shape:
 
@@ -162,8 +166,9 @@ user profiles are hardcoded); background/foreground lifecycle; hardware image
 size limits; exact font rendering and greyscale; focused-item position in a
 scrolling list; error-response handling for invalid input.
 
-Inputs are limited to Up / Down / Click / Double Click — there is no ring,
-gesture, or IMU input, and `imuData` is always null.
+Inputs (as of simulator 0.9.1+) cover Up / Down / Click / Double Click / Long
+Press / Long Press Release / Context Menu — there is still no ring or IMU
+input, and `imuData` is always null.
 
 ## Simulator is not hardware
 

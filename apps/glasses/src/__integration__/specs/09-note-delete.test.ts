@@ -28,17 +28,25 @@ describe('note delete round trip', () => {
     await driver.tap(); // notes-menu idx0 "Inbox"
     await driver.waitForLine(/RENDER full mode=list screen=notes-inbox/, { from: cursor });
 
+    // A tap opens the note's details, where its contextual menu is declared.
     cursor = await driver.latestId();
     await driver.swipeDown(); // row 0 -> row 1 "Disposable Note"
     await driver.tap();
     await driver.waitForLine(/SEL\s+notes-inbox row 1 "Disposable Note"/, { from: cursor });
-    await driver.waitForLine(/NAV\s+notes-inbox -> note-actions/, { from: cursor });
+    await driver.waitForLine(/NAV\s+notes-inbox -> note-details/, { from: cursor });
 
     cursor = await driver.latestId();
-    for (let i = 0; i < 3; i++) await driver.swipeDown(); // idx0 -> idx3 "Delete note"
-    await driver.tap();
+    await driver.holdToOpenContextMenu();
+    // A note's details declare no hold action, so nothing to stand down — just the overlay.
+    await driver.waitForLine(/EVT\s+LONG_PRESS_EVENT/, { from: cursor });
+
+    cursor = await driver.latestId();
+    // NOTE_CONTEXT_MENU order: Open page, Change project, Delete note —
+    // see glasses/context-menu.ts.
+    await driver.selectContextMenuItem(2);
+    await driver.waitForLine(/MENU\s+item \d+ selected/, { from: cursor });
     await driver.waitForLine(/ACT\s+confirm open kind=delete/, { from: cursor });
-    await driver.waitForLine(/NAV\s+note-actions -> delete-confirm/, { from: cursor });
+    await driver.waitForLine(/NAV\s+note-details -> delete-confirm/, { from: cursor });
 
     cursor = await driver.latestId();
     await driver.tap(); // idx0 "Confirm: Disposable Note"

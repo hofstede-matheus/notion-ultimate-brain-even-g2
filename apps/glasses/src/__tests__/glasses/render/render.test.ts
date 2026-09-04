@@ -21,10 +21,13 @@ vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { CONTAINER_ID_CAL_TOP } from '../../../glasses/constants';
+import { TASK_CONTEXT_MENU } from '../../../glasses/context-menu';
 import { renderFull, renderUpdate, StartupRejectedError } from '../../../glasses/render';
 import { router } from '../../../glasses/router';
 import { clear as clearLog, getSnapshot as getLogSnapshot } from '../../../logging/sink';
-import { mount, move, select } from '../harness';
+import { menuItemId, mount, move, select } from '../harness';
+
+const CHANGE_DUE_DATE_ID = menuItemId(TASK_CONTEXT_MENU, 'Change due date');
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -104,8 +107,8 @@ describe('renderFull — the bridge wiring', () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: 'Buy milk' }];
-    h.dispatch(select(0)); // -> task-actions
-    h.dispatch(select(2)); // Change due date -> task-due-date, triggers the initial renderFull
+    h.dispatch(select(0));
+    h.menuClick(CHANGE_DUE_DATE_ID); // -> task-due-date, triggers the initial renderFull
     await h.settle();
 
     const arg = h.bridge.rebuildPageContainer.mock.calls.at(-1)?.[0] as RebuildPageContainer;
@@ -150,8 +153,8 @@ describe('renderFull — the bridge wiring', () => {
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: 'Buy milk' }];
-    h.dispatch(select(0)); // -> task-actions
-    h.dispatch(select(2)); // Change due date -> task-due-date
+    h.dispatch(select(0));
+    h.menuClick(CHANGE_DUE_DATE_ID); // -> task-due-date
     await h.settle();
 
     h.bridge.rebuildPageContainer.mockClear();
@@ -181,7 +184,7 @@ describe('renderFull — the bridge wiring', () => {
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: 'Buy milk' }];
     h.dispatch(select(0));
-    h.dispatch(select(2));
+    h.menuClick(CHANGE_DUE_DATE_ID);
     await h.settle();
 
     const picker = h.state.dueDatePicker;
@@ -208,7 +211,7 @@ describe('renderFull — the bridge wiring', () => {
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: 'Buy milk' }];
     h.dispatch(select(0));
-    h.dispatch(select(2));
+    h.menuClick(CHANGE_DUE_DATE_ID);
     await h.settle();
 
     const picker = h.state.dueDatePicker;
@@ -245,7 +248,7 @@ describe('renderFull — the bridge wiring', () => {
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: 'Buy milk' }];
     h.dispatch(select(0));
-    h.dispatch(select(2));
+    h.menuClick(CHANGE_DUE_DATE_ID);
     await h.settle();
 
     const picker = h.state.dueDatePicker;

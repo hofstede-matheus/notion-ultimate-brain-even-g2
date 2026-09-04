@@ -5,11 +5,11 @@ Feature: Choosing a project for a task
   task out of whatever project it is in.
 
   Background:
-    Given I have opened a task's action menu
+    Given I have opened a task's contextual menu
 
   Scenario: The picker
     Given the workspace has the projects "Kitchen", "Website" and "Allotment"
-    When I tap "Change project"
+    When I choose "Change project"
     Then the glasses show the header "MOVE TO"
     And the header shows no count
     And the first choice is "— No project —"
@@ -18,20 +18,20 @@ Feature: Choosing a project for a task
 
   Scenario: While it loads
     Given I have never opened the picker on these glasses
-    When I tap "Change project"
+    When I choose "Change project"
     Then the glasses show "Fetching projects..."
 
   Scenario: When there is nothing to pick
     Given the workspace has no projects
-    When I tap "Change project"
+    When I choose "Change project"
     Then the glasses show "No projects found."
 
   Scenario: Picking a project asks me to confirm
-    When I tap "Change project"
+    When I choose "Change project"
     And I tap one of the projects
     Then the glasses show the header "MOVE TO?"
 
-  Scenario: Backing out returns to the task's action menu
-    Given I opened the picker from a task's action menu
+  Scenario: Backing out returns to the list the task came from
+    Given I opened the picker from a task's contextual menu
     When I double-tap
-    Then that task's action menu reopens
+    Then the list the task came from reopens

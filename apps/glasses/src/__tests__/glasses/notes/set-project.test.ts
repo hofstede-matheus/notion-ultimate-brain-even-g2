@@ -1,7 +1,7 @@
 /**
- * The "Change project" flow from the note action menu — the same shared
- * picker/confirm/toast screens tasks/set-project.test.ts exercises from the
- * task side.
+ * The "Change project" flow from the note's OS contextual menu — the same
+ * shared picker/confirm/toast screens tasks/set-project.test.ts exercises
+ * from the task side.
  */
 
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -11,16 +11,19 @@ vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { fetchDoingProjects, fetchInboxNotes, setPageProject } from '../../../api';
-import { back, mount, select } from '../harness';
+import { NOTE_CONTEXT_MENU } from '../../../glasses/context-menu';
+import { back, menuItemId, mount, select } from '../harness';
 
 const NOTE = { id: 'n1', name: 'Meeting recap' };
 const PROJECTS = [{ id: 'p1', name: 'Q3 Planning' }];
 
+const CHANGE_PROJECT_ID = menuItemId(NOTE_CONTEXT_MENU, 'Change project');
+
 async function openPicker(h: ReturnType<typeof mount>) {
   h.state.screen = 'notes-inbox';
   h.state.lists['notes-inbox'] = [NOTE];
-  h.dispatch(select(0)); // -> note-actions
-  h.dispatch(select(2)); // Change project -> project-picker
+  h.dispatch(select(0));
+  h.menuClick(CHANGE_PROJECT_ID);
   await h.settle();
   h.dispatch(select(2)); // Doing
   await h.settle();
@@ -38,7 +41,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-it('opens the picker and GO_BACK returns to note-actions', async () => {
+it('opens the picker and GO_BACK from a status filter returns to the picker', async () => {
   const h = mount();
   await openPicker(h);
 

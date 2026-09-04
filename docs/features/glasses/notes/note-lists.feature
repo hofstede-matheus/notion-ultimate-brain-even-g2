@@ -1,8 +1,8 @@
 @glasses @notes
 Feature: The ten note lists
 
-  All ten behave identically — title, count, empty message, tap to open what can be done with a
-  note. They differ only in which notes they hold.
+  All ten behave identically — title, count, empty message, tap to open a note's details. They
+  differ only in which notes they hold.
 
   Background:
     Given I am on the "NOTES" menu
@@ -66,16 +66,21 @@ Feature: The ten note lists
       | JOURNAL          |
       | ALL NOTES        |
 
-  Scenario: Tapping a note opens what can be done with it
+  Scenario: Tapping a note opens its details
     Given a note in any of these lists
     When I tap it
-    Then the glasses show the note's name as the header
-    And its four choices are listed
+    Then the glasses show "NOTE DETAILS" for it
+
+  Scenario: Holding a note in the list does nothing
+    Given a note in any of these lists
+    When I hold it
+    Then nothing happens
+    # The contextual menu lives on the details screen — see the-five-gestures.feature.
 
   Scenario: A note only shows its name
     Given "ALL NOTES" holds notes with icons, tags and projects in Notion
     Then each row shows the note's name only
-    # Its full name and where it is filed are one tap away, under "Note Details".
+    # Its full name and where it is filed are one tap away, on its details screen.
 
   Scenario: A note can appear in more than one list
     Given a voice note that is also marked favourite

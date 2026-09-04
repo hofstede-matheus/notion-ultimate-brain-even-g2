@@ -32,6 +32,21 @@ const STOCK_TEMPLATE_PROJECTS_DB = {
   Completion: 'formula',
 };
 
+// A real Ultimate Brain Notes schema, minus whichever property each test below removes — same
+// shape as REAL_UB_PROJECTS_DB above, used to isolate the effect of one missing property.
+const REAL_UB_NOTES_DB = {
+  Name: 'title',
+  Archived: 'checkbox',
+  Favorite: 'checkbox',
+  Type: 'select',
+  URL: 'url',
+  Tag: 'relation',
+  Project: 'relation',
+  Content: 'relation',
+  Updated: 'last_edited_time',
+  'Note Date': 'date',
+};
+
 describe('evaluateRoles', () => {
   it('fits the real Ultimate Brain Projects schema to the projects role', () => {
     const { roles } = evaluateRoles(REAL_UB_PROJECTS_DB);
@@ -41,8 +56,9 @@ describe('evaluateRoles', () => {
   it('rejects the stock-template decoy, naming the properties it lacks', () => {
     const { roles, unfit } = evaluateRoles(STOCK_TEMPLATE_PROJECTS_DB);
     expect(roles).not.toContain('projects');
-    expect(unfit?.projects?.missing).toEqual(expect.arrayContaining(['Meta']));
-    expect(unfit?.projects?.missingCount).toBeGreaterThanOrEqual(4); // Name, Archived, Meta, Latest Activity
+    expect(unfit?.projects?.missing).toEqual(
+      expect.arrayContaining(['Name', 'Archived', 'Meta', 'Latest Activity']),
+    );
   });
 
   it('rejects a property present under the right name but the wrong type', () => {
@@ -76,11 +92,49 @@ describe('evaluateRoles', () => {
     expect(evaluateRoles(undefined)).toEqual({});
   });
 
-  it('caps the missing sample but reports the true count', () => {
+  it('names every missing property, not a sample of them', () => {
+    // A database with no properties at all is missing everything its role needs — the settings
+    // picker shows this list verbatim, so a user renaming properties in Notion sees all of them
+    // at once rather than three at a time.
     const { unfit } = evaluateRoles({});
-    expect(unfit?.projects?.missing.length).toBeLessThanOrEqual(3);
-    expect(unfit?.projects?.missingCount).toBeGreaterThanOrEqual(
-      unfit?.projects?.missing.length ?? 0,
-    );
+    expect(unfit?.notes?.missing).toEqual([
+      'Name',
+      'Archived',
+      'Favorite',
+      'Type',
+      'URL',
+      'Tag',
+      'Project',
+      'Content',
+      'Updated',
+      'Note Date',
+    ]);
+  });
+
+  describe('brokenViews (issue #40 — which views actually fail, not just which role)', () => {
+    it('names only the views that reference the one missing property', () => {
+      // Note Date is sorted on by exactly two of notes' ten views — the other eight still work.
+      const { 'Note Date': _omitted, ...properties } = REAL_UB_NOTES_DB;
+      const { unfit } = evaluateRoles(properties);
+      expect(unfit?.notes?.brokenViews).toEqual(['Meetings', 'Journal']);
+      expect(unfit?.notes?.allViewsBroken).toBe(false);
+    });
+
+    it('flags every view broken when the missing property is used everywhere', () => {
+      // Archived is filtered on by all ten notes views — this is the "override anyway" case
+      // where every list genuinely fails, distinct from the partial case above.
+      const { Archived: _omitted, ...properties } = REAL_UB_NOTES_DB;
+      const { unfit } = evaluateRoles(properties);
+      expect(unfit?.notes?.allViewsBroken).toBe(true);
+      expect(unfit?.notes?.brokenViews).toHaveLength(10);
+    });
+
+    it('breaks no view when only the title is missing — it only affects row labels', () => {
+      const { Name: _omitted, ...properties } = REAL_UB_NOTES_DB;
+      const { unfit } = evaluateRoles(properties);
+      expect(unfit?.notes?.missing).toEqual(['Name']);
+      expect(unfit?.notes?.brokenViews).toEqual([]);
+      expect(unfit?.notes?.allViewsBroken).toBe(false);
+    });
   });
 });

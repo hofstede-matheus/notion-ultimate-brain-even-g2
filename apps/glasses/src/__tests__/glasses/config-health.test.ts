@@ -4,20 +4,26 @@ import { ApiError } from '../../api';
 import { state } from '../../state';
 import { getTenantConfig, setTenantConfig } from '../../tenant-config';
 
-const { mockFetchDatabases, mockSetStatus, mockReconfigure, mockShowGlassesScreen } = vi.hoisted(
-  () => ({
-    mockFetchDatabases: vi.fn(),
-    mockSetStatus: vi.fn(),
-    mockReconfigure: vi.fn(),
-    mockShowGlassesScreen: vi.fn(),
-  }),
-);
+const {
+  mockFetchDatabases,
+  mockSetStatus,
+  mockReconfigure,
+  mockShowGlassesScreen,
+  mockLoadDbPickerState,
+} = vi.hoisted(() => ({
+  mockFetchDatabases: vi.fn(),
+  mockSetStatus: vi.fn(),
+  mockReconfigure: vi.fn(),
+  mockShowGlassesScreen: vi.fn(),
+  mockLoadDbPickerState: vi.fn(),
+}));
 
 vi.mock('../../web/services/databases', () => ({
   fetchDatabases: mockFetchDatabases,
   InvalidTokenError: class InvalidTokenError extends Error {},
 }));
 vi.mock('../../web/providers/uiController', () => ({ setStatus: mockSetStatus }));
+vi.mock('../../web/services/config', () => ({ loadDbPickerState: mockLoadDbPickerState }));
 vi.mock('../../boot', () => ({ reconfigure: mockReconfigure }));
 vi.mock('../../glasses/events', () => ({ showGlassesScreen: mockShowGlassesScreen }));
 
@@ -53,6 +59,7 @@ const DECOY_PROJECTS_DB = {
 };
 
 beforeEach(() => {
+  mockLoadDbPickerState.mockResolvedValue({ overrides: {}, showAll: false });
   setTenantConfig(CFG);
   state.configSuspect = false;
   state.lists = { menu: [] };
@@ -73,6 +80,36 @@ describe('checkTenantConfig', () => {
 
   it('flags a slot whose stored database no longer fits', async () => {
     mockFetchDatabases.mockResolvedValue([DECOY_PROJECTS_DB]);
+    expect(await checkTenantConfig()).toEqual(['projectsDb']);
+  });
+
+  it('never flags a slot the user confirmed with "Save anyway" for that same database', async () => {
+    // The requirement table is a guess about someone else's schema. Once the user has overridden
+    // it for a specific database, re-raising it would reopen Settings every session for a setup
+    // they chose deliberately (#38).
+    mockFetchDatabases.mockResolvedValue([DECOY_PROJECTS_DB]);
+    mockLoadDbPickerState.mockResolvedValue({
+      overrides: { projectsDb: 'projects-id' },
+      showAll: true,
+    });
+    expect(await checkTenantConfig()).toEqual([]);
+  });
+
+  it('still flags the slot when the override points at a different database', async () => {
+    mockFetchDatabases.mockResolvedValue([DECOY_PROJECTS_DB]);
+    mockLoadDbPickerState.mockResolvedValue({
+      overrides: { projectsDb: 'some-other-db' },
+      showAll: false,
+    });
+    expect(await checkTenantConfig()).toEqual(['projectsDb']);
+  });
+
+  it('still flags an unfit slot when a different slot is the overridden one', async () => {
+    mockFetchDatabases.mockResolvedValue([DECOY_PROJECTS_DB]);
+    mockLoadDbPickerState.mockResolvedValue({
+      overrides: { notesDb: 'notes-id' },
+      showAll: false,
+    });
     expect(await checkTenantConfig()).toEqual(['projectsDb']);
   });
 

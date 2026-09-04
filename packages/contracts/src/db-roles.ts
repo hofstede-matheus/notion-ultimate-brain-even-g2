@@ -14,20 +14,31 @@
  * apart. The lookup data lives in db-roles-requirements.ts.
  */
 
-import { ROLE_REQUIREMENTS } from './db-roles-requirements';
+import { ROLE_REQUIREMENTS, ROLE_VIEWS } from './db-roles-requirements';
 
 export type DbRole = keyof typeof ROLE_REQUIREMENTS;
 
-/** Why a database can't fill a role. `missing` is a sample; `missingCount` is the true total. */
+/**
+ * Why a database can't fill a role, and what actually breaks because of it.
+ *
+ * `missing` is complete, not a sample — the settings picker renders it verbatim, and it is the
+ * only place a user finds out what to rename in Notion. `brokenViews`/`allViewsBroken` exist
+ * because "missing a property" and "the whole role is unusable" are not the same claim: each
+ * view in apps/server/src/views.ts filters or sorts on only a few properties, so one missing
+ * property commonly breaks a handful of views and leaves the rest working (see issue #40).
+ */
 export interface DbRoleFit {
   missing: string[];
-  missingCount: number;
+  /** Display names, in views.ts order, of every view that will fail to load — a subset of
+   *  `missing`'s consequences, since some requirements (the title) affect row labels rather
+   *  than any query's ability to succeed, and so break nothing here even while `missing`. */
+  brokenViews: string[];
+  /** True once every view for the role is in `brokenViews` — the whole role is unusable, not
+   *  just some views of it. */
+  allViewsBroken: boolean;
 }
 
-export { ROLE_REQUIREMENTS };
-
-/** Sample size for the `missing` list in a DbRoleFit. */
-const MISSING_SAMPLE = 3;
+export { ROLE_REQUIREMENTS, ROLE_VIEWS };
 
 function fits(
   properties: Record<string, string>,
@@ -58,15 +69,22 @@ export function evaluateRoles(properties: Record<string, string> | undefined): {
   const unfit: Partial<Record<DbRole, DbRoleFit>> = {};
 
   for (const role of Object.keys(ROLE_REQUIREMENTS) as DbRole[]) {
-    const missing = ROLE_REQUIREMENTS[role]
-      .filter((req) => !fits(properties, req))
-      .map((req) => req.names[0]);
+    const unmet = ROLE_REQUIREMENTS[role].filter((req) => !fits(properties, req));
 
-    if (missing.length === 0) {
+    if (unmet.length === 0) {
       roles.push(role);
-    } else {
-      unfit[role] = { missing: missing.slice(0, MISSING_SAMPLE), missingCount: missing.length };
+      continue;
     }
+
+    const brokenPaths = new Set(unmet.flatMap((req) => req.views));
+    const roleViews = ROLE_VIEWS[role];
+    const brokenViews = roleViews.filter((view) => brokenPaths.has(view.path)).map((v) => v.label);
+
+    unfit[role] = {
+      missing: unmet.map((req) => req.names[0]),
+      brokenViews,
+      allViewsBroken: brokenViews.length === roleViews.length,
+    };
   }
 
   return { roles, unfit };

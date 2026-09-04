@@ -20,6 +20,7 @@ export type LogCategory =
   | 'CAL'
   | 'DEV'
   | 'CFG'
+  | 'MENU'
   | 'QUEUE';
 
 export interface LogRecord {

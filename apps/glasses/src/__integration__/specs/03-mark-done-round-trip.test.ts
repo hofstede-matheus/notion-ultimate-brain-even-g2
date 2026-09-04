@@ -6,14 +6,15 @@ import { driver } from './_setup';
  * docs/features/glasses/confirming-a-change.feature,
  * a-task/mark-as-done/confirm.feature.
  *
- * The canonical mutation round trip: confirm -> API call -> toast ->
- * auto-return. Exercises the full chain over real HTTP and asserts the
- * fixture server actually received the PATCH — the unit suite already
- * covers the exact screen text at every step (tasks/mark-done.test.ts), so
- * this only checks that the pipeline moves the real request end to end.
+ * The canonical mutation round trip: long-press -> OS contextual menu ->
+ * confirm -> API call -> toast -> auto-return. Exercises the full chain over
+ * real HTTP and asserts the fixture server actually received the PATCH — the
+ * unit suite already covers the exact screen text at every step
+ * (tasks/mark-done.test.ts), so this only checks that the pipeline moves the
+ * real request end to end.
  */
 describe('mark-done round trip', () => {
-  it('confirm -> PATCH /api/tasks/:id/done -> toast -> back to Today', async () => {
+  it('long-press -> Mark as done -> PATCH /api/tasks/:id/done -> toast -> back to Today', async () => {
     await fetch(`${FIXTURE_URL}/__reset`, { method: 'POST' });
 
     let cursor = await driver.latestId();
@@ -25,15 +26,26 @@ describe('mark-done round trip', () => {
     await driver.tap();
     await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
 
+    // A tap opens the task's details — which is where its contextual menu lives, and the only
+    // place the app knows for certain which task is meant (see glasses/context-menu.ts).
     cursor = await driver.latestId();
-    await driver.tap(); // row 0 = "Buy groceries" (task-mark-done)
+    await driver.tap();
     await driver.waitForLine(/SEL\s+today row 0 "Buy groceries"/, { from: cursor });
-    await driver.waitForLine(/NAV\s+today -> task-actions/, { from: cursor });
+    await driver.waitForLine(/NAV\s+today -> task-details/, { from: cursor });
 
     cursor = await driver.latestId();
-    for (let i = 0; i < 4; i++) await driver.swipeDown(); // idx0 -> idx4 "Mark as done"
-    await driver.tap();
-    await driver.waitForLine(/NAV\s+task-actions -> mark-done-confirm/, { from: cursor });
+    await driver.holdToOpenContextMenu();
+    await driver.waitForLine(/EVT\s+LONG_PRESS_EVENT/, { from: cursor });
+    // The overlay's arrival cancels the hold shortcut, so tap-and-hold shows the menu
+    // rather than marking the task done behind it.
+    await driver.waitForLine(/EVT\s+hold action cancelled/, { from: cursor });
+
+    cursor = await driver.latestId();
+    // TASK_CONTEXT_MENU order: Open page, Change due date, Change project,
+    // Mark as done, Delete task — see glasses/context-menu.ts.
+    await driver.selectContextMenuItem(3);
+    await driver.waitForLine(/MENU\s+item \d+ selected/, { from: cursor });
+    await driver.waitForLine(/NAV\s+task-details -> mark-done-confirm/, { from: cursor });
 
     cursor = await driver.latestId();
     await driver.tap(); // idx0 "Confirm: Buy groceries"

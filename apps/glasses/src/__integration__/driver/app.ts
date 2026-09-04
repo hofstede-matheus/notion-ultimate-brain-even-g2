@@ -17,6 +17,15 @@ import { SimulatorClient } from './simulator';
 // send one faster than the hardware could.
 const SWIPE_COOLDOWN_MS = 320;
 const INPUT_SETTLE_MS = 40;
+/**
+ * Extra settle time after selecting a contextual-menu item, before any
+ * further input. Confirmed against simulator 0.9.3: the overlay's own
+ * dismissal on selection is not synchronous with the app's state
+ * transition — a tap that follows immediately (within `INPUT_SETTLE_MS`)
+ * can land on the still-showing overlay instead of the screen behind it,
+ * even though the app's own NAV log line already shows the new screen.
+ */
+const CONTEXT_MENU_CLOSE_SETTLE_MS = 500;
 
 const SCREENSHOT_DIR = fileURLToPath(new URL('../.runtime/screenshots', import.meta.url));
 
@@ -51,6 +60,11 @@ const ERROR_LINE_RE =
   /rejected|send failed|startup rejected|^\[uncaught]|^\[unhandledrejection]|^\[fetch]/;
 
 export class AppDriver {
+  /** Tracks the OS contextual-menu overlay's open/closed state — `context_menu`
+   * in the simulator's automation API TOGGLES it, so callers can't post it
+   * unconditionally without risking closing it right back. */
+  private contextMenuOpen = false;
+
   constructor(private readonly sim: SimulatorClient) {}
 
   async ping(): Promise<boolean> {
@@ -145,6 +159,74 @@ export class AppDriver {
   async swipeDown(): Promise<void> {
     await this.input('down');
     await sleep(SWIPE_COOLDOWN_MS);
+  }
+
+  /** Sustained-press start (SDK 0.0.14+ / simulator 0.9.1+) — the gesture that raises the OS
+   * contextual menu on real hardware. Fires the app's LONG_PRESS_EVENT, but — confirmed against
+   * simulator 0.9.3 — does NOT by itself make the overlay appear or become interactive in the
+   * simulator; see holdToOpenContextMenu(). */
+  async longPress(): Promise<void> {
+    await this.input('long_press');
+  }
+
+  /** Sustained-press release — paired with longPress(). */
+  async longPressRelease(): Promise<void> {
+    await this.input('long_press_release');
+  }
+
+  /**
+   * The full tap-and-hold a wearer performs to raise the contextual menu, as the app sees it:
+   * `long_press` (hardware delivers LONG_PRESS_EVENT for this gesture too — Even's docs are
+   * explicit that the menu-raising gesture "also surfaces as LONG_PRESS_EVENT") followed by
+   * `context_menu`, which is what actually makes the simulator's overlay appear and take
+   * `up`/`down`/`click` (confirmed against 0.9.3 — `long_press` alone leaves the screenshot
+   * unchanged).
+   *
+   * Ordering matters: sending `long_press` first is what exercises the app's hold-vs-tap-and-hold
+   * disambiguation (HOLD_ACTION_DELAY_MS), so a spec that raises the menu also proves the hold
+   * shortcut correctly stands down. The simulator emits the overlay's FOREGROUND_ENTER_EVENT on
+   * `context_menu`, which is the signal that cancels the pending hold.
+   */
+  async holdToOpenContextMenu(): Promise<void> {
+    await this.longPress();
+    await this.longPressRelease();
+    await this.openContextMenu();
+  }
+
+  /**
+   * Toggles the simulator's contextual-menu overlay directly via
+   * `{ action: 'context_menu' }`, tracking open/closed state so repeated
+   * calls don't accidentally close what they meant to open. Most specs want
+   * `holdToOpenContextMenu()` instead, which also fires the real gesture
+   * events the app acts on; call this directly only to force a known state
+   * (e.g. after a boot/reset, or to force-close per selectContextMenuItem's
+   * caveat below).
+   */
+  async openContextMenu(): Promise<void> {
+    if (this.contextMenuOpen) return;
+    await this.input('context_menu');
+    this.contextMenuOpen = true;
+  }
+
+  async closeContextMenu(): Promise<void> {
+    if (!this.contextMenuOpen) return;
+    await this.input('context_menu');
+    this.contextMenuOpen = false;
+  }
+
+  /**
+   * Moves the contextual-menu highlight down `n` times, then selects it —
+   * the menu must already be open (see holdToOpenContextMenu()). Waits
+   * CONTEXT_MENU_CLOSE_SETTLE_MS afterward — the overlay's own dismissal
+   * lags the app's state transition, so a caller's next input can otherwise
+   * land on the still-showing overlay instead of the screen behind it (see
+   * that constant's doc comment).
+   */
+  async selectContextMenuItem(downCount: number): Promise<void> {
+    for (let i = 0; i < downCount; i++) await this.swipeDown();
+    await this.tap();
+    await sleep(CONTEXT_MENU_CLOSE_SETTLE_MS);
+    this.contextMenuOpen = false;
   }
 
   /**

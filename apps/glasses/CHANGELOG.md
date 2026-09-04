@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.11.0](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.10.0...glasses-v2.11.0) (2026-08-30)
+
+
+### Features
+
+* **glasses:** add hold to mark as done action ([#46](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/46)) ([56a6804](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/56a6804b79301572bc8826d23ae9ffe1410eb38e))
+
+
+### Bug Fixes
+
+* **glasses:** update what's new entry ([#48](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/48)) ([b6b54cf](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/b6b54cf1855698ac0cea81b3e907393ca08715d3))
+
+## [2.10.0](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.9.0...glasses-v2.10.0) (2026-08-30)
+
+
+### Features
+
+* **glasses:** add contextual menu for tasks and notes ([#44](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/44)) ([f8b0c07](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/f8b0c07c70c9d1583dc9378db105830503c57c40))
+
+## [2.9.0](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.8.1...glasses-v2.9.0) (2026-08-24)
+
+
+### Features
+
+* **glasses:** name which lists actually break in the database fit warning ([#43](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/43)) ([967528e](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/967528ebe0202f4f01cbe5a0f673ffaa946a756c))
+
+
+### Bug Fixes
+
+* **glasses:** keep a database confirmed with "Save anyway" selected and visible ([#41](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/41)) ([ac8c4f9](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/ac8c4f953a97a8aac202a7bb38a11070e06f0052))
+
 ## [2.8.1](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.8.0...glasses-v2.8.1) (2026-08-17)
 
 

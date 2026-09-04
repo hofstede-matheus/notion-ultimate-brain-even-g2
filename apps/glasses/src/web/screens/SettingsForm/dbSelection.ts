@@ -98,17 +98,27 @@ export function fitsSlot(db: NotionDatabaseSummary, slot: DbSlotKey): boolean {
   return roles.includes(SLOT_ROLE[slot]);
 }
 
-/** "missing Meta, Latest Activity and 4 more" — null when `db` fits `slot`, or fitness is unknown. */
+/**
+ * "This database is missing Note Date. Meetings, Journal won't load — the rest will." — null
+ * when `db` fits `slot`, or fitness is unknown. Every missing property is named, not a sample:
+ * this string is the only place the user learns what to rename in Notion.
+ *
+ * Which *views* actually fail is not the same claim as which properties are missing (issue
+ * #40): each view in apps/server/src/views.ts filters or sorts on only a few properties, so one
+ * missing property commonly breaks a handful of views and leaves the rest working — and the
+ * title, specifically, breaks none (it only degrades row labels via mappers.ts's pageTitle()).
+ * Naming the broken views specifically, rather than implying the whole role is unusable, is
+ * what makes the "Save anyway" override (#38) a real choice instead of a guess.
+ */
 export function unfitReason(db: NotionDatabaseSummary, slot: DbSlotKey): string | null {
   const { unfit } = evaluateRoles(db.properties);
   const fit = unfit?.[SLOT_ROLE[slot]];
   if (!fit) return null;
 
-  const [shown, ...rest] = fit.missing;
-  const extra = fit.missingCount - fit.missing.length;
-  const names = rest.length > 0 || extra > 0 ? `${fit.missing.join(', ')}` : shown;
-  const more = extra > 0 ? ` and ${extra} more` : '';
-  return `This database is missing ${names}${more}. The glasses will show empty lists.`;
+  const missingLine = `This database is missing ${fit.missing.join(', ')}.`;
+  if (fit.brokenViews.length === 0) return `${missingLine} Every list will still work.`;
+  if (fit.allViewsBroken) return `${missingLine} No list will load.`;
+  return `${missingLine} ${fit.brokenViews.join(', ')} won't load — the rest will.`;
 }
 
 /** availableOptionsFor(...) narrowed to databases that fit `slot`'s role. */
@@ -118,6 +128,27 @@ export function compatibleOptionsFor(
   selection: DbSelection,
 ): NotionDatabaseSummary[] {
   return availableOptionsFor(slot, databases, selection).filter((db) => fitsSlot(db, slot));
+}
+
+/**
+ * The options one slot's dropdown offers: narrowed to schema-fitting databases unless `showAll`,
+ * but *always* including the slot's own current choice, fitting or not.
+ *
+ * That last part is not cosmetic. even-toolkit's Select renders its placeholder when `value`
+ * isn't among `options`, so an unfit database confirmed through the "Save anyway" gate came back
+ * looking unselected on the next open — a saved, in-use choice displayed as if it had been
+ * thrown away (issue #38). Filtering over availableOptionsFor keeps the fetched order and the
+ * cross-slot exclusion, which never applies to the slot's own id.
+ */
+export function optionsForSlot(
+  slot: DbSlotKey,
+  databases: NotionDatabaseSummary[],
+  selection: DbSelection,
+  showAll: boolean,
+): NotionDatabaseSummary[] {
+  const available = availableOptionsFor(slot, databases, selection);
+  if (showAll) return available;
+  return available.filter((db) => fitsSlot(db, slot) || db.id === selection[slot]);
 }
 
 /**

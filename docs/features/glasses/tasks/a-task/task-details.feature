@@ -9,10 +9,10 @@ Feature: Task details
   fit beside its label still gets the full width of the display.
 
   Background:
-    Given I have opened a task's action menu
+    Given I have opened a task's contextual menu
 
   Scenario: Loading the details
-    When I tap "Task Details"
+    When I choose "Task Details"
     Then the glasses show:
       """
       TASK DETAILS
@@ -25,7 +25,7 @@ Feature: Task details
 
   Scenario: A task with both a project and a due date
     Given the task is named "Buy milk", filed under "Kitchen" and due on 2026-07-04
-    When I tap "Task Details"
+    When I choose "Task Details"
     Then the glasses show:
       """
       TASK DETAILS
@@ -44,7 +44,7 @@ Feature: Task details
 
   Scenario: A task with neither
     Given the task is filed nowhere and has no due date
-    When I tap "Task Details"
+    When I choose "Task Details"
     Then the glasses show "(none)" under both "Project:" and "Due:"
     And the task's name is still shown in full
 
@@ -58,7 +58,7 @@ Feature: Task details
     Given a task whose name and project together run past the bottom of the display
     When I load its details
     Then swiping moves through the rest of them
-    And double-tapping still returns to the action menu
+    And double-tapping still returns to the list the task came from
 
   Scenario Outline: Due dates are written out in full
     Given the task is due on <date>
@@ -78,19 +78,19 @@ Feature: Task details
 
   Scenario: Details that cannot be loaded say why
     Given the details cannot be loaded
-    When I tap "Task Details"
+    When I choose "Task Details"
     Then the glasses show what went wrong instead of the task, project and due lines
     And below it "Double-tap to go back."
 
   Scenario: A long message is shortened
     Given the details fail with a message wider than the display
-    When I tap "Task Details"
+    When I choose "Task Details"
     Then it is shortened to one line
 
-  Scenario: Returning to the action menu
+  Scenario: Returning to the list
     Given I am viewing "TASK DETAILS"
     When I double-tap
-    Then the task's action menu reopens
+    Then the list the task came from reopens
 
   Scenario: There is nothing to choose here
     Given I am viewing "TASK DETAILS"

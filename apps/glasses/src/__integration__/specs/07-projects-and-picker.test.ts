@@ -74,13 +74,20 @@ describe('projects', () => {
     await driver.tap();
     await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
 
+    // A tap opens the task's details, where its contextual menu is declared.
     cursor = await driver.latestId();
-    await driver.tap(); // row 0 "Buy groceries"
-    await driver.waitForLine(/NAV\s+today -> task-actions/, { from: cursor });
+    await driver.tap();
+    await driver.waitForLine(/SEL\s+today row 0 "Buy groceries"/, { from: cursor });
+    await driver.waitForLine(/NAV\s+today -> task-details/, { from: cursor });
 
     cursor = await driver.latestId();
-    for (let i = 0; i < 3; i++) await driver.swipeDown(); // idx0 -> idx3 "Change project"
-    await driver.tap();
+    await driver.holdToOpenContextMenu();
+
+    cursor = await driver.latestId();
+    // TASK_CONTEXT_MENU order: Open page, Change due date, Change project,
+    // Mark as done, Delete task — see glasses/context-menu.ts.
+    await driver.selectContextMenuItem(2);
+    await driver.waitForLine(/MENU\s+item \d+ selected/, { from: cursor });
     await driver.waitForLine(/NAV\s+openProjectPicker "Buy groceries"/, { from: cursor });
     await driver.waitForLine(/RENDER full mode=list screen=project-picker/, { from: cursor });
 

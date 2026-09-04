@@ -18,6 +18,7 @@ import { state } from './state';
 import { getTenantConfig } from './tenant-config';
 import { setStatus } from './web/providers/uiController';
 import { type DbSlotKey, fitsSlot } from './web/screens/SettingsForm/dbSelection';
+import { loadDbPickerState } from './web/services/config';
 import { fetchDatabases } from './web/services/databases';
 
 /** At most one check per app session — a wedged config doesn't un-wedge itself mid-session,
@@ -53,11 +54,17 @@ export function _resetSessionForTests(): void {
 /**
  * Which of the four stored database ids no longer fit their role. Empty means the config is
  * fine (or a database went missing entirely — reconcileSelection's job, not this one).
+ *
+ * A slot the user explicitly confirmed through Settings' "Save anyway" gate is never flagged,
+ * even though it still doesn't fit: the requirement table is a guess about someone else's
+ * schema, and re-raising a decision the user already made would reopen Settings on every
+ * session for a configuration they chose deliberately.
  */
 export async function checkTenantConfig(): Promise<DbSlotKey[]> {
   const cfg = getTenantConfig();
   if (!cfg) return [];
 
+  const { overrides } = await loadDbPickerState();
   const databases = await fetchDatabases(cfg.token);
   const byId = new Map(databases.map((db) => [db.id, db]));
   const ids: Record<DbSlotKey, string> = {
@@ -68,6 +75,7 @@ export async function checkTenantConfig(): Promise<DbSlotKey[]> {
   };
 
   return (Object.keys(ids) as DbSlotKey[]).filter((slot) => {
+    if (overrides[slot] === ids[slot]) return false;
     const db = byId.get(ids[slot]);
     // A vanished database (unshared/deleted) isn't this function's signal to raise — that's
     // reconcileSelection's job, next time Settings opens. Only flag a database that's present

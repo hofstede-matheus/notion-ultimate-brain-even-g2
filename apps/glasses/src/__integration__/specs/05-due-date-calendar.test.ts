@@ -24,17 +24,22 @@ describe('due-date calendar renders as a bitmap', () => {
     await driver.tap();
     await driver.waitForLine(/RENDER full mode=list screen=today/, { from: cursor });
 
+    // A tap opens the task's details, where its contextual menu is declared.
     cursor = await driver.latestId();
-    await driver.swipeDown(); // idx0 -> idx1 "Renew passport" (task-due-date)
+    await driver.swipeDown(); // idx0 -> idx1 "Renew passport"
     await driver.tap();
     await driver.waitForLine(/SEL\s+today row 1 "Renew passport"/, { from: cursor });
-    await driver.waitForLine(/NAV\s+today -> task-actions/, { from: cursor });
+    await driver.waitForLine(/NAV\s+today -> task-details/, { from: cursor });
 
     cursor = await driver.latestId();
-    await driver.swipeDown();
-    await driver.swipeDown(); // idx0 -> idx2 "Change due date"
-    await driver.tap();
-    await driver.waitForLine(/NAV\s+task-actions -> task-due-date/, { from: cursor });
+    await driver.holdToOpenContextMenu();
+
+    cursor = await driver.latestId();
+    // TASK_CONTEXT_MENU order: Open page, Change due date, Change project,
+    // Mark as done, Delete task — see glasses/context-menu.ts.
+    await driver.selectContextMenuItem(1);
+    await driver.waitForLine(/MENU\s+item \d+ selected/, { from: cursor });
+    await driver.waitForLine(/NAV\s+task-details -> task-due-date/, { from: cursor });
     await driver.waitForLine(/RENDER full mode=bitmap screen=task-due-date/, { from: cursor });
     const tiles = await driver.waitForLine(/CAL\s+tiles sent/, { from: cursor });
     expect(tiles.message).toMatch(/tiles=\d+/);

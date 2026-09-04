@@ -346,6 +346,13 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
         : items;
     });
 
+  /** What a tap on a row does — resolved once here so `action()` never has to re-derive it. */
+  function resolveKind(state: AppState): SelectKind | undefined {
+    const configuredKind =
+      typeof config.onSelect === 'function' ? config.onSelect(state) : config.onSelect;
+    return configuredKind ?? selectKindFor(config.screen);
+  }
+
   return {
     display(state) {
       const title = typeof config.title === 'function' ? config.title(state) : config.title;
@@ -400,6 +407,8 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
       if (hasPrev) listItems.push(PREV_PAGE_LABEL);
       listItems.push(...pageItems.map((i) => truncateListLabel(formatLabel(i))));
       if (hasNext) listItems.push(NEXT_PAGE_LABEL);
+      // No `menu` here on purpose — a contextual menu on a list cannot tell which row is
+      // highlighted (see glasses/context-menu.ts). It lives on the details screen a tap opens.
       return { mode: 'list', header, items: listItems };
     },
 
@@ -434,23 +443,28 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
           }
           const item = items[start + idx];
           if (item) {
-            const configuredKind =
-              typeof config.onSelect === 'function' ? config.onSelect(state) : config.onSelect;
-            const kind = configuredKind ?? selectKindFor(config.screen);
+            const kind = resolveKind(state);
             trace.info('SEL', `${config.screen} row ${idx} "${item.name}"`, {
               id: item.id,
               kind: kind ?? 'unknown',
             });
-            if (kind === 'task')
-              ctx.openTaskActions(
+            // A tap opens the item's details, not its page: the reader costs a markdown
+            // fetch on top of the details call, and reading is the rarer intent. The details
+            // screen is also where the contextual menu and the hold shortcut live, since it
+            // is the only place the target is unambiguous — see glasses/context-menu.ts.
+            if (kind === 'task') {
+              ctx.selectTask(
                 item.id,
                 item.name,
                 config.screen,
                 'dueDate' in item ? item.dueDate : undefined,
               );
-            else if (kind === 'project') ctx.openProjectDetail(item.id, item.name, config.screen);
-            else if (kind === 'note') ctx.openNoteActions(item.id, item.name, config.screen);
-            else if (kind === 'tag') ctx.openTagNotes(item.id, item.name, config.screen);
+              void ctx.enterTaskDetails();
+            } else if (kind === 'project') ctx.openProjectDetail(item.id, item.name, config.screen);
+            else if (kind === 'note') {
+              ctx.selectNote(item.id, item.name, config.screen);
+              void ctx.enterNoteDetails();
+            } else if (kind === 'tag') ctx.openTagNotes(item.id, item.name, config.screen);
             else if (kind === 'project-pick') ctx.pickProject(item.id, item.name);
             else
               trace.warn('SEL', `${config.screen} row has no select kind — dead row`, {
@@ -458,6 +472,17 @@ export function makeListScreen(config: ListScreenConfig): ScreenModule {
               });
           }
         }
+        return;
+      }
+
+      if (action.type === 'LONG_PRESS') {
+        // Deliberately inert on a list, and no menu is declared here either. A hold on a list
+        // row cannot be acted on: LONG_PRESS_EVENT arrives as a bare sysEvent (Sys_ItemEvent
+        // has no row index at all), and moving a native list's highlight emits nothing
+        // whatsoever to the app — the firmware owns list scrolling. Guessing the row (the
+        // last-tapped one, or row 0) targeted the wrong task on both the simulator and real
+        // hardware. Both the hold shortcut and the contextual menu therefore live on the
+        // details screen a tap opens, where the target is exact — see glasses/context-menu.ts.
         return;
       }
 

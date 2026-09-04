@@ -6,12 +6,11 @@ import {
   onConnectClick,
   onSettingsClick,
   promptForConfig,
-  SettingsCancelledError,
   setDeviceConnected,
   setStatus,
   showRetry,
 } from '@web/providers/uiController';
-import { loadStoredConfig, saveStoredConfig } from '@web/services/config';
+import { loadStoredConfig } from '@web/services/config';
 import { BOOT_SPLASH_MIN_MS, BRIDGE_WAIT_TIMEOUT_MS } from './glasses/constants';
 import { attachGlassesListeners, showGlassesScreen } from './glasses/events';
 import { StartupRejectedError } from './glasses/render';
@@ -29,26 +28,18 @@ import { refreshVoiceStatus } from './voice-runtime';
 // ---------------------------------------------------------------------------
 
 /**
- * Prompts for config (pre-filled with `prefill`), persists it, and applies it.
- * When `prefill` is present the form is cancellable (a back button appears);
- * backing out keeps the existing config untouched. Exported for
- * config-health.ts's reportApiFailure, which reopens Settings the same way
- * the gear icon does when a saved database stops working.
+ * Prompts for config (pre-filled with `prefill`) and waits for it to be saved or backed out of.
+ * The form commits the configuration itself — setTenantConfig, then a durable write, both before
+ * resolving promptForConfig (see SettingsForm.tsx's handleSubmit and
+ * ./web/screens/SettingsForm/submit.ts) — so there is nothing left for this function to persist.
+ * When `prefill` is present the form is cancellable (a back button appears); backing out leaves
+ * the existing config untouched. Exported for config-health.ts's reportApiFailure, which reopens
+ * Settings the same way the gear icon does when a saved database stops working.
  */
 export async function reconfigure(prefill?: TenantConfig | null): Promise<boolean> {
-  try {
-    const cfg = await promptForConfig(prefill, prefill != null);
-    await saveStoredConfig(cfg);
-    setTenantConfig(cfg);
-    trace.info('BOOT', 'tenant config saved');
-    return true;
-  } catch (err) {
-    if (err instanceof SettingsCancelledError) {
-      trace.info('BOOT', 'settings cancelled, keeping existing config');
-      return false;
-    }
-    throw err;
-  }
+  const saved = await promptForConfig(prefill, prefill != null);
+  trace.info('BOOT', saved ? 'tenant config saved' : 'settings cancelled, keeping existing config');
+  return saved;
 }
 
 async function holdSplash(splashAt: number): Promise<void> {

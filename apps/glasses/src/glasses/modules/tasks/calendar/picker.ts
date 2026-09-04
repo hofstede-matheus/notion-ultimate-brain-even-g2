@@ -124,5 +124,7 @@ export function dueDatePickerBack(): void {
     return;
   }
 
-  navigate('task-actions');
+  // There's no intermediate action-menu screen any more — back from 'week'
+  // returns straight to the list the task was selected from.
+  navigate(p.returnTo);
 }

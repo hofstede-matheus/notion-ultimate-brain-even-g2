@@ -2,7 +2,7 @@ import { pxTruncate } from 'even-toolkit/pretext';
 import { buildHeaderLine } from 'even-toolkit/text-utils';
 import type { AppState, ScreenName } from '../../../state';
 import { CONTAINER_PADDING, SCREEN_W } from '../../constants';
-import type { ScreenModule } from '../../types';
+import type { ContextMenuItem, GlassCtx, ScreenModule } from '../../types';
 
 /** Inner width of the full-screen text container a details screen renders into. */
 const TEXT_INNER_W = SCREEN_W - 2 * CONTAINER_PADDING;
@@ -27,10 +27,26 @@ export interface DetailsData {
 export interface DetailsScreenConfig {
   /** Header title, e.g. "TASK DETAILS". */
   title: string;
-  /** Screen to return to on GO_BACK — the item's action menu. */
-  parent: ScreenName;
+  /** Screen to return to on GO_BACK — the list the item was selected from. Can depend on
+   * state (e.g. task-details reads it off state.selectedTask.returnTo, since there's no
+   * longer an intermediate action-menu screen to fall back on). */
+  parent: ScreenName | ((state: AppState) => ScreenName);
   /** Reads this screen's slice of state; null before the fetch was started. */
   read(state: AppState): DetailsData | null;
+  /**
+   * The OS contextual menu for the item this screen describes, raised by
+   * tap-then-long-press. Declared here rather than on the list screens
+   * because only here is the target unambiguous — see glasses/context-menu.ts
+   * for why a list-anchored menu cannot know which row was highlighted.
+   */
+  menu?: ContextMenuItem[];
+  /**
+   * What a plain **hold** (LONG_PRESS_EVENT) does on this screen — a
+   * different gesture from the tap-then-hold that raises `menu`, and a
+   * shortcut to the item's most common action. Omitted where there isn't
+   * one (a note is never "done").
+   */
+  onHold?(state: AppState, ctx: GlassCtx): void;
 }
 
 /**
@@ -48,6 +64,11 @@ export function makeDetailsScreen(config: DetailsScreenConfig): ScreenModule {
     display(state) {
       const details = config.read(state);
 
+      // The menu rides on every render, including the loading and error ones: it acts on
+      // state.selectedTask/selectedNote, which the tap that opened this screen already set,
+      // so it stays correct even if the details fetch is still in flight or failed. Omitting
+      // it on those renders would instead clear it (menuObject is replaced wholesale on
+      // every rebuild — see render/index.ts), leaving a dead menu after the fetch settles.
       if (!details || details.loading) {
         return {
           mode: 'text',
@@ -58,6 +79,7 @@ export function makeDetailsScreen(config: DetailsScreenConfig): ScreenModule {
             '',
             BACK_HINT,
           ].join('\n'),
+          menu: config.menu,
         };
       }
 
@@ -71,6 +93,7 @@ export function makeDetailsScreen(config: DetailsScreenConfig): ScreenModule {
             '',
             BACK_HINT,
           ].join('\n'),
+          menu: config.menu,
         };
       }
 
@@ -79,13 +102,19 @@ export function makeDetailsScreen(config: DetailsScreenConfig): ScreenModule {
         lines.push('', field.label, field.value);
       }
       lines.push('', BACK_HINT);
-      return { mode: 'text', content: lines.join('\n') };
+      return { mode: 'text', content: lines.join('\n'), menu: config.menu };
     },
 
-    action(action, _state, ctx) {
+    action(action, state, ctx) {
       if (action.type === 'GO_BACK') {
         ctx.stopSpinner();
-        ctx.navigate(config.parent);
+        const parent = typeof config.parent === 'function' ? config.parent(state) : config.parent;
+        ctx.navigate(parent);
+        return;
+      }
+
+      if (action.type === 'LONG_PRESS') {
+        config.onHold?.(state, ctx);
         return;
       }
 

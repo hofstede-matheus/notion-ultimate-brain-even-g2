@@ -109,17 +109,8 @@ export function triggerSettings(): void {
   settingsHandler?.();
 }
 
-/** Rejection raised when the user backs out of settings without saving. */
-export class SettingsCancelledError extends Error {
-  constructor() {
-    super('Settings cancelled');
-    this.name = 'SettingsCancelledError';
-  }
-}
-
-let pendingResolve: ((cfg: TenantConfig) => void) | null = null;
-let pendingReject: ((reason: SettingsCancelledError) => void) | null = null;
-let pendingPromise: Promise<TenantConfig> | null = null;
+let pendingResolve: ((saved: boolean) => void) | null = null;
+let pendingPromise: Promise<boolean> | null = null;
 
 function openSettings(prefill: TenantConfig | null, cancellable: boolean): void {
   setState({
@@ -130,41 +121,42 @@ function openSettings(prefill: TenantConfig | null, cancellable: boolean): void 
   });
 }
 
-/** Invoked by the React settings form on valid submit. */
-export function resolveSettings(cfg: TenantConfig): void {
+function closeSettings(saved: boolean): void {
   const resolve = pendingResolve;
   pendingResolve = null;
-  pendingReject = null;
   pendingPromise = null;
   setState({ settingsOpen: false, navDirection: 'back' });
-  resolve?.(cfg);
+  resolve?.(saved);
+}
+
+/**
+ * Invoked by the React settings form once its configuration is already in effect — the form
+ * commits directly (setTenantConfig, then this call; see SettingsForm.tsx's handleSubmit and
+ * ./submit.ts), so by the time this runs there is nothing left to lose. This only closes the
+ * form and reports success to whoever is awaiting promptForConfig.
+ */
+export function settingsSaved(): void {
+  closeSettings(true);
 }
 
 /** Invoked by the React back button — dismiss settings without saving. */
 export function cancelSettings(): void {
-  const reject = pendingReject;
-  pendingResolve = null;
-  pendingReject = null;
-  pendingPromise = null;
-  setState({ settingsOpen: false, navDirection: 'back' });
-  reject?.(new SettingsCancelledError());
+  closeSettings(false);
 }
 
 /**
- * Reveal the settings form pre-filled with `prefill`, and resolve once the
- * user submits a valid config (token + all 4 DB fields non-empty). Invoked
- * by ../boot.ts's `reconfigure()`. When `cancellable`, a back button is shown
- * and backing out rejects with SettingsCancelledError.
+ * Reveal the settings form pre-filled with `prefill`. Resolves `true` once the user saves,
+ * `false` if they back out instead. Invoked by ../boot.ts's `reconfigure()`. When `cancellable`,
+ * a back button is shown.
  */
 export function promptForConfig(
   prefill?: TenantConfig | null,
   cancellable = false,
-): Promise<TenantConfig> {
+): Promise<boolean> {
   openSettings(prefill ?? null, cancellable);
   if (pendingPromise) return pendingPromise;
-  pendingPromise = new Promise((resolve, reject) => {
+  pendingPromise = new Promise((resolve) => {
     pendingResolve = resolve;
-    pendingReject = reject;
   });
   return pendingPromise;
 }

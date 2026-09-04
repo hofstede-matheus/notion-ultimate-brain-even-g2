@@ -2,7 +2,7 @@
 Feature: The five task lists
 
   Today, Overdue, Inbox, Next 7 Days and Tomorrow. Each has its own title and its own way of
-  saying "nothing here", and tapping any task opens what can be done with it.
+  saying "nothing here", and tapping any task opens its details.
 
   Background:
     Given I am on the "TASKS" menu
@@ -71,11 +71,17 @@ Feature: The five task lists
       | NEXT 7 DAYS   |
       | TOMORROW      |
 
-  Scenario: Tapping a task opens what can be done with it
+  Scenario: Tapping a task opens its details
     Given a task in any of these lists
     When I tap it
-    Then the glasses show the task's name as the header
-    And its six choices are listed
+    Then the glasses show "TASK DETAILS" for it
+
+  Scenario: Holding a task in the list does nothing
+    Given a task in any of these lists
+    When I hold it
+    Then nothing happens
+    # Both the hold shortcut and the contextual menu live on the details screen, since a list
+    # never tells the app which row is highlighted — see the-five-gestures.feature.
 
   Rule: Today means today where I am
 

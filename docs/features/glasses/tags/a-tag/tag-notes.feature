@@ -31,11 +31,15 @@ Feature: A tag's notes
     When I double-tap
     Then that list reopens
 
-  Scenario: Tapping a note opens its action menu
+  Scenario: Tapping a note opens it
     Given I am viewing a tag's notes
     When I tap one
-    Then the glasses show that note's name as the header
-    And the four note choices are listed
+    Then it opens in the page reader
+
+  Scenario: Tapping and holding a note opens its contextual menu
+    Given I am viewing a tag's notes
+    When I tap and hold one
+    Then a menu of that note's actions opens over the list
 
   Scenario: Backing out of that note returns to the tag's notes
     Given I opened a note from a tag's notes

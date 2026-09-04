@@ -14,7 +14,7 @@ import { driver } from './_setup';
  * nothing until now confirms the paginated result actually paints.
  */
 describe('note reader pages a long note', () => {
-  it('notes -> Inbox -> row -> Open page -> swipe turns the page', async () => {
+  it('notes -> Inbox -> tap a row -> opens its page directly -> swipe turns the page', async () => {
     let cursor = await driver.latestId();
     await driver.swipeDown(); // root menu idx0 -> idx1 "Notes"
     await driver.tap();
@@ -25,12 +25,15 @@ describe('note reader pages a long note', () => {
     await driver.waitForLine(/RENDER full mode=list screen=notes-inbox/, { from: cursor });
 
     cursor = await driver.latestId();
-    await driver.tap(); // row 0 "Reading Test Note"
+    await driver.tap(); // row 0 "Reading Test Note" — opens its details
     await driver.waitForLine(/SEL\s+notes-inbox row 0 "Reading Test Note"/, { from: cursor });
-    await driver.waitForLine(/NAV\s+notes-inbox -> note-actions/, { from: cursor });
+    await driver.waitForLine(/NAV\s+notes-inbox -> note-details/, { from: cursor });
 
+    // Reading the page is the first item on the note's contextual menu — NOTE_CONTEXT_MENU
+    // order: Open page, Change project, Delete note (see glasses/context-menu.ts).
     cursor = await driver.latestId();
-    await driver.tap(); // note-actions idx0 "Open page"
+    await driver.holdToOpenContextMenu();
+    await driver.selectContextMenuItem(0);
     await driver.waitForLine(/NAV\s+openPage "Reading Test Note"/, { from: cursor });
     const loaded = await driver.waitForLine(/NAV\s+openPage "Reading Test Note" loaded/, {
       from: cursor,

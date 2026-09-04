@@ -6,6 +6,7 @@ import {
   EMPTY_SELECTION,
   fitsSlot,
   isSelectionComplete,
+  optionsForSlot,
   reconcileSelection,
   unfitReason,
   unfitSlots,
@@ -41,6 +42,24 @@ const DECOY_PROJECTS_DB = {
   },
 };
 const UNKNOWN_SCHEMA_DB = { id: 'unknown', name: 'Something' }; // no `properties` — older server
+
+// A real Ultimate Brain Notes schema missing only Note Date — issue #40's own example: only the
+// two views that sort on it (Meetings, Journal) actually fail; the other eight still work.
+const NOTES_MISSING_NOTE_DATE = {
+  id: 'notes-missing-note-date',
+  name: 'Notes',
+  properties: {
+    Name: 'title',
+    Archived: 'checkbox',
+    Favorite: 'checkbox',
+    Type: 'select',
+    URL: 'url',
+    Tag: 'relation',
+    Project: 'relation',
+    Content: 'relation',
+    Updated: 'last_edited_time',
+  },
+};
 
 describe('availableOptionsFor', () => {
   it('offers every database when nothing else is chosen', () => {
@@ -132,6 +151,22 @@ describe('unfitReason', () => {
     expect(reason).toContain('Meta');
     expect(reason).toContain('missing');
   });
+
+  it('names every missing property, and says nothing will load when every view is broken', () => {
+    // Pinned in full: this sentence is the only place a user learns what to rename in Notion.
+    // DECOY_PROJECTS_DB is missing Archived, which every projects view filters on — so this is
+    // the "whole role is unusable" branch, not the partial one below (issue #40).
+    expect(unfitReason(DECOY_PROJECTS_DB, 'projectsDb')).toBe(
+      'This database is missing Name, Archived, Meta, Latest Activity, Target Deadline. ' +
+        'No list will load.',
+    );
+  });
+
+  it('names only the views that actually break when the rest of the role still works', () => {
+    expect(unfitReason(NOTES_MISSING_NOTE_DATE, 'notesDb')).toBe(
+      "This database is missing Note Date. Meetings, Journal won't load — the rest will.",
+    );
+  });
 });
 
 describe('compatibleOptionsFor', () => {
@@ -145,6 +180,55 @@ describe('compatibleOptionsFor', () => {
     const dbs = [REAL_PROJECTS_DB, DECOY_PROJECTS_DB];
     const selection = { ...EMPTY_SELECTION, tasksDb: 'real-projects' };
     expect(compatibleOptionsFor('projectsDb', dbs, selection).map((d) => d.id)).toEqual([]);
+  });
+});
+
+describe('optionsForSlot', () => {
+  const dbs = [REAL_PROJECTS_DB, DECOY_PROJECTS_DB];
+
+  it("keeps an unfit database that is this slot's own current choice", () => {
+    // The #38 regression: a database confirmed through "Save anyway" is not offered by
+    // compatibleOptionsFor, and a Select whose value is missing from its options renders the
+    // placeholder — so a saved, in-use choice came back looking unselected.
+    const selection = { ...EMPTY_SELECTION, projectsDb: 'decoy-projects' };
+    const options = optionsForSlot('projectsDb', dbs, selection, false);
+    expect(options.map((d) => d.id)).toEqual(['real-projects', 'decoy-projects']);
+  });
+
+  it('still hides unfit databases that are not the current choice', () => {
+    const options = optionsForSlot('projectsDb', dbs, EMPTY_SELECTION, false);
+    expect(options.map((d) => d.id)).toEqual(['real-projects']);
+  });
+
+  it('offers every database when showAll is on', () => {
+    const options = optionsForSlot('projectsDb', dbs, EMPTY_SELECTION, true);
+    expect(options.map((d) => d.id)).toEqual(['real-projects', 'decoy-projects']);
+  });
+
+  it('never offers a database taken by another slot, even as an unfit current choice', () => {
+    // selection.projectsDb is what keeps the decoy visible; taking it for tasksDb must win.
+    const selection = { ...EMPTY_SELECTION, tasksDb: 'decoy-projects' };
+    expect(optionsForSlot('projectsDb', dbs, selection, false).map((d) => d.id)).toEqual([
+      'real-projects',
+    ]);
+    expect(optionsForSlot('projectsDb', dbs, selection, true).map((d) => d.id)).toEqual([
+      'real-projects',
+    ]);
+  });
+
+  it('preserves the fetched order rather than surfacing the current choice', () => {
+    const selection = { ...EMPTY_SELECTION, projectsDb: 'decoy-projects' };
+    const reversed = [DECOY_PROJECTS_DB, REAL_PROJECTS_DB];
+    expect(optionsForSlot('projectsDb', reversed, selection, false).map((d) => d.id)).toEqual([
+      'decoy-projects',
+      'real-projects',
+    ]);
+  });
+
+  it('matches compatibleOptionsFor when the slot is empty', () => {
+    expect(optionsForSlot('projectsDb', dbs, EMPTY_SELECTION, false)).toEqual(
+      compatibleOptionsFor('projectsDb', dbs, EMPTY_SELECTION),
+    );
   });
 });
 

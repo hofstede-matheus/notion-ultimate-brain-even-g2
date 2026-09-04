@@ -39,11 +39,10 @@ Feature: Confirming a change
     Then nothing is changed
     And the list the item came from reopens
 
-  Scenario: Cancelling returns to the list, not to the action menu
-    Given I opened an item from a list and chose an action
+  Scenario: Cancelling returns straight to the list
+    Given I chose an action from an item's contextual menu
     When I cancel
-    Then that list reopens
-    And not the item's action menu
+    Then that list reopens directly — there is no menu screen in between
 
   Scenario: A change that fails can be tried again
     Given I am confirming an action on an item

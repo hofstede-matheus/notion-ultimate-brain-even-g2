@@ -15,7 +15,10 @@ const PROJECT_FILTERS: { label: string; target: ScreenName }[] = [
 ];
 
 function goBack(state: AppState, ctx: GlassCtx): void {
-  ctx.navigate(state.projectPicker?.backTo ?? 'task-actions');
+  // backTo is set by whichever flow opened the picker — the contextual
+  // menu's 'Change project' (context-menu.ts) always sets it, so 'menu' here
+  // is only a last-resort fallback, never the real path.
+  ctx.navigate(state.projectPicker?.backTo ?? 'menu');
 }
 
 /**

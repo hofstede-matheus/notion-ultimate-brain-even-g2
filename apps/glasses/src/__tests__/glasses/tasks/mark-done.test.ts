@@ -1,5 +1,10 @@
 /**
- * Mark-done confirm/toast flow, reached from the task action menu.
+ * Mark-done confirm/toast flow. Reached two ways, both from Task Details:
+ * a plain hold (LONG_PRESS_EVENT — details-screen.ts's onHold) goes straight
+ * here, and the OS contextual menu's "Mark as done" item (tested in
+ * context-menu.test.ts) lands on the same screen through the same
+ * ctx.openConfirm call. Everything below exercises the confirm/toast
+ * mechanics themselves, so it only needs one of those two entry points.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,21 +14,23 @@ vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { markTaskDone } from '../../../api';
-import { back, mount, select } from '../harness';
+import { back, longPress, mount, select } from '../harness';
 
 const TASK = { id: 't1', name: 'Buy milk' };
 
-function openConfirm(h: ReturnType<typeof mount>) {
+/** Tap the row (-> Task Details), then hold (-> this confirm) — the shortcut path. */
+async function openConfirm(h: ReturnType<typeof mount>) {
   h.state.screen = 'inbox';
   h.state.lists.inbox = [TASK];
-  h.dispatch(select(0)); // -> task-actions
-  h.dispatch(select(4)); // Mark as done
+  h.dispatch(select(0));
+  await h.settle();
+  h.dispatch(longPress());
 }
 
 describe('opening the confirm dialog', () => {
-  it('sets pendingAction and navigates to mark-done-confirm', () => {
+  it('sets pendingAction and navigates to mark-done-confirm', async () => {
     const h = mount();
-    openConfirm(h);
+    await openConfirm(h);
 
     expect(h.state.pendingAction).toEqual({
       kind: 'markDone',
@@ -35,9 +42,9 @@ describe('opening the confirm dialog', () => {
     expect(h.render()).toMatchObject({ mode: 'list', items: ['Confirm: Buy milk', 'Cancel'] });
   });
 
-  it('Cancel dismisses back to the returnTo screen', () => {
+  it('Cancel dismisses back to the returnTo screen', async () => {
     const h = mount();
-    openConfirm(h);
+    await openConfirm(h);
 
     h.dispatch(select(1)); // Cancel
 
@@ -45,9 +52,9 @@ describe('opening the confirm dialog', () => {
     expect(h.state.screen).toBe('inbox');
   });
 
-  it('GO_BACK also dismisses', () => {
+  it('GO_BACK also dismisses', async () => {
     const h = mount();
-    openConfirm(h);
+    await openConfirm(h);
 
     h.dispatch(back());
 
@@ -55,13 +62,14 @@ describe('opening the confirm dialog', () => {
     expect(h.state.screen).toBe('inbox');
   });
 
-  it('a long, multi-byte task name is truncated so the prefixed item stays within the native-list byte cap', () => {
+  it('a long, multi-byte task name is truncated so the prefixed item stays within the native-list byte cap', async () => {
     const longName = 'Preparação do relatório financeiro trimestral para a diretoria executiva';
     const h = mount();
     h.state.screen = 'inbox';
     h.state.lists.inbox = [{ id: 't1', name: longName }];
     h.dispatch(select(0));
-    h.dispatch(select(4)); // Mark as done
+    await h.settle();
+    h.dispatch(longPress());
 
     const display = h.render();
     expect(display.mode).toBe('list');
@@ -77,7 +85,7 @@ describe('confirming mark-done', () => {
   it('calls markTaskDone, removes the item from its list, and shows the toast', async () => {
     vi.mocked(markTaskDone).mockResolvedValue(undefined);
     const h = mount();
-    openConfirm(h);
+    await openConfirm(h);
 
     h.dispatch(select(0)); // Confirm
 
@@ -103,7 +111,7 @@ describe('confirming mark-done', () => {
     try {
       vi.mocked(markTaskDone).mockResolvedValue(undefined);
       const h = mount();
-      openConfirm(h);
+      await openConfirm(h);
 
       h.dispatch(select(0));
       await h.settle();
@@ -126,7 +134,7 @@ describe('confirming mark-done', () => {
     try {
       vi.mocked(markTaskDone).mockResolvedValue(undefined);
       const h = mount();
-      openConfirm(h);
+      await openConfirm(h);
       h.dispatch(select(0));
       await h.settle();
 
@@ -150,7 +158,7 @@ describe('confirming mark-done', () => {
   it('on API failure, shows the error and stays on the confirm screen', async () => {
     vi.mocked(markTaskDone).mockRejectedValue(new Error('offline'));
     const h = mount();
-    openConfirm(h);
+    await openConfirm(h);
 
     h.dispatch(select(0));
     await h.settle();

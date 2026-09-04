@@ -38,6 +38,14 @@ Feature: When a saved setup stops working
     But settings does not open on its own
     # Only a failure that looks configuration-shaped — not every failure — triggers a check.
 
+  Scenario: A database I confirmed anyway does not reopen settings
+    Given I confirmed that database for its slot with "Save anyway" in settings
+    When opening its list fails because it is missing a property its role needs
+    Then the glasses say the list couldn't load and to check the phone
+    But settings does not open on its own
+    # I already made this call. Raising it again every session would be nagging me about a
+    # setup I chose on purpose — see choosing-the-databases.feature.
+
   Scenario: The check runs at most once per session
     Given the automatic check already ran once during this session
     When another list fails for the same configuration reason

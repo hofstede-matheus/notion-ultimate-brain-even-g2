@@ -26,7 +26,6 @@ vi.mock('@evenrealities/even_hub_sdk', async (importOriginal) => {
 });
 
 vi.mock('../../web/providers/uiController', () => ({
-  SettingsCancelledError: class SettingsCancelledError extends Error {},
   disableConnect: vi.fn(),
   hideConnect: vi.fn(),
   onConnectClick: vi.fn(),
@@ -39,7 +38,6 @@ vi.mock('../../web/providers/uiController', () => ({
 
 vi.mock('../../web/services/config', () => ({
   loadStoredConfig: mocks.loadStoredConfig,
-  saveStoredConfig: vi.fn(),
 }));
 
 vi.mock('../../logging/persist', () => ({
@@ -173,7 +171,10 @@ describe('boot', () => {
     state.listStatus = { 'projects-all': 'stale' };
     state.configSuspect = true;
     bridge.rebuildPageContainer.mockClear();
-    vi.mocked(promptForConfig).mockResolvedValueOnce(tenantConfig('updated'));
+    // reconfigure() no longer reads the resolved value for the config itself — the settings
+    // form now commits (setTenantConfig) before resolving promptForConfig — so this only needs
+    // to signal "saved" for reconfigure()'s boolean return.
+    vi.mocked(promptForConfig).mockResolvedValueOnce(true);
 
     const settingsHandler = vi.mocked(onSettingsClick).mock.calls[0]?.[0];
     expect(settingsHandler).toBeDefined();

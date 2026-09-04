@@ -1,7 +1,7 @@
 /**
- * The "Change project" flow: task-actions -> project picker -> confirm ->
- * toast, reached from the task action menu. Notes exercise the same shared
- * screens from note-actions — see notes/set-project.test.ts.
+ * The "Change project" flow: a task's OS contextual menu -> project picker
+ * -> confirm -> toast. Notes exercise the same shared screens from their own
+ * contextual menu — see notes/set-project.test.ts.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,8 +11,9 @@ vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { fetchDoingProjects, fetchInboxTasks, setPageProject } from '../../../api';
+import { TASK_CONTEXT_MENU } from '../../../glasses/context-menu';
 import type { ScreenName } from '../../../state';
-import { back, mount, select } from '../harness';
+import { back, menuItemId, mount, select } from '../harness';
 
 const TASK = { id: 't1', name: 'Buy milk' };
 const PROJECTS = [
@@ -20,11 +21,13 @@ const PROJECTS = [
   { id: 'p2', name: 'Errands' },
 ];
 
+const CHANGE_PROJECT_ID = menuItemId(TASK_CONTEXT_MENU, 'Change project');
+
 async function openPicker(h: ReturnType<typeof mount>, returnScreen: ScreenName = 'inbox') {
   h.state.screen = returnScreen;
   h.state.lists[returnScreen] = [TASK];
-  h.dispatch(select(0)); // -> task-actions
-  h.dispatch(select(3)); // Change project -> project-picker
+  h.dispatch(select(0));
+  h.menuClick(CHANGE_PROJECT_ID);
   await h.settle();
   h.dispatch(select(2)); // Doing
   await h.settle();
@@ -48,7 +51,7 @@ describe('opening the project picker', () => {
     h.state.screen = 'inbox';
     h.state.lists.inbox = [TASK];
     h.dispatch(select(0));
-    h.dispatch(select(3));
+    h.menuClick(CHANGE_PROJECT_ID);
     await h.settle();
     expect(h.render()).toMatchObject({
       mode: 'list',
@@ -160,8 +163,8 @@ describe('confirming a project change', () => {
     h.state.screen = 'project-tasks-todo';
     h.state.selectedProject = { id: 'p1', name: 'Groceries', returnTo: 'projects-doing' };
     h.state.lists['project-tasks-todo'] = [TASK];
-    h.dispatch(select(0)); // -> task-actions
-    h.dispatch(select(3)); // Change project -> project-picker
+    h.dispatch(select(0));
+    h.menuClick(CHANGE_PROJECT_ID);
     await h.settle();
 
     h.dispatch(select(0)); // the sentinel row -> confirm

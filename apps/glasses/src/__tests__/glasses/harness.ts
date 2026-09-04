@@ -10,7 +10,7 @@ import type { EvenAppBridge, EvenHubEvent } from '@evenrealities/even_hub_sdk';
 import { resetBridgeQueue, whenIdle } from '../../glasses/bridge-queue';
 import { createGlassCtx } from '../../glasses/glass-ctx';
 import { router } from '../../glasses/router';
-import type { AppGlassAction } from '../../glasses/types';
+import type { AppGlassAction, ContextMenuItem } from '../../glasses/types';
 import { setBridge, state } from '../../state';
 import { type MockBridge, makeMockBridge } from './fakes';
 
@@ -20,6 +20,7 @@ export function resetState(): void {
   state.startupRendered = true;
   state.lists = {};
   state.listPages = {};
+  state.lastHighlightedIndex = {};
   state.pendingAction = null;
   state.selectedTask = null;
   state.dueDatePicker = null;
@@ -77,6 +78,10 @@ export function mount() {
     dispatch(action: AppGlassAction): void {
       router.onGlassAction(action, state, ctx);
     },
+    /** Dispatches an OS contextual-menu selection, exactly as onMenuItemClick does in production. */
+    menuClick(itemID: number): void {
+      router.onMenuItemClick(itemID, state, ctx);
+    },
     /** What would be drawn right now — the pure "rendered on device" check. */
     render() {
       return router.toDisplayData(state);
@@ -115,4 +120,22 @@ export function back(): AppGlassAction {
 
 export function move(direction: 'up' | 'down'): AppGlassAction {
   return { type: 'HIGHLIGHT_MOVE', direction };
+}
+
+/** The gesture that raises the OS contextual menu — same shape as select(), since the menu is
+ * page-scoped and still needs to know which row was highlighted. */
+export function longPress(itemIndex?: number, itemName?: string): AppGlassAction {
+  return { type: 'LONG_PRESS', itemIndex, itemName };
+}
+
+/**
+ * Looks up a contextual-menu item's id by its label — for tests that need to
+ * simulate `h.menuClick(id)`. Throws immediately rather than returning
+ * `number | undefined`, so a typo in a test's label fails loudly at import
+ * time instead of silently compiling to `undefined`.
+ */
+export function menuItemId(menu: ContextMenuItem[], label: string): number {
+  const item = menu.find((i) => i.label === label);
+  if (!item) throw new Error(`no menu item labelled "${label}"`);
+  return item.id;
 }

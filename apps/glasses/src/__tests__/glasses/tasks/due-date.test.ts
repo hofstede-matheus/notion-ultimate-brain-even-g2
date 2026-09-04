@@ -1,6 +1,6 @@
 /**
- * The "Change due date" flow: task-actions -> bitmap calendar -> confirm ->
- * toast, reached from the task action menu.
+ * The "Change due date" flow: a task's OS contextual menu -> bitmap calendar
+ * -> confirm -> toast.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,15 +10,18 @@ vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
 import { fetchInboxTasks, setTaskDueDate } from '../../../api';
-import { back, mount, move, select } from '../harness';
+import { TASK_CONTEXT_MENU } from '../../../glasses/context-menu';
+import { back, menuItemId, mount, move, select } from '../harness';
 
 const TASK: { id: string; name: string; dueDate?: string } = { id: 't1', name: 'Buy milk' };
+
+const CHANGE_DUE_DATE_ID = menuItemId(TASK_CONTEXT_MENU, 'Change due date');
 
 function openPicker(h: ReturnType<typeof mount>, task: typeof TASK = TASK) {
   h.state.screen = 'inbox';
   h.state.lists.inbox = [task];
-  h.dispatch(select(0)); // -> task-actions
-  h.dispatch(select(2)); // Change due date -> task-due-date
+  h.dispatch(select(0));
+  h.menuClick(CHANGE_DUE_DATE_ID);
 }
 
 /** Forces the picker's rowIndex, throwing (not `!`) if the picker isn't open. */
@@ -83,13 +86,13 @@ describe('opening the calendar', () => {
     });
   });
 
-  it('GO_BACK from the week phase returns to task-actions', () => {
+  it('GO_BACK from the week phase returns to the list the task came from', () => {
     const h = mount();
     openPicker(h);
 
     h.dispatch(back());
 
-    expect(h.state.screen).toBe('task-actions');
+    expect(h.state.screen).toBe('inbox');
   });
 });
 
