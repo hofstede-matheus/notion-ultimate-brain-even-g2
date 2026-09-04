@@ -6,29 +6,14 @@ import type {
   Tag,
   Task,
 } from '@notion-ub/contracts';
-import { trace } from './logging/trace';
+import { fetchWithRetry, type RequestOptions } from './http/client';
 import { getTenantHeader } from './tenant-config';
+
+export type { RequestOptions } from './http/client';
+export { ApiError } from './http/errors';
 
 /** Bytes of a non-2xx response body captured in the trace log before throwing. */
 const ERROR_BODY_PREVIEW_BYTES = 500;
-
-/**
- * A failed API request, carrying the HTTP status and — when the server sent one — Notion's
- * error code (`validation_error`, `object_not_found`, …; see apps/server/src/routes.ts's
- * invokeRoute). config-health.ts's reportApiFailure reads `status`/`code` to tell a
- * config-shaped failure (400 validation_error: the chosen database is missing a property the
- * view needs) apart from a transient one, without parsing the message text.
- */
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly code?: string,
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
 
 /**
  * API client for the Ultimate Brain backend server.
@@ -36,49 +21,33 @@ export class ApiError extends Error {
  * In development, Vite proxies /api/* to the backend (localhost:3210).
  * In production, VITE_API_BASE is baked in at build time to point at the
  * deployed Lambda Function URL (see terraform/outputs.tf).
+ *
+ * Retry (backoff, per-attempt timeout, method/status/code policy) lives in
+ * ./http/client.ts and ./http/retry.ts — this file only builds the request and narrows the
+ * response to `resultKey` when given.
  */
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 
-/**
- * fetch() wrapper that attaches the current tenant's Notion config header,
- * throws on non-2xx responses, and parses the JSON body — narrowed to
- * `resultKey` when given (e.g. `{ tasks: [...] }` -> the `tasks` array).
- */
-async function request<T>(path: string, init: RequestInit = {}, resultKey?: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-      ...init.headers,
-      'X-Notion-Config': getTenantHeader(),
+async function request<T>(
+  path: string,
+  init: RequestInit = {},
+  resultKey?: string,
+  opts?: RequestOptions,
+): Promise<T> {
+  const data = await fetchWithRetry<Record<string, unknown> | T>(
+    `${API_BASE}${path}`,
+    {
+      ...init,
+      headers: {
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...init.headers,
+        'X-Notion-Config': getTenantHeader(),
+      },
     },
-  });
-  if (!res.ok) {
-    // Captured before throwing — the caught Error's message alone (just the
-    // status code) has repeatedly hidden the real cause here (e.g. Notion's
-    // "status is not a property that exists" when a filter uses a group
-    // label instead of the real option name — see CLAUDE.md's gotchas).
-    const body = await res
-      .clone()
-      .text()
-      .then((t) => t.slice(0, ERROR_BODY_PREVIEW_BYTES))
-      .catch(() => '<unreadable body>');
-    trace.error('API', `${path} ${res.status} ${res.statusText}`, { body });
-    // `code` is Notion's error code when the server preserved one (see routes.ts's
-    // invokeRoute) — best-effort parse, since `body` is truncated and may not be JSON at all.
-    const code = (() => {
-      try {
-        return (JSON.parse(body) as { code?: string }).code;
-      } catch {
-        return undefined;
-      }
-    })();
-    throw new ApiError(`Request failed with status ${res.status}`, res.status, code);
-  }
-  trace.info('API', `${path} ${res.status} ${res.statusText}`);
-  const data = await res.json();
-  return resultKey ? data[resultKey] : data;
+    { label: path, previewBytes: ERROR_BODY_PREVIEW_BYTES, ...opts },
+  );
+  return resultKey ? ((data as Record<string, unknown>)[resultKey] as T) : (data as T);
 }
 
 /** One page of a Notion-backed list view — see _shared/pagination.ts's fetchAllPages. */
@@ -97,9 +66,10 @@ async function requestPage<T>(
   path: string,
   resultKey: string,
   cursor?: string,
+  opts?: RequestOptions,
 ): Promise<PagedResult<T>> {
   const url = cursor ? `${path}?cursor=${encodeURIComponent(cursor)}` : path;
-  const data = await request<Record<string, unknown>>(url);
+  const data = await request<Record<string, unknown>>(url, undefined, undefined, opts);
   return {
     items: data[resultKey] as T[],
     hasMore: data.hasMore as boolean,
@@ -111,58 +81,87 @@ async function requestPage<T>(
 // Tasks
 // ---------------------------------------------------------------------------
 
-export function fetchInboxTasks(cursor?: string): Promise<PagedResult<Task>> {
-  return requestPage('/api/tasks/inbox', 'tasks', cursor);
+export function fetchInboxTasks(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Task>> {
+  return requestPage('/api/tasks/inbox', 'tasks', cursor, opts);
 }
 
-export function fetchTodayTasks(cursor?: string): Promise<PagedResult<Task>> {
-  return requestPage('/api/tasks/today', 'tasks', cursor);
+export function fetchTodayTasks(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Task>> {
+  return requestPage('/api/tasks/today', 'tasks', cursor, opts);
 }
 
-export function fetchNext7DaysTasks(cursor?: string): Promise<PagedResult<Task>> {
-  return requestPage('/api/tasks/next-7-days', 'tasks', cursor);
+export function fetchNext7DaysTasks(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Task>> {
+  return requestPage('/api/tasks/next-7-days', 'tasks', cursor, opts);
 }
 
-export function fetchTomorrowTasks(cursor?: string): Promise<PagedResult<Task>> {
-  return requestPage('/api/tasks/tomorrow', 'tasks', cursor);
+export function fetchTomorrowTasks(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Task>> {
+  return requestPage('/api/tasks/tomorrow', 'tasks', cursor, opts);
 }
 
-export function createTask(name: string): Promise<{ id: string; name: string }> {
-  return request('/api/tasks', { method: 'POST', body: JSON.stringify({ name }) });
+export function createTask(
+  name: string,
+  opts?: RequestOptions,
+): Promise<{ id: string; name: string }> {
+  return request('/api/tasks', { method: 'POST', body: JSON.stringify({ name }) }, undefined, opts);
 }
 
-export async function markTaskDone(id: string): Promise<void> {
-  await request(`/api/tasks/${id}/done`, { method: 'PATCH' });
+export async function markTaskDone(id: string, opts?: RequestOptions): Promise<void> {
+  await request(`/api/tasks/${id}/done`, { method: 'PATCH' }, undefined, opts);
 }
 
 /** Sets or clears (date=null) a task's due date. */
-export async function setTaskDueDate(id: string, date?: string | null): Promise<void> {
-  await request(`/api/tasks/${id}/due`, {
-    method: 'PATCH',
-    body: JSON.stringify({ date: date ?? null }),
-  });
+export async function setTaskDueDate(
+  id: string,
+  date?: string | null,
+  opts?: RequestOptions,
+): Promise<void> {
+  await request(
+    `/api/tasks/${id}/due`,
+    { method: 'PATCH', body: JSON.stringify({ date: date ?? null }) },
+    undefined,
+    opts,
+  );
 }
 
 /** Sets or clears (projectId=null) a page's Project relation. Generic over tasks and notes. */
-export async function setPageProject(id: string, projectId: string | null): Promise<void> {
-  await request(`/api/pages/${id}/project`, {
-    method: 'PATCH',
-    body: JSON.stringify({ projectId }),
-  });
+export async function setPageProject(
+  id: string,
+  projectId: string | null,
+  opts?: RequestOptions,
+): Promise<void> {
+  await request(
+    `/api/pages/${id}/project`,
+    { method: 'PATCH', body: JSON.stringify({ projectId }) },
+    undefined,
+    opts,
+  );
 }
 
 export function fetchProjectTasksTodo(
   projectId: string,
   cursor?: string,
+  opts?: RequestOptions,
 ): Promise<PagedResult<Task>> {
-  return requestPage(`/api/tasks/for-project/${projectId}/todo`, 'tasks', cursor);
+  return requestPage(`/api/tasks/for-project/${projectId}/todo`, 'tasks', cursor, opts);
 }
 
 export function fetchProjectTasksDone(
   projectId: string,
   cursor?: string,
+  opts?: RequestOptions,
 ): Promise<PagedResult<Task>> {
-  return requestPage(`/api/tasks/for-project/${projectId}/done`, 'tasks', cursor);
+  return requestPage(`/api/tasks/for-project/${projectId}/done`, 'tasks', cursor, opts);
 }
 
 // ---------------------------------------------------------------------------
@@ -181,21 +180,21 @@ export interface PageDetails {
  * Project relation; only tasks carry Due — for anything else `due` just comes
  * back null, and it's up to the caller whether to show it.
  */
-export function fetchPageDetails(id: string): Promise<PageDetails> {
-  return request(`/api/pages/${id}/details`);
+export function fetchPageDetails(id: string, opts?: RequestOptions): Promise<PageDetails> {
+  return request(`/api/pages/${id}/details`, undefined, undefined, opts);
 }
 
 /** Moves a page (task, note, or anything else) to the Notion Bin. */
-export async function deletePage(id: string): Promise<void> {
-  await request(`/api/pages/${id}`, { method: 'DELETE' });
+export async function deletePage(id: string, opts?: RequestOptions): Promise<void> {
+  await request(`/api/pages/${id}`, { method: 'DELETE' }, undefined, opts);
 }
 
 /**
  * A page's body as Notion's own enhanced markdown — untouched. Turning it
  * into display text is the reader's job (see glasses/content/markdown-to-pages.ts).
  */
-export function fetchPageMarkdown(id: string): Promise<NotionPageMarkdown> {
-  return request(`/api/pages/${id}/markdown`);
+export function fetchPageMarkdown(id: string, opts?: RequestOptions): Promise<NotionPageMarkdown> {
+  return request(`/api/pages/${id}/markdown`, undefined, undefined, opts);
 }
 
 /**
@@ -203,125 +202,184 @@ export function fetchPageMarkdown(id: string): Promise<NotionPageMarkdown> {
  * markdown covers a page's body, and many Ultimate Brain tasks keep their
  * text in this property instead, with no body content at all.
  */
-export function fetchPage(id: string): Promise<NotionPageObject> {
-  return request(`/api/pages/${id}`);
+export function fetchPage(id: string, opts?: RequestOptions): Promise<NotionPageObject> {
+  return request(`/api/pages/${id}`, undefined, undefined, opts);
 }
 
 // ---------------------------------------------------------------------------
 // Notes
 // ---------------------------------------------------------------------------
 
-export function fetchInboxNotes(cursor?: string): Promise<PagedResult<Note>> {
-  return requestPage('/api/notes/inbox', 'notes', cursor);
+export function fetchInboxNotes(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Note>> {
+  return requestPage('/api/notes/inbox', 'notes', cursor, opts);
 }
 
-export function fetchFavoriteNotes(cursor?: string): Promise<PagedResult<Note>> {
-  return requestPage('/api/notes/favorites', 'notes', cursor);
+export function fetchFavoriteNotes(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Note>> {
+  return requestPage('/api/notes/favorites', 'notes', cursor, opts);
 }
 
-export function fetchByTagNotes(cursor?: string): Promise<PagedResult<Note>> {
-  return requestPage('/api/notes/by-tag', 'notes', cursor);
+export function fetchByTagNotes(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Note>> {
+  return requestPage('/api/notes/by-tag', 'notes', cursor, opts);
 }
 
-export function fetchNotes(cursor?: string): Promise<PagedResult<Note>> {
-  return requestPage('/api/notes/notes', 'notes', cursor);
+export function fetchNotes(cursor?: string, opts?: RequestOptions): Promise<PagedResult<Note>> {
+  return requestPage('/api/notes/notes', 'notes', cursor, opts);
 }
 
-export function fetchMeetingNotes(cursor?: string): Promise<PagedResult<Note>> {
-  return requestPage('/api/notes/meetings', 'notes', cursor);
+export function fetchMeetingNotes(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Note>> {
+  return requestPage('/api/notes/meetings', 'notes', cursor, opts);
 }
 
-export function fetchByProjectNotes(cursor?: string): Promise<PagedResult<Note>> {
-  return requestPage('/api/notes/by-project', 'notes', cursor);
+export function fetchByProjectNotes(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Note>> {
+  return requestPage('/api/notes/by-project', 'notes', cursor, opts);
 }
 
-export function fetchClipsNotes(cursor?: string): Promise<PagedResult<Note>> {
-  return requestPage('/api/notes/clips', 'notes', cursor);
+export function fetchClipsNotes(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Note>> {
+  return requestPage('/api/notes/clips', 'notes', cursor, opts);
 }
 
-export function fetchVoiceNotes(cursor?: string): Promise<PagedResult<Note>> {
-  return requestPage('/api/notes/voice', 'notes', cursor);
+export function fetchVoiceNotes(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Note>> {
+  return requestPage('/api/notes/voice', 'notes', cursor, opts);
 }
 
-export function fetchJournalNotes(cursor?: string): Promise<PagedResult<Note>> {
-  return requestPage('/api/notes/journal', 'notes', cursor);
+export function fetchJournalNotes(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Note>> {
+  return requestPage('/api/notes/journal', 'notes', cursor, opts);
 }
 
-export function fetchAllNotes(cursor?: string): Promise<PagedResult<Note>> {
-  return requestPage('/api/notes/all', 'notes', cursor);
+export function fetchAllNotes(cursor?: string, opts?: RequestOptions): Promise<PagedResult<Note>> {
+  return requestPage('/api/notes/all', 'notes', cursor, opts);
 }
 
 export function fetchNotesForProject(
   projectId: string,
   cursor?: string,
+  opts?: RequestOptions,
 ): Promise<PagedResult<Note>> {
-  return requestPage(`/api/notes/for-project/${projectId}`, 'notes', cursor);
+  return requestPage(`/api/notes/for-project/${projectId}`, 'notes', cursor, opts);
 }
 
 // ---------------------------------------------------------------------------
 // Projects
 // ---------------------------------------------------------------------------
 
-export function fetchAllProjects(cursor?: string): Promise<PagedResult<Project>> {
-  return requestPage('/api/projects/all', 'projects', cursor);
+export function fetchAllProjects(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Project>> {
+  return requestPage('/api/projects/all', 'projects', cursor, opts);
 }
 
-export function fetchDoingProjects(cursor?: string): Promise<PagedResult<Project>> {
-  return requestPage('/api/projects/doing', 'projects', cursor);
+export function fetchDoingProjects(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Project>> {
+  return requestPage('/api/projects/doing', 'projects', cursor, opts);
 }
 
-export function fetchOngoingProjects(cursor?: string): Promise<PagedResult<Project>> {
-  return requestPage('/api/projects/ongoing', 'projects', cursor);
+export function fetchOngoingProjects(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Project>> {
+  return requestPage('/api/projects/ongoing', 'projects', cursor, opts);
 }
 
-export function fetchOnHoldProjects(cursor?: string): Promise<PagedResult<Project>> {
-  return requestPage('/api/projects/on-hold', 'projects', cursor);
+export function fetchOnHoldProjects(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Project>> {
+  return requestPage('/api/projects/on-hold', 'projects', cursor, opts);
 }
 
-export function fetchDoneProjects(cursor?: string): Promise<PagedResult<Project>> {
-  return requestPage('/api/projects/done', 'projects', cursor);
+export function fetchDoneProjects(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Project>> {
+  return requestPage('/api/projects/done', 'projects', cursor, opts);
 }
 
-export function fetchPlannedProjects(cursor?: string): Promise<PagedResult<Project>> {
-  return requestPage('/api/projects/planned', 'projects', cursor);
+export function fetchPlannedProjects(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Project>> {
+  return requestPage('/api/projects/planned', 'projects', cursor, opts);
 }
 
-export function fetchBoardProjects(cursor?: string): Promise<PagedResult<Project>> {
-  return requestPage('/api/projects/board', 'projects', cursor);
+export function fetchBoardProjects(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Project>> {
+  return requestPage('/api/projects/board', 'projects', cursor, opts);
 }
 
-export function fetchArchivedProjects(cursor?: string): Promise<PagedResult<Project>> {
-  return requestPage('/api/projects/archived', 'projects', cursor);
+export function fetchArchivedProjects(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Project>> {
+  return requestPage('/api/projects/archived', 'projects', cursor, opts);
 }
 
 // ---------------------------------------------------------------------------
 // Tags
 // ---------------------------------------------------------------------------
 
-export function fetchRecentTags(cursor?: string): Promise<PagedResult<Tag>> {
-  return requestPage('/api/tags/recent', 'tags', cursor);
+export function fetchRecentTags(cursor?: string, opts?: RequestOptions): Promise<PagedResult<Tag>> {
+  return requestPage('/api/tags/recent', 'tags', cursor, opts);
 }
 
-export function fetchFavoriteTags(cursor?: string): Promise<PagedResult<Tag>> {
-  return requestPage('/api/tags/favorites', 'tags', cursor);
+export function fetchFavoriteTags(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Tag>> {
+  return requestPage('/api/tags/favorites', 'tags', cursor, opts);
 }
 
-export function fetchAToZTags(cursor?: string): Promise<PagedResult<Tag>> {
-  return requestPage('/api/tags/a-z', 'tags', cursor);
+export function fetchAToZTags(cursor?: string, opts?: RequestOptions): Promise<PagedResult<Tag>> {
+  return requestPage('/api/tags/a-z', 'tags', cursor, opts);
 }
 
-export function fetchAreaTags(cursor?: string): Promise<PagedResult<Tag>> {
-  return requestPage('/api/tags/types/area', 'tags', cursor);
+export function fetchAreaTags(cursor?: string, opts?: RequestOptions): Promise<PagedResult<Tag>> {
+  return requestPage('/api/tags/types/area', 'tags', cursor, opts);
 }
 
-export function fetchResourceTags(cursor?: string): Promise<PagedResult<Tag>> {
-  return requestPage('/api/tags/types/resource', 'tags', cursor);
+export function fetchResourceTags(
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Tag>> {
+  return requestPage('/api/tags/types/resource', 'tags', cursor, opts);
 }
 
-export function fetchEntityTags(cursor?: string): Promise<PagedResult<Tag>> {
-  return requestPage('/api/tags/types/entity', 'tags', cursor);
+export function fetchEntityTags(cursor?: string, opts?: RequestOptions): Promise<PagedResult<Tag>> {
+  return requestPage('/api/tags/types/entity', 'tags', cursor, opts);
 }
 
-export function fetchNotesForTag(tagId: string, cursor?: string): Promise<PagedResult<Note>> {
-  return requestPage(`/api/notes/for-tag/${tagId}`, 'notes', cursor);
+export function fetchNotesForTag(
+  tagId: string,
+  cursor?: string,
+  opts?: RequestOptions,
+): Promise<PagedResult<Note>> {
+  return requestPage(`/api/notes/for-tag/${tagId}`, 'notes', cursor, opts);
 }
