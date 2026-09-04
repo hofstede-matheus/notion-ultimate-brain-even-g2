@@ -62,10 +62,14 @@ export interface RouteResult {
   body: unknown;
   /**
    * A Notion API error code (`object_not_found`, `rate_limited`, …) when the
-   * failure came from Notion. Log-only: both entry points serialize `body`
-   * alone, so this never reaches the client. It exists so a failure can be
-   * diagnosed from a category without logging the error *message*, which
-   * quotes page IDs and titles. See `lambda/logger.ts`.
+   * failure came from Notion, or the local marker `missing_credentials` when
+   * `runRoute` 401s a request before any Notion call is made. Log-only: both
+   * entry points serialize `body` alone, so this never reaches the client.
+   * It exists so a failure can be diagnosed from a category without logging
+   * the error *message*, which quotes page IDs and titles — and so
+   * `lambda/logger.ts` can tell an unauthenticated flood (no credential
+   * presented, no diagnostic content) apart from a real downstream failure
+   * worth writing down.
    */
   errorCode?: string;
 }
@@ -188,14 +192,28 @@ export async function runRoute(
   if (route.auth === 'token') {
     const token = parseToken(tokenHeader);
     if (!token) {
-      return { status: 401, body: { error: 'Missing or invalid Notion token' } };
+      // errorCode here is a marker for lambda/logger.ts, not a Notion API
+      // error code — it distinguishes "no credential was presented at all"
+      // (the shape of every unauthenticated flood request, with zero
+      // diagnostic content since the header itself is never logged) from a
+      // downstream 401 further down this file, where Notion rejects a
+      // credential that *was* presented. Only the former is skipped.
+      return {
+        status: 401,
+        body: { error: 'Missing or invalid Notion token' },
+        errorCode: 'missing_credentials',
+      };
     }
     return invokeRoute(route, { params, body, notion: createNotionClient(token), cursor });
   }
 
   const tenant = parseTenant(tenantHeader);
   if (!tenant) {
-    return { status: 401, body: { error: 'Missing or invalid Notion configuration' } };
+    return {
+      status: 401,
+      body: { error: 'Missing or invalid Notion configuration' },
+      errorCode: 'missing_credentials',
+    };
   }
   return invokeRoute(route, {
     params,
