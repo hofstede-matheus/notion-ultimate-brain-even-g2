@@ -115,6 +115,16 @@ when a git diff touches glasses source, `packages/**`, lockfiles, or
 - **Page-level actions are generic over tasks and notes.** On the client,
   `modules/_shared/item-actions.ts` runs one confirm→toast flow for
   markDone/delete/setDue/setProject. Add a new item action there, not per-module.
+- **Network calls retry via `ky` in `apps/glasses/src/http/`, not per call site.** Policy
+  (which statuses/codes/methods are safe to retry, backoff, per-attempt timeout) lives in
+  `http/retry.ts` (pure, Stryker-covered) and `http/client.ts` (the `ky` wiring); `api.ts` and
+  `web/services/databases.ts` just build requests through `fetchWithRetry`. `POST /api/tasks`
+  is deliberately excluded (no idempotency key — a retry would duplicate the task), and
+  `validation_error`/`object_not_found` are never retried (vetoed via `retry.shouldRetry`) so
+  `config-health.ts`'s self-heal still fires on the first failure, not after two wasted
+  retries. `fetchAllPages` (`_shared/pagination.ts`) threads one shared deadline across every
+  round of a list load — without it, a transient failure deep in a long list could retry on
+  every one of up to 50 rounds, unbounded.
 - **Formatting/linting is Biome** (`biome.json`). **TypeScript strict** everywhere. No new
   `any`. Run `pnpm lint` before finishing.
 - **Commits and PR titles are Conventional Commits** — drives the release (see **Versions**).

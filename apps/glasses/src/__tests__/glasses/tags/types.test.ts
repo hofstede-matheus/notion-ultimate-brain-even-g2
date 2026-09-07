@@ -48,7 +48,7 @@ describe('Tags menu — Types', () => {
     h.dispatch(select(0)); // Area
     await h.settle();
 
-    expect(fetchAreaTags).toHaveBeenCalledWith(undefined);
+    expect(fetchAreaTags).toHaveBeenCalledWith(undefined, { deadline: expect.any(Number) });
     expect(h.state.screen).toBe('tags-types-area');
     expect(h.state.lists['tags-types-area']).toEqual([{ id: 'g1', name: 'Home' }]);
   });
@@ -66,7 +66,7 @@ describe('Tags menu — Types', () => {
     h.dispatch(select(1)); // Resource
     await h.settle();
 
-    expect(fetchResourceTags).toHaveBeenCalledWith(undefined);
+    expect(fetchResourceTags).toHaveBeenCalledWith(undefined, { deadline: expect.any(Number) });
     expect(h.state.screen).toBe('tags-types-resource');
     expect(h.state.lists['tags-types-resource']).toEqual([{ id: 'g2', name: 'Programming' }]);
   });
@@ -84,7 +84,7 @@ describe('Tags menu — Types', () => {
     h.dispatch(select(2)); // Entity
     await h.settle();
 
-    expect(fetchEntityTags).toHaveBeenCalledWith(undefined);
+    expect(fetchEntityTags).toHaveBeenCalledWith(undefined, { deadline: expect.any(Number) });
     expect(h.state.screen).toBe('tags-types-entity');
     expect(h.state.lists['tags-types-entity']).toEqual([{ id: 'g3', name: 'Essays' }]);
   });

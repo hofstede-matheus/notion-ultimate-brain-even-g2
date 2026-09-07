@@ -311,6 +311,14 @@ Feature: Adding a task by voice
       Then recording starts from scratch
       # A failed save means saying it again — the words are not kept.
 
+    Scenario: Saving a task is never sent twice
+      Given "buy oat milk" is waiting to be confirmed
+      And the save fails
+      Then it is not sent again on its own
+      # Sending it a second time could create the task twice, since there is no way to tell
+      # whether the first attempt actually reached Notion before failing. See "The task could
+      # not be created" above — a failed save means saying it again, on purpose.
+
     Scenario: Leaving after an error
       Given an error is showing
       When I double-tap
