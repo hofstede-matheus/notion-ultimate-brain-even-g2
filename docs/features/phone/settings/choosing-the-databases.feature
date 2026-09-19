@@ -58,6 +58,23 @@ Feature: Choosing the four databases
     And no message explains what is wrong
     And "Save" is never greyed out
 
+  Rule: The template's databases are searched for by name
+
+    Notion's plain listing of shared databases is not guaranteed to be complete — it once left out
+    the Ultimate Brain databases for a token that could read them. So Tasks, Notes, Projects and
+    Tags are also searched for by name, on top of the plain listing.
+
+    Scenario: A database the plain listing omitted
+      Given the Tasks database is shared with the integration
+      But Notion's plain listing of databases does not include it
+      When the databases load
+      Then Tasks is still offered in the dropdowns
+
+    Scenario: A same-named database is still told apart
+      Given another database is also called "Tasks" but lacks the properties a Tasks database needs
+      When the databases load
+      Then only the one with the right properties appears in the Tasks dropdown
+
   Rule: A database that has gone from Notion is not silently kept
 
     Scenario: A previously chosen database is no longer shared

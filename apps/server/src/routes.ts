@@ -547,28 +547,56 @@ const pageRoute: Route = {
 // picker — run before any DB id is known, so this is 'token'-auth rather
 // than the usual full-tenant gate. Loops on Notion's search pagination so an
 // integration shared with >100 databases still gets a complete list.
+//
+// Notion's unfiltered search is not guaranteed to be complete: it once
+// returned only three unrelated databases for a token that could read the
+// Ultimate Brain ones. So the template's own databases are also searched by
+// name, in parallel, and merged in. Each hit carries its `properties`, which
+// is what lets the picker's fit check tell a same-named database (another
+// "Tasks" or "Projects") from the real one.
 // ---------------------------------------------------------------------------
+
+/** The Ultimate Brain template's database names. Searched for on top of the plain listing. */
+const TEMPLATE_DATABASE_NAMES = ['Tasks', 'Notes', 'Projects', 'Tags'];
+
 const listDatabasesRoute: Route = {
   method: 'GET',
   path: '/api/databases',
   auth: 'token',
   handler: tokenAuthed(async ({ notion }) => {
     try {
-      const databases: { id: string; name: string }[] = [];
-      let cursor: string | undefined;
-      do {
-        const response = await notion.search({
-          filter: { property: 'object', value: 'database' },
-          page_size: 100,
-          start_cursor: cursor,
-        });
+      // Every page of one database search; `query` narrows it to a name.
+      const searchDatabases = async (query?: string) => {
+        const pages: Awaited<ReturnType<typeof notion.search>>[] = [];
+        let cursor: string | undefined;
+        do {
+          const response = await notion.search({
+            query,
+            filter: { property: 'object', value: 'database' },
+            page_size: 100,
+            start_cursor: cursor,
+          });
+          pages.push(response);
+          cursor = response.has_more ? (response.next_cursor ?? undefined) : undefined;
+        } while (cursor);
+        return pages;
+      };
+
+      const [listing, ...byName] = await Promise.all([
+        searchDatabases(),
+        // A failed by-name search must not fail the picker; only the plain listing can.
+        ...TEMPLATE_DATABASE_NAMES.map((name) => searchDatabases(name).catch(() => [])),
+      ]);
+
+      const seen = new Set<string>();
+      const databases: ReturnType<typeof databaseToSummary>[] = [];
+      for (const response of [listing, ...byName].flat()) {
         for (const result of response.results) {
-          if (result.object === 'database' && 'title' in result) {
-            databases.push(databaseToSummary(result));
-          }
+          if (result.object !== 'database' || !('title' in result) || seen.has(result.id)) continue;
+          seen.add(result.id);
+          databases.push(databaseToSummary(result));
         }
-        cursor = response.has_more ? (response.next_cursor ?? undefined) : undefined;
-      } while (cursor);
+      }
       return { status: 200, body: { databases } };
     } catch (err) {
       // Distinguish "bad token" from a genuine server error, so the settings
