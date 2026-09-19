@@ -638,30 +638,143 @@ describe('GET /api/databases', () => {
     });
   });
 
+  /**
+   * The route runs a plain listing plus one search per template name, all through
+   * `notion.search`, so the mock answers by `query` (and `start_cursor`) rather than by call order.
+   */
+  function searchBy(
+    notion: ReturnType<typeof fakeNotion>,
+    answers: { query?: string; cursor?: string; results: unknown[]; next?: string }[],
+  ) {
+    notion.search.mockImplementation(
+      ({ query, start_cursor }: { query?: string; start_cursor?: string }) => {
+        const hit = answers.find((a) => a.query === query && a.cursor === start_cursor);
+        return Promise.resolve({
+          results: hit?.results ?? [],
+          has_more: hit?.next !== undefined,
+          next_cursor: hit?.next ?? null,
+        });
+      },
+    );
+  }
+
   it('loops across pages and concatenates results', async () => {
     const notion = fakeNotion();
-    notion.search
-      .mockResolvedValueOnce({
-        results: [databasePage('d1', 'Tasks')],
-        has_more: true,
-        next_cursor: 'cursor-2',
-      })
-      .mockResolvedValueOnce({
-        results: [databasePage('d2', 'Notes')],
-        has_more: false,
-        next_cursor: null,
-      });
+    searchBy(notion, [
+      { results: [databasePage('d1', 'Tasks')], next: 'cursor-2' },
+      { cursor: 'cursor-2', results: [databasePage('d2', 'Notes')] },
+    ]);
 
     const res = (await route('GET', '/api/databases').handler(ctx(notion))) as {
       body: { databases: { id: string }[] };
     };
 
-    expect(notion.search).toHaveBeenCalledTimes(2);
-    expect(notion.search).toHaveBeenNthCalledWith(
-      2,
+    expect(notion.search).toHaveBeenCalledWith(
       expect.objectContaining({ start_cursor: 'cursor-2' }),
     );
     expect(res.body.databases.map((d) => d.id)).toEqual(['d1', 'd2']);
+  });
+
+  it('also searches each template database by name, with the same database filter', async () => {
+    const notion = fakeNotion();
+    searchBy(notion, []);
+
+    await route('GET', '/api/databases').handler(ctx(notion));
+
+    for (const query of ['Tasks', 'Notes', 'Projects', 'Tags']) {
+      expect(notion.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query,
+          filter: { property: 'object', value: 'database' },
+        }),
+      );
+    }
+  });
+
+  // Regression: Notion's plain listing once omitted databases the token could read; a search by
+  // name still found them.
+  it('lists a database the plain listing omitted but a search by name finds', async () => {
+    const notion = fakeNotion();
+    searchBy(notion, [
+      { results: [databasePage('other', 'Rollup')] },
+      { query: 'Tasks', results: [databasePage('tasks-db', 'Tasks')] },
+    ]);
+
+    const res = (await route('GET', '/api/databases').handler(ctx(notion))) as {
+      body: { databases: { id: string }[] };
+    };
+
+    expect(res.body.databases.map((d) => d.id)).toEqual(['other', 'tasks-db']);
+  });
+
+  it('lists a database found by both the plain listing and a name search once', async () => {
+    const notion = fakeNotion();
+    searchBy(notion, [
+      { results: [databasePage('tasks-db', 'Tasks')] },
+      { query: 'Tasks', results: [databasePage('tasks-db', 'Tasks')] },
+    ]);
+
+    const res = (await route('GET', '/api/databases').handler(ctx(notion))) as {
+      body: { databases: { id: string }[] };
+    };
+
+    expect(res.body.databases.map((d) => d.id)).toEqual(['tasks-db']);
+  });
+
+  it('keeps same-named databases apart, each with the properties the fit check needs', async () => {
+    const notion = fakeNotion();
+    const withProps = (id: string, props: Record<string, { type: string }>) => ({
+      ...databasePage(id, 'Tasks'),
+      properties: props,
+    });
+    searchBy(notion, [
+      {
+        query: 'Tasks',
+        results: [
+          withProps('real', { Name: { type: 'title' }, 'My Day': { type: 'checkbox' } }),
+          withProps('lookalike', { 'Task name': { type: 'title' } }),
+        ],
+      },
+    ]);
+
+    const res = (await route('GET', '/api/databases').handler(ctx(notion))) as {
+      body: { databases: { id: string; properties?: Record<string, string> }[] };
+    };
+
+    expect(res.body.databases).toEqual([
+      { id: 'real', name: 'Tasks', properties: { Name: 'title', 'My Day': 'checkbox' } },
+      { id: 'lookalike', name: 'Tasks', properties: { 'Task name': 'title' } },
+    ]);
+  });
+
+  it('still answers when one search by name fails', async () => {
+    const notion = fakeNotion();
+    notion.search.mockImplementation(({ query }: { query?: string }) =>
+      query === 'Notes'
+        ? Promise.reject(new Error('notion hiccup'))
+        : Promise.resolve({
+            results: query === undefined ? [databasePage('d1', 'Rollup')] : [],
+            has_more: false,
+            next_cursor: null,
+          }),
+    );
+
+    const res = await route('GET', '/api/databases').handler(ctx(notion));
+
+    expect(res).toEqual({ status: 200, body: { databases: [{ id: 'd1', name: 'Rollup' }] } });
+  });
+
+  it('fails when the plain listing fails, even if the name searches succeed', async () => {
+    const notion = fakeNotion();
+    notion.search.mockImplementation(({ query }: { query?: string }) =>
+      query === undefined
+        ? Promise.reject(new Error('notion down'))
+        : Promise.resolve({ results: [databasePage('d1', 'Tasks')], has_more: false }),
+    );
+
+    const res = await invokeRoute(route('GET', '/api/databases'), ctx(notion));
+
+    expect(res.status).toBe(500);
   });
 
   it('skips a partial database result with no title', async () => {
