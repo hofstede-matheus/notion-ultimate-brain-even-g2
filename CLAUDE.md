@@ -16,7 +16,7 @@ IDs via the `X-Notion-Config` header; the server stores no credentials.
   `src/glasses/` (Even Realities SDK UI), `src/web/` (React settings webview), and shared
   plumbing at `src/` root (`api.ts`, `state.ts`, `cache.ts`, `page-loader.ts`, `stt/`,
   `voice-config.ts`, `voice-model.ts`, `voice-runtime.ts`, `tenant-config.ts`, `boot.ts`,
-  `logging/`).
+  `offline-queue.ts`, `logging/`).
 - `apps/server` (`@notion-ub/server`) — Notion API backend. `src/routes.ts` is shared by
   `src/express/index.ts` (local dev) and `src/lambda/handler.ts` (prod, esbuild →
   `dist-lambda/`, Terraform in `terraform/`).
@@ -112,6 +112,16 @@ when a git diff touches glasses source, `packages/**`, lockfiles, or
 - **Route auth is per-route.** `Route.auth` defaults to `'tenant'` (full `X-Notion-Config`:
   token + all 4 DB ids). `'token'` requires only `X-Notion-Token` — for routes that run
   before DB ids are known (`GET /api/databases`). Use `authed()` / `tokenAuthed()` wrappers.
+- **Voice tasks survive being offline.** A failed `createTask` is classified by
+  `src/offline-queue.ts`'s `classifyFailure`: transport failures and 5xx/429 are
+  `transient` and the transcript is queued (glasses show "Saved offline"), any
+  other 4xx is `permanent` and shows the error screen. There is **no
+  `online`/`offline` event on this platform** — `onDeviceStatusChanged` is the
+  phone↔glasses BLE link, not internet — so the drain is triggered
+  opportunistically: boot, foreground-enter, any 2xx (`api.ts`'s
+  `onRequestSuccess` hook), a backoff timer, and the phone's Sync now button.
+  The queue's storage key is tenant-scoped via `cache.ts`'s `tenantPrefix()`;
+  don't un-scope it or a workspace switch posts into the wrong database.
 - **Page-level actions are generic over tasks and notes.** On the client,
   `modules/_shared/item-actions.ts` runs one confirm→toast flow for
   markDone/delete/setDue/setProject. Add a new item action there, not per-module.

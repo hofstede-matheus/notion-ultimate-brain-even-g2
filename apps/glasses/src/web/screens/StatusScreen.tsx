@@ -6,6 +6,7 @@ import { APP_DISPLAY_NAME } from '../../app-info';
 import { useUiState } from '../hooks/useUiState';
 import { triggerConnect } from '../providers/uiController';
 import { dismissWhatsNew, isDismissed, loadDismissedWhatsNew, WHATS_NEW_ENTRY } from '../whats-new';
+import { PendingTasksCard } from './components/PendingTasksCard';
 import { WhatsNew } from './components/WhatsNew';
 
 export function StatusScreen() {
@@ -48,6 +49,7 @@ export function StatusScreen() {
           {ui.connect.label}
         </Button>
       )}
+      <PendingTasksCard />
     </div>
   );
 }

@@ -20,7 +20,8 @@ export type LogCategory =
   | 'CAL'
   | 'DEV'
   | 'CFG'
-  | 'MENU';
+  | 'MENU'
+  | 'QUEUE';
 
 export interface LogRecord {
   /** Monotonic within a process lifetime — does not persist across reloads. */

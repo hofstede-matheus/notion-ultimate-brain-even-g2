@@ -10,8 +10,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
+vi.mock('even-toolkit/storage', async () => (await import('../fakes')).storageMock());
 
-import { createTask } from '../../../api';
+import { ApiError, createTask } from '../../../api';
+import { __resetForTests, getQueue } from '../../../offline-queue';
 import * as stt from '../../../stt';
 import { refreshVoiceStatus } from '../../../voice-runtime';
 import type { SttController } from '../fakes';
@@ -224,7 +226,7 @@ describe('confirming the transcribed task', () => {
     expect(h.state.spinnerFrame).toBe('');
   });
 
-  it('on API failure, goes to error and clears the transcript', async () => {
+  it('on a permanent API failure, goes to error and clears the transcript', async () => {
     vi.mocked(createTask).mockRejectedValue(new Error('offline'));
     const h = mount();
     openAddTask(h);
@@ -239,6 +241,96 @@ describe('confirming the transcribed task', () => {
     expect(h.state.recording).toBe('error');
     expect(h.state.errorMessage).toBe('offline');
     expect(h.state.pendingTranscript).toBe('');
+    expect(getQueue()).toEqual([]);
+  });
+
+  it('queues the transcript instead of destroying it when the network is down', async () => {
+    // The failure the glasses actually see offline in a WKWebView: a bare
+    // TypeError, not an HTTP status.
+    vi.mocked(createTask).mockRejectedValue(new TypeError('Load failed'));
+    const h = mount();
+    openAddTask(h);
+    h.dispatch(select());
+    await h.settle();
+    fakeStt.fireStop();
+    fakeStt.fireFinal('buy oat milk');
+
+    h.dispatch(select());
+    await h.settle();
+
+    expect(h.state.recording).toBe('queued');
+    expect(h.state.createdTaskName).toBe('buy oat milk');
+    expect(h.state.pendingTranscript).toBe('');
+    expect(getQueue().map((e) => e.name)).toEqual(['buy oat milk']);
+  });
+
+  it('shows the queued screen rather than an error', async () => {
+    vi.mocked(createTask).mockRejectedValue(new TypeError('Failed to fetch'));
+    const h = mount();
+    openAddTask(h);
+    h.dispatch(select());
+    await h.settle();
+    fakeStt.fireStop();
+    fakeStt.fireFinal('buy oat milk');
+
+    h.dispatch(select());
+    await h.settle();
+
+    const display = h.render() as { mode: string; content: string };
+    expect(display.content).toContain('Saved offline.');
+    expect(display.content).toContain('"buy oat milk"');
+    expect(display.content).toContain('Syncs when online.');
+    expect(display.content).not.toContain('Error:');
+  });
+
+  it("queues on a 5xx too — the server being down is not the transcript's fault", async () => {
+    vi.mocked(createTask).mockRejectedValue(new ApiError('boom', 503));
+    const h = mount();
+    openAddTask(h);
+    h.dispatch(select());
+    await h.settle();
+    fakeStt.fireStop();
+    fakeStt.fireFinal('buy oat milk');
+
+    h.dispatch(select());
+    await h.settle();
+
+    expect(h.state.recording).toBe('queued');
+    expect(getQueue()).toHaveLength(1);
+  });
+
+  it('does NOT queue a 400 — that would fail identically on every retry', async () => {
+    vi.mocked(createTask).mockRejectedValue(new ApiError('bad request', 400));
+    const h = mount();
+    openAddTask(h);
+    h.dispatch(select());
+    await h.settle();
+    fakeStt.fireStop();
+    fakeStt.fireFinal('buy oat milk');
+
+    h.dispatch(select());
+    await h.settle();
+
+    expect(h.state.recording).toBe('error');
+    expect(getQueue()).toEqual([]);
+  });
+
+  it('a tap on the queued screen starts a fresh recording', async () => {
+    vi.mocked(createTask).mockRejectedValue(new TypeError('Load failed'));
+    const h = mount();
+    openAddTask(h);
+    h.dispatch(select());
+    await h.settle();
+    fakeStt.fireStop();
+    fakeStt.fireFinal('buy oat milk');
+    h.dispatch(select());
+    await h.settle();
+    expect(h.state.recording).toBe('queued');
+
+    h.dispatch(select());
+    await h.settle();
+
+    expect(h.state.recording).toBe('recording');
   });
 
   it('double-tap discards the transcript and returns to idle to re-record', async () => {
@@ -340,6 +432,7 @@ describe('voice settings changing mid-recording', () => {
 });
 
 beforeEach(() => {
+  __resetForTests();
   fakeStt.reset();
   vi.mocked(createTask).mockImplementation(async (name: string) => ({ id: 't1', name }));
 });

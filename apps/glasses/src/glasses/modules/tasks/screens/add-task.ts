@@ -121,6 +121,18 @@ function addTaskContent(state: AppState): string {
         'Double-tap to go back.',
       ].join('\n');
 
+    case 'queued':
+      return [
+        'ADD TASK',
+        '',
+        'Saved offline.',
+        '',
+        `"${state.createdTaskName}"`,
+        '',
+        'Syncs when online.',
+        'Tap to add another.',
+      ].join('\n');
+
     case 'error':
       return [
         'ADD TASK',
@@ -159,7 +171,10 @@ export const addTaskScreen: ScreenModule = {
       // do about it, and it can only be done on the phone.
       if (
         state.voice !== 'ready' &&
-        (state.recording === 'idle' || state.recording === 'done' || state.recording === 'error')
+        (state.recording === 'idle' ||
+          state.recording === 'done' ||
+          state.recording === 'queued' ||
+          state.recording === 'error')
       ) {
         return;
       }
