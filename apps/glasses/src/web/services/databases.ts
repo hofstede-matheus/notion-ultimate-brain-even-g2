@@ -7,13 +7,11 @@
  */
 
 import type { NotionDatabaseSummary } from '@notion-ub/contracts';
+import { fetchWithRetry } from '../../http/client';
+import { ApiError } from '../../http/errors';
 import { registerSecret } from '../../logging/redact';
-import { trace } from '../../logging/trace';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
-
-/** Bytes of a non-2xx response body captured in the trace log before throwing. */
-const ERROR_BODY_PREVIEW_BYTES = 200;
 
 export class InvalidTokenError extends Error {
   constructor() {
@@ -28,22 +26,17 @@ export async function fetchDatabases(token: string): Promise<NotionDatabaseSumma
   // (../../tenant-config.ts) hasn't run at this point in the settings flow.
   registerSecret(token);
 
-  const res = await fetch(`${API_BASE}/api/databases`, {
-    headers: { 'X-Notion-Token': token },
-  });
-
-  if (!res.ok) {
-    const body = await res
-      .clone()
-      .text()
-      .then((t) => t.slice(0, ERROR_BODY_PREVIEW_BYTES))
-      .catch(() => '<unreadable body>');
-    trace.error('API', `/api/databases ${res.status} ${res.statusText}`, { body });
-    if (res.status === 401) throw new InvalidTokenError();
-    throw new Error(`Request failed with status ${res.status}`);
+  try {
+    const { databases } = await fetchWithRetry<{ databases: NotionDatabaseSummary[] }>(
+      `${API_BASE}/api/databases`,
+      { headers: { 'X-Notion-Token': token } },
+      { label: '/api/databases', previewBytes: 200 },
+    );
+    return databases;
+  } catch (e) {
+    // 401 isn't in retry.ts's RETRYABLE_STATUSES, so it always fails on the first attempt —
+    // essential, since SettingsForm.tsx calls this on a debounced keystroke.
+    if (e instanceof ApiError && e.status === 401) throw new InvalidTokenError();
+    throw e;
   }
-
-  const { databases } = (await res.json()) as { databases: NotionDatabaseSummary[] };
-  trace.info('API', '/api/databases ok', { count: databases.length });
-  return databases;
 }

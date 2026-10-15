@@ -49,6 +49,11 @@ Feature: How a list looks
     When the refresh finishes
     Then the header shows "1/3" again
 
+  Scenario: The spinner keeps turning while a failed attempt is tried again
+    Given a list whose background refresh just failed for a reason that might pass
+    Then the spinner keeps turning
+    And "old" does not appear until it has stopped trying
+
   Scenario: A list whose refresh failed marks itself stale
     Given a list showing what it held last time
     When its background refresh fails, with those items still on screen

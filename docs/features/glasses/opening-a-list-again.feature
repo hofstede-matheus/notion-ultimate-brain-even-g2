@@ -32,6 +32,15 @@ Feature: Opening a list and reopening it
     Then the header counts 6
     And the spinner stops
 
+  Scenario: A hiccup while loading is tried again before the list gives up
+    Given I have never opened this list on these glasses
+    And the first attempt to load it fails for a reason that might pass
+    When I open it
+    Then the spinner keeps turning
+    And it tries again on its own
+    When the next attempt succeeds
+    Then the items appear, with no failure message
+
   Scenario: A first visit that fails says so, instead of looking empty
     Given I have never opened this list on these glasses
     And it cannot be loaded
