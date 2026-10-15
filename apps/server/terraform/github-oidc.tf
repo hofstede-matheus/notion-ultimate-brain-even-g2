@@ -61,12 +61,14 @@ resource "aws_iam_role" "github_actions_deploy" {
 }
 
 # Scoped to exactly what `terraform apply` needs for this stack: full control
-# over the app's own Lambda function and its execution role, plus read-only
-# access to this role and the OIDC provider (so CI can refresh/plan them
-# without erroring) — but no permission to modify its own trust policy or
-# grant itself broader access. Widening who can assume this role always
-# requires a human to run `terraform apply` locally with their own
-# credentials.
+# over the app's own Lambda function and its execution role, the CloudWatch
+# log group, the CloudFront distribution + its supporting resources, the
+# alarms/SNS topic, the account-wide budget, and (if enabled) the WAF web
+# ACL — plus read-only access to this role and the OIDC provider (so CI can
+# refresh/plan them without erroring) — but no permission to modify its own
+# trust policy or grant itself broader access. Widening who can assume this
+# role always requires a human to run `terraform apply` locally with their
+# own credentials.
 resource "aws_iam_role_policy" "github_actions_deploy_scope" {
   name = "deploy-scope"
   role = aws_iam_role.github_actions_deploy.id
@@ -106,6 +108,74 @@ resource "aws_iam_role_policy" "github_actions_deploy_scope" {
           aws_iam_role.github_actions_deploy.arn,
           aws_iam_openid_connect_provider.github_actions.arn,
         ]
+      },
+      {
+        Sid    = "ManageLogGroup"
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:DeleteLogGroup",
+          "logs:PutRetentionPolicy",
+          "logs:DescribeLogGroups",
+          "logs:TagResource",
+          "logs:ListTagsForResource",
+        ]
+        Resource = "arn:aws:logs:us-east-1:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/notion-ultimate-brain-backend*"
+      },
+      {
+        # CloudFront resources (distributions, origin access controls, cache
+        # policies) don't support resource-level ARN scoping on their create
+        # actions — AWS requires "*" here. Everything this role can otherwise
+        # touch is still scoped, so this is the one broad grant in the policy.
+        Sid    = "ManageCloudFront"
+        Effect = "Allow"
+        Action = [
+          "cloudfront:CreateDistribution",
+          "cloudfront:GetDistribution",
+          "cloudfront:UpdateDistribution",
+          "cloudfront:DeleteDistribution",
+          "cloudfront:TagResource",
+          "cloudfront:UntagResource",
+          "cloudfront:ListTagsForResource",
+          "cloudfront:CreateOriginAccessControl",
+          "cloudfront:GetOriginAccessControl",
+          "cloudfront:UpdateOriginAccessControl",
+          "cloudfront:DeleteOriginAccessControl",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "ManageAlarmsTopicAndBudget"
+        Effect = "Allow"
+        Action = [
+          "cloudwatch:PutMetricAlarm",
+          "cloudwatch:DescribeAlarms",
+          "cloudwatch:DeleteAlarms",
+          "sns:CreateTopic",
+          "sns:DeleteTopic",
+          "sns:Subscribe",
+          "sns:Unsubscribe",
+          "sns:GetTopicAttributes",
+          "sns:SetTopicAttributes",
+          "sns:ListSubscriptionsByTopic",
+          "sns:TagResource",
+          "budgets:ViewBudget",
+          "budgets:ModifyBudget",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "ManageWaf"
+        Effect = "Allow"
+        Action = [
+          "wafv2:CreateWebACL",
+          "wafv2:GetWebACL",
+          "wafv2:UpdateWebACL",
+          "wafv2:DeleteWebACL",
+          "wafv2:TagResource",
+          "wafv2:ListTagsForResource",
+        ]
+        Resource = "*"
       },
     ]
   })

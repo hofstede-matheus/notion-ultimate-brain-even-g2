@@ -141,25 +141,50 @@ describe('lambda handler', () => {
     });
 
     it('logs the route pattern, not the path with the page ID in it', async () => {
+      // Authenticated so the failure comes from the handler (pages.update
+      // isn't mocked, so it throws) rather than from the credential gate —
+      // this is what still gets logged; see 'flood suppression' below for
+      // the credential-gate case.
       await handler(
         event({
           requestContext: { http: { method: 'DELETE' } },
           rawPath: `/api/pages/${PAGE_ID}`,
+          headers: { 'x-notion-config': tenantHeader() },
         }),
       );
 
       expect(logError).toHaveBeenCalledTimes(1);
       const [entry] = logError.mock.calls[0];
-      expect(entry).toEqual({ method: 'DELETE', route: '/api/pages/:id', status: 401 });
+      expect(entry).toEqual({
+        method: 'DELETE',
+        route: '/api/pages/:id',
+        status: 500,
+        errorCode: 'unhandled_error',
+      });
       expect(JSON.stringify(entry)).not.toContain(PAGE_ID);
     });
 
-    it('does not log the raw path of an unmatched request', async () => {
-      await handler(event({ rawPath: `/api/nope/${PAGE_ID}` }));
+    // Both suppressed cases cost one Lambda invocation either way, and
+    // previously cost a synchronous CloudWatch write on top — the cheapest
+    // possible attack was also the most expensive request the function
+    // served. See lambda/logger.ts's summarizeFailure and logger.test.ts for
+    // the unit-level coverage of this; these two just confirm it holds
+    // through the real handler.
+    describe('flood suppression', () => {
+      it('does not log an unmatched request', async () => {
+        await handler(event({ rawPath: `/api/nope/${PAGE_ID}` }));
+        expect(logError).not.toHaveBeenCalled();
+      });
 
-      const [entry] = logError.mock.calls[0];
-      expect(entry).toEqual({ method: 'GET', route: 'unmatched', status: 404 });
-      expect(JSON.stringify(entry)).not.toContain(PAGE_ID);
+      it('does not log a request with no credential presented', async () => {
+        await handler(
+          event({
+            requestContext: { http: { method: 'DELETE' } },
+            rawPath: `/api/pages/${PAGE_ID}`,
+          }),
+        );
+        expect(logError).not.toHaveBeenCalled();
+      });
     });
 
     it('does not log the response body on a 500', async () => {

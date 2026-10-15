@@ -50,7 +50,26 @@ export function flushLogger(): Promise<void> {
  *   title is; it bought very little and it isn't worth the argument.
  *
  * Returns `undefined` when there is nothing to log, so the caller skips the
- * write entirely rather than emitting an empty line.
+ * write entirely rather than emitting an empty line. Two more cases return
+ * `undefined` beyond a bare 2xx/3xx, and both exist because they are also
+ * the cheapest possible attack: a request with no valid credential, or a
+ * request against a path that matches no route, costs one Lambda invocation
+ * either way, and previously cost a synchronous CloudWatch write on top of
+ * it. Neither carries anything worth writing down —
+ *
+ * - `errorCode === 'missing_credentials'` — `runRoute` (routes.ts) 401s a
+ *   request before any Notion call is made, when no `X-Notion-Config` /
+ *   `X-Notion-Token` was presented at all. The header itself is never
+ *   logged (see above), so there is nothing left to say beyond "someone
+ *   sent an unauthenticated request" — which is exactly what a flood looks
+ *   like. This is distinct from a *downstream* 401, where Notion rejects a
+ *   credential that was presented (see routes.ts's `/api/databases`
+ *   handler) — that one carries no `missing_credentials` marker and still
+ *   logs, because it means a real integration broke.
+ * - `route === 'unmatched'` — no route matched the request path at all.
+ *   Same argument: a wrong or guessed path has no diagnostic content beyond
+ *   "someone hit an unknown path," and the raw path can't be logged either
+ *   (see above) — a junk-path flood is the primary source of these.
  *
  * If you are about to add a field here, the test in `__tests__/logger.test.ts`
  * asserts the exact key set — that failure is the intended speed bump, not an
@@ -62,6 +81,8 @@ export function summarizeFailure(
   result: RouteResult,
 ): Record<string, unknown> | undefined {
   if (result.status < 400) return undefined;
+  if (result.errorCode === 'missing_credentials') return undefined;
+  if (route === 'unmatched') return undefined;
 
   const entry: Record<string, unknown> = { method, route, status: result.status };
   if (result.errorCode) entry.errorCode = result.errorCode;

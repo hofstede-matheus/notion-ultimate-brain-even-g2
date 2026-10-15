@@ -14,12 +14,17 @@ describe('summarizeFailure', () => {
     }
   });
 
-  it('reports method, route and status for a failure', () => {
-    const result: RouteResult = { status: 404, body: { error: 'No route' } };
-    expect(summarizeFailure('GET', 'unmatched', result)).toStrictEqual({
-      method: 'GET',
-      route: 'unmatched',
+  it('reports method, route and status for a failure on a matched route', () => {
+    const result: RouteResult = {
       status: 404,
+      body: { error: 'Could not find page' },
+      errorCode: 'object_not_found',
+    };
+    expect(summarizeFailure('GET', '/api/pages/:id/markdown', result)).toStrictEqual({
+      method: 'GET',
+      route: '/api/pages/:id/markdown',
+      status: 404,
+      errorCode: 'object_not_found',
     });
   });
 
@@ -47,6 +52,35 @@ describe('summarizeFailure', () => {
       route: '/api/pages/:id/markdown',
       status: 500,
       errorCode: 'object_not_found',
+    });
+  });
+
+  // Both of these are also the cheapest possible attack: one Lambda
+  // invocation, no diagnostic content, previously a synchronous CloudWatch
+  // write on top. Suppressing them turns a flood back into something that
+  // costs only compute, not compute plus logging.
+  describe('flood suppression', () => {
+    it('logs nothing for an unmatched route — a wrong or guessed path has no diagnostic content beyond "someone hit an unknown path"', () => {
+      const result: RouteResult = { status: 404, body: { error: 'No route' } };
+      expect(summarizeFailure('GET', 'unmatched', result)).toBeUndefined();
+    });
+
+    it('logs nothing when no credential was presented at all', () => {
+      const result: RouteResult = {
+        status: 401,
+        body: { error: 'Missing or invalid Notion configuration' },
+        errorCode: 'missing_credentials',
+      };
+      expect(summarizeFailure('POST', '/api/tasks', result)).toBeUndefined();
+    });
+
+    it('still logs a downstream 401 — Notion rejecting a credential that WAS presented means a real integration broke', () => {
+      const result: RouteResult = { status: 401, body: { error: 'Invalid Notion token' } };
+      expect(summarizeFailure('GET', '/api/databases', result)).toStrictEqual({
+        method: 'GET',
+        route: '/api/databases',
+        status: 401,
+      });
     });
   });
 
