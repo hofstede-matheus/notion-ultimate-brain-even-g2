@@ -32,6 +32,7 @@ import {
   fetchTomorrowTasks,
   fetchVoiceNotes,
   type PagedResult,
+  type RequestOptions,
 } from '../../../api';
 import { cacheKeyForScreen, loadCachedList, saveCachedList } from '../../../cache';
 import { reportApiFailure } from '../../../config-health';
@@ -51,7 +52,7 @@ const EMPTY_PAGE: PagedResult<never> = { items: [], hasMore: false, nextCursor: 
 // ---------------------------------------------------------------------------
 
 const VIEW_FETCHERS: Partial<
-  Record<ScreenName, (cursor?: string) => Promise<PagedResult<ListItem>>>
+  Record<ScreenName, (cursor?: string, opts?: RequestOptions) => Promise<PagedResult<ListItem>>>
 > = {
   today: fetchTodayTasks,
   inbox: fetchInboxTasks,
@@ -81,21 +82,21 @@ const VIEW_FETCHERS: Partial<
   'tags-types-area': fetchAreaTags,
   'tags-types-resource': fetchResourceTags,
   'tags-types-entity': fetchEntityTags,
-  'project-tasks-todo': (cursor) =>
+  'project-tasks-todo': (cursor, opts) =>
     state.selectedProject
-      ? fetchProjectTasksTodo(state.selectedProject.id, cursor)
+      ? fetchProjectTasksTodo(state.selectedProject.id, cursor, opts)
       : Promise.resolve(EMPTY_PAGE),
-  'project-tasks-done': (cursor) =>
+  'project-tasks-done': (cursor, opts) =>
     state.selectedProject
-      ? fetchProjectTasksDone(state.selectedProject.id, cursor)
+      ? fetchProjectTasksDone(state.selectedProject.id, cursor, opts)
       : Promise.resolve(EMPTY_PAGE),
-  'project-notes': (cursor) =>
+  'project-notes': (cursor, opts) =>
     state.selectedProject
-      ? fetchNotesForProject(state.selectedProject.id, cursor)
+      ? fetchNotesForProject(state.selectedProject.id, cursor, opts)
       : Promise.resolve(EMPTY_PAGE),
-  'tag-notes': (cursor) =>
+  'tag-notes': (cursor, opts) =>
     state.selectedTag
-      ? fetchNotesForTag(state.selectedTag.id, cursor)
+      ? fetchNotesForTag(state.selectedTag.id, cursor, opts)
       : Promise.resolve(EMPTY_PAGE),
 };
 

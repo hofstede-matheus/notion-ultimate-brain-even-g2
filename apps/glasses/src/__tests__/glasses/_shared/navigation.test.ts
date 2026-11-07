@@ -10,7 +10,7 @@ vi.mock('../../../api', async () => (await import('../fakes')).apiMock());
 vi.mock('../../../cache', async () => (await import('../fakes')).cacheMock());
 vi.mock('../../../stt', async () => (await import('../fakes')).sttMock());
 
-import { fetchInboxTasks } from '../../../api';
+import { fetchInboxTasks, fetchProjectTasksTodo } from '../../../api';
 import { loadCachedList, saveCachedList } from '../../../cache';
 import { clear as clearLog, getSnapshot as getLogSnapshot } from '../../../logging/sink';
 import { mount } from '../harness';
@@ -201,6 +201,29 @@ describe('a screen with no registered fetcher', () => {
     await h.settle();
 
     expect(h.state.screen).toBe('tasks-menu');
+  });
+});
+
+describe('project-scoped list fetchers forward the retry deadline', () => {
+  // VIEW_FETCHERS' project/tag entries are inline closures, not direct api references —
+  // widening the fetcher signature to add an optional `opts` param compiles even if a
+  // closure forgets to forward it (fewer params is always assignable to a wider function
+  // type), so this has to be pinned by a test, not just check-types.
+  it("project-tasks-todo's closure forwards opts (and thus the shared deadline) to the fetcher", async () => {
+    vi.mocked(fetchProjectTasksTodo).mockResolvedValue({
+      items: [],
+      hasMore: false,
+      nextCursor: null,
+    });
+    const h = mount();
+    h.state.selectedProject = { id: 'p1', name: 'Project', returnTo: 'projects-board' };
+
+    h.ctx.enterView('project-tasks-todo');
+    await h.settle();
+
+    expect(fetchProjectTasksTodo).toHaveBeenCalledWith('p1', undefined, {
+      deadline: expect.any(Number),
+    });
   });
 });
 
