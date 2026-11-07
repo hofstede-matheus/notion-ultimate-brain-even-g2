@@ -62,4 +62,5 @@ Feature: Filing a task under a project
   Scenario: A long project name is shortened on the confirmation
     Given I picked a project with a very long name
     Then the choice begins "To "
-    And the name is shortened with a trailing "…"
+    And the name is shortened with a trailing "..."
+

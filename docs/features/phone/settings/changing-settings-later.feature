@@ -10,7 +10,7 @@ Feature: Changing settings later
     Then the phone shows "Notion Settings"
     And the token field holds the token I saved
     And the four dropdowns hold the databases I chose
-    And the voice input dropdown holds the mode I saved
+    And once voice settings have loaded the voice input dropdown holds the mode I saved
     And a back button is shown
 
   Scenario: Backing out changes nothing

@@ -9,7 +9,7 @@ Feature: Entering the Notion integration token
 
   Scenario: The field explains what to share
     Then the phone shows the label "Integration Token"
-    And below it: "In the integration's Content access tab, grant access to only the Ultimate Brain page — not the whole workspace. This keeps the token scoped and the database lists below short."
+    And below it: "Enable Read, Update, and Insert content in Capabilities, then grant Content access only to the Ultimate Brain page — not the whole workspace — to keep the token scoped."
 
   Scenario: Nothing entered yet
     Then the phone shows "Enter your integration token to load its databases."
@@ -44,7 +44,9 @@ Feature: Entering the Notion integration token
     Given the token can see 6 databases
     When the lookup finishes
     Then the four dropdowns appear
-    And each offers those databases
+    And each offers the databases that fit that role
+    And a database already chosen in another slot is not offered elsewhere
+    And a slot with exactly one fitting candidate is filled in automatically
 
   Scenario: A token Notion rejects
     Given Notion will not accept the token

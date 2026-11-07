@@ -51,10 +51,12 @@ Feature: What a page looks like when read
         | > A quotation      |
         | ---                |
 
-    Scenario: Code is shown exactly as written
+    Scenario: Code keeps its syntax but is still cleaned for the display
       Given a page containing a block of code
-      Then it is shown verbatim
-      And none of the tidying below is applied to it
+      Then fenced code is shown with its fence markers
+      And emoji and unsupported characters inside it are removed
+      And leading spaces on each code line are collapsed
+      # Emphasis markers inside a fence stay — only the cleaner runs on each line.
 
   Rule: Styling the glasses cannot show is dropped
 
@@ -74,9 +76,11 @@ Feature: What a page looks like when read
       Given a heading Notion shows in colour
       Then I see the heading text alone
 
-    Scenario: Emoji and typographic characters are removed
+    Scenario: Emoji is removed but curly quotes stay
       Given a line containing emoji and curly quotes
-      Then they are dropped and the rest of the line reads normally
+      Then the emoji are dropped
+      And the curly quotes are still shown
+      And the rest of the line reads normally
 
   Rule: Blocks with no plain-text form are summarised
 

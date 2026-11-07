@@ -26,11 +26,11 @@ Feature: A project's task lists
       | open     | No to-do tasks in this project. |
       | finished | No done tasks in this project.  |
 
-  Scenario: Tapping a task opens the full task menu
+  Scenario: Tapping a task opens its details
     Given I am viewing a project's open tasks
     When I tap one
-    Then the glasses show that task's name as the header
-    And all six task choices are listed
+    Then the glasses show "TASK DETAILS"
+    And its name, project and due date are shown
 
   Scenario: Going back to the choice between open and finished
     Given I am viewing a project's open tasks

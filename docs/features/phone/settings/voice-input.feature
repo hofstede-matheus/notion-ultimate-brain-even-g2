@@ -48,11 +48,17 @@ Feature: Setting up voice input
       And a "Download (41 MB)" button
       And the phone suggests doing it on Wi-Fi
 
+    Scenario: Checking whether the model is already stored
+      When I choose "On-device"
+      Then the phone shows "Checking…"
+      And no download button yet
+
     Scenario: Watching it download
       Given I chose "On-device"
       When I tap "Download (41 MB)"
       Then a progress bar appears
       And it reads how much has arrived out of the total, like "24 MB / 41 MB"
+      Or only "Downloading…" or "24 MB" when the total size is unknown
       And a "Cancel" button
 
     Scenario: Finishing
@@ -76,10 +82,19 @@ Feature: Setting up voice input
 
     Scenario: Switching mode while a download is running
       Given the download is running
+      And on-device was not the saved mode
       When I choose "Cloud (Soniox)"
       And the download completes
       Then "Cloud (Soniox)" is still selected
       And on-device voice is not turned back on
+
+    Scenario: A download finishing while Cloud is selected but on-device is saved
+      Given on-device is the saved mode
+      And the download is running
+      When I choose "Cloud (Soniox)" without saving
+      And the download completes
+      Then "Cloud (Soniox)" is still selected on the form
+      But voice on the glasses is turned back on for on-device
 
     Scenario: It failed
       Given the download failed
@@ -90,7 +105,8 @@ Feature: Setting up voice input
       Given the model is downloaded
       When I tap "Remove"
       Then the model is deleted
-      And the glasses go back to asking for a download
+      And the next time Add Task redraws it asks for a download
+      # An Add Task screen already on screen keeps its previous copy until then.
 
     Scenario: It is only downloaded once
       Given the model is downloaded
@@ -109,9 +125,16 @@ Feature: Setting up voice input
 
     Scenario: Entering the key
       Given I chose "Cloud (Soniox)"
-      Then there is a "Soniox API key" field
+      Then there is a "Soniox API key" field with placeholder "Paste your API key"
       And what I type into it is masked
-      And the phone says it is stored on this device only
+      And the phone says "Create one at console.soniox.com. It is stored on this device only."
+
+    Scenario: Testing the key before saving
+      Given I chose "Cloud (Soniox)"
+      When I paste a plausible key
+      And I tap "Test key"
+      Then the phone shows "Testing…"
+      And then "Key works ✓", or "Key rejected by Soniox", or "Couldn't reach Soniox"
 
     Scenario: The key takes effect when Save succeeds
       Given I chose "Cloud (Soniox)"
@@ -123,7 +146,9 @@ Feature: Setting up voice input
       Given I chose "Cloud (Soniox)"
       When I type a few characters
       Then the field is marked invalid
-      And nothing is saved
+      When I tap "Save"
+      Then the short key is not stored
+      And a key that was saved before is cleared from storage
 
     Scenario: Guessing the language by default
       Given I chose "Cloud (Soniox)"
@@ -148,6 +173,9 @@ Feature: Setting up voice input
       When I type "xx" into "Language hints"
       Then the field is marked invalid
       And the phone says "Unknown code: xx. Use two-letter codes like en or nl."
+      When I tap "Save"
+      Then invalid codes are dropped and any valid ones are kept
+      # More than three unknown codes are listed as the first three followed by "…"
 
   Rule: The key is treated as a secret
 

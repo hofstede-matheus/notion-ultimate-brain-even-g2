@@ -1,18 +1,19 @@
 @glasses @notes
 Feature: Note details
 
-  A note's row in a list is shortened to fit, so a long title can only be read in part. "Note
-  Details" shows the title in full, along with the one other thing worth knowing: which project
+  A note's row in a list is shortened to fit, so a long title can only be read in part. Tapping it
+  opens "NOTE DETAILS", which shows the title in full, along with the one other thing worth knowing: which project
   it is filed under. There is no due date line here — a note never has one.
 
   It is laid out exactly like a task's details, minus that line: each thing is labelled on its own
   line, with the value below it.
 
   Background:
-    Given I have opened a note's contextual menu
+    Given a note in any list
+    When I tap it
 
   Scenario: Loading the details
-    When I choose "Note Details"
+    Given the details are still loading
     Then the glasses show:
       """
       NOTE DETAILS
@@ -25,7 +26,7 @@ Feature: Note details
 
   Scenario: A note filed under a project
     Given the note is named "Meeting recap" and filed under "Website"
-    When I choose "Note Details"
+    When I tap it
     Then the glasses show:
       """
       NOTE DETAILS
@@ -41,7 +42,7 @@ Feature: Note details
 
   Scenario: A note with no project
     Given the note is filed nowhere
-    When I choose "Note Details"
+    When I tap it
     Then the glasses show "(none)" under "Project:"
     And the note's title is still shown in full
 
@@ -64,13 +65,13 @@ Feature: Note details
 
   Scenario: Details that cannot be loaded say why
     Given the details cannot be loaded
-    When I choose "Note Details"
+    When I tap it
     Then the glasses show what went wrong instead of the note and project lines
     And below it "Double-tap to go back."
 
   Scenario: A long message is shortened
     Given the details fail with a message wider than the display
-    When I choose "Note Details"
+    When I tap it
     Then it is shortened to one line
 
   Scenario: Returning to the list

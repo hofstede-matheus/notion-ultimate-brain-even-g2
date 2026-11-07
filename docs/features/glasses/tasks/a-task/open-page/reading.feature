@@ -90,4 +90,4 @@ Feature: Reading a task's page
   Scenario: A long task name is shortened in the header
     Given a task whose name is wider than the display
     When I open its page
-    Then the name is shortened with a trailing "…"
+    Then the name is shortened with a trailing "..."

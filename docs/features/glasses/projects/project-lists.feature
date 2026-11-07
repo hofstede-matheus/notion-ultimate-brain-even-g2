@@ -1,8 +1,8 @@
 @glasses @projects
 Feature: The project lists
 
-  Six lists, one per project status. Tapping a project does not act on it — it opens that
-  project's own tasks and notes.
+  Seven lists: all non-archived projects together, then one per status. Tapping a project does not
+  act on it — it opens that project's own tasks and notes.
 
   Background:
     Given I am on the "PROJECTS" menu
@@ -21,6 +21,7 @@ Feature: The project lists
 
     Examples:
       | row      | title             | empty message             |
+      | All      | ALL PROJECTS      | No projects.              |
       | Doing    | DOING             | No projects in progress.  |
       | Ongoing  | ONGOING           | No ongoing projects.      |
       | Planned  | PLANNED PROJECTS  | No planned projects.      |
@@ -28,10 +29,10 @@ Feature: The project lists
       | Done     | DONE              | No done projects.         |
       | Archived | ARCHIVED PROJECTS | No archived projects.     |
 
-  Scenario: The full list of projects, when it is reached
-    Given every project is being listed at once
-    And there are none
-    Then the glasses show "PROJECT BOARD" and "No projects."
+  Scenario: The full list titles and counts itself
+    Given "All" holds 4 projects
+    When I open it
+    Then the glasses show the header "ALL PROJECTS (4)"
 
   Scenario Outline: Each list counts its projects in the header
     Given "<row>" holds 4 projects
@@ -50,6 +51,7 @@ Feature: The project lists
 
     Examples:
       | title             |
+      | ALL PROJECTS      |
       | DOING             |
       | ONGOING           |
       | PLANNED PROJECTS  |

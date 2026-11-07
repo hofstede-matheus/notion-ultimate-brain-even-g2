@@ -27,9 +27,11 @@ Feature: Choosing a due date on the calendar
 
     Scenario: The calendar always shows six full weeks
       When I open the calendar on any month
-      Then six weeks are shown
+      Then a row of weekday initials is shown above the grid
+      And six weeks are shown
       And days from the months either side fill the gaps
       And those days are drawn faded so they are easy to tell apart
+      # The initials read "S M T W T F S".
 
     Scenario: Today and the current due date are marked
       Given the task is due on 2026-07-04 and today is 2026-07-01
@@ -54,32 +56,36 @@ Feature: Choosing a due date on the calendar
     Scenario: Above the first week is the way to the previous month
       Given the first week is highlighted
       When I swipe up
-      Then "PREV MONTH" is highlighted
+      Then "◀ PREV MONTH" is shown
+      When I swipe up again
+      Then "▶ PREV MONTH ◀" is highlighted
       When I swipe up again
       Then it stays highlighted
 
     Scenario: Below the last week is the way to the next month
       Given the sixth week is highlighted
       When I swipe down
-      Then "NEXT MONTH" is highlighted
+      Then "NEXT MONTH ▶" is shown
+      When I swipe down again
+      Then "▶ NEXT MONTH ◀" is highlighted
       When I swipe down again
       Then it stays highlighted
 
     Scenario: Paging back a month
       Given the calendar shows "JULY 2026"
-      And "PREV MONTH" is highlighted
+      And "▶ PREV MONTH ◀" is highlighted
       When I tap
       Then the calendar shows "JUNE 2026"
 
     Scenario: Paging forward a month
       Given the calendar shows "JULY 2026"
-      And "NEXT MONTH" is highlighted
+      And "▶ NEXT MONTH ◀" is highlighted
       When I tap
       Then the calendar shows "AUGUST 2026"
 
     Scenario: Paging across a year
       Given the calendar shows "DECEMBER 2026"
-      And "NEXT MONTH" is highlighted
+      And "▶ NEXT MONTH ◀" is highlighted
       When I tap
       Then the calendar shows "JANUARY 2027"
 

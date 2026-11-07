@@ -4,12 +4,14 @@ Feature: The debug log
   The glasses cannot show why something went wrong — a list that will not load just looks empty.
   The debug log is where the actual reason is, and it is what a bug report is made from.
 
-  It sits at the bottom of the settings page, hidden until the version label is tapped ten times.
+  It sits at the bottom of the settings page. In a production build it is hidden until the version
+  label is tapped ten times; in developer mode it is always shown.
 
   Background:
     Given the settings form is open
 
   Scenario: The log is hidden until the version label is tapped ten times
+    Given this is not a developer build
     Then the phone does not show a "Debug log" section
     When I tap the version label ten times
     Then the phone shows a "Debug log" section
@@ -46,10 +48,16 @@ Feature: The debug log
       | fine detail         | dim    |
       | anything else       | plain  |
 
-  Scenario: A failed request reads as an error
+  Scenario: A failed HTTP response reads as a warning
     Given the debug log is showing
-    And a request that failed
-    Then its line is shown as an error rather than as an ordinary request
+    And a request came back with a non-success status
+    Then the outbound line is shown as an ordinary request
+    And the response line is shown in yellow as a warning
+
+  Scenario: A request that never completes reads as an error
+    Given the debug log is showing
+    And a request throws before any response arrives
+    Then that failure line is shown in red as an error
 
   Scenario: The previous session is kept and marked
     Given the debug log is showing
@@ -60,8 +68,10 @@ Feature: The debug log
   Scenario: Copying the log
     Given the debug log is showing
     When I tap "Copy log"
-    Then the clipboard receives a heading naming the app version and the phone
-    And how many lines there are, including how many came from last time
+    Then the clipboard receives a heading with an ISO timestamp, app version, and API base
+    And the user agent string
+    And how many lines there are
+    And if any came from last time, how many, in parentheses
     And every line, with the same divider
     And the button reads "Copied ✓" for a moment
 
@@ -91,12 +101,13 @@ Feature: The debug log
     Scenario: Anything that looks like a token is hidden
       Given the debug log is showing
       And a line would have contained something shaped like a Notion token
-      Then it is shown as "***REDACTED***" instead
+      Then it is shown with the prefix kept and "***REDACTED***" after it
+      # e.g. "ntn_***REDACTED***" or "secret_***REDACTED***"
 
     Scenario: Long unreadable values are summarised
       Given the debug log is showing
-      And a line would have contained a very long unreadable value
-      Then it is replaced with a note of how long it was
+      And a line would have contained a very long base64-like blob
+      Then it is shown as "<base64 len=N>"
 
   Rule: The log survives a crash
 

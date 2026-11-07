@@ -18,7 +18,7 @@ Feature: How a list looks
   Scenario: A long name is shortened to fit
     Given a list holding an item named "Review the quarterly infrastructure spend report before Friday"
     Then the row shows as much of the name as fits
-    And it ends with "…"
+    And it ends with "..."
 
   Scenario: Accented names have less room than plain ones
     Given a list holding an item whose name is full of accented characters
