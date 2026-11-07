@@ -2,8 +2,9 @@
 Feature: Paging through a long list
 
   A list holds everything it contains, but only twenty items fit on the display at once.
-  Anything longer is split into pages, turned either by tapping a row set aside for it or by
-  swiping.
+  Anything longer is split into pages. The reliable way to turn a page is tapping "▸ More" or
+  "◂ Prev". Swiping may turn a page when the highlight reaches the top or bottom row, but that is
+  not depended on when the list is full.
 
   Scenario: A list that fits needs no page controls
     Given a list holds 20 items
@@ -41,12 +42,11 @@ Feature: Paging through a long list
     When I tap "◂ Prev"
     Then the header shows "1/3"
 
-  Scenario: Swiping turns the page too
+  Scenario: Swiping may move the highlight without turning the page
     Given a list holds 40 items
-    When I swipe down
-    Then the header shows "2/3"
-    When I swipe up
-    Then the header shows "1/3"
+    When I swipe down once from the top of page 1
+    Then the header still shows "1/3"
+    And the next row is highlighted
 
   Scenario: Swiping past the ends does nothing
     Given a list holds 40 items
@@ -72,12 +72,12 @@ Feature: Paging through a long list
     When I double-tap out of it and open it again
     Then the header shows "1/3"
 
-  Scenario: Removing the last item on the last page steps back a page
+  Scenario: Removing the last item on the last page reopens from page one
     Given a list holds 37 items, so page 3 holds one
     And I am on page 3
     When I delete it
     Then the list holds 36 items
-    And the glasses show the last page that still has items on it
+    And after the acknowledgement the glasses show page 1
 
   Scenario: A long list is complete, not cut short
     Given a list of several hundred items in Notion

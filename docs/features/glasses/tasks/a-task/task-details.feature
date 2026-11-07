@@ -1,18 +1,19 @@
 @glasses @tasks
 Feature: Task details
 
-  A task's row in a list is shortened to fit, so a long name can only be read in part. "Task
-  Details" shows the name in full, along with the two other things worth knowing at a glance:
+  A task's row in a list is shortened to fit, so a long name can only be read in part. Tapping it
+  opens "TASK DETAILS", which shows the name in full, along with the two other things worth knowing at a glance:
   which project it is filed under, and when it is due.
 
   Each of the three is labelled on its own line, with the value below it — a name that would not
   fit beside its label still gets the full width of the display.
 
   Background:
-    Given I have opened a task's contextual menu
+    Given a task in any list
+    When I tap it
 
   Scenario: Loading the details
-    When I choose "Task Details"
+    Given the details are still loading
     Then the glasses show:
       """
       TASK DETAILS
@@ -25,7 +26,7 @@ Feature: Task details
 
   Scenario: A task with both a project and a due date
     Given the task is named "Buy milk", filed under "Kitchen" and due on 2026-07-04
-    When I choose "Task Details"
+    When I tap it
     Then the glasses show:
       """
       TASK DETAILS
@@ -44,7 +45,7 @@ Feature: Task details
 
   Scenario: A task with neither
     Given the task is filed nowhere and has no due date
-    When I choose "Task Details"
+    When I tap it
     Then the glasses show "(none)" under both "Project:" and "Due:"
     And the task's name is still shown in full
 
@@ -78,13 +79,13 @@ Feature: Task details
 
   Scenario: Details that cannot be loaded say why
     Given the details cannot be loaded
-    When I choose "Task Details"
+    When I tap it
     Then the glasses show what went wrong instead of the task, project and due lines
     And below it "Double-tap to go back."
 
   Scenario: A long message is shortened
     Given the details fail with a message wider than the display
-    When I choose "Task Details"
+    When I tap it
     Then it is shortened to one line
 
   Scenario: Returning to the list

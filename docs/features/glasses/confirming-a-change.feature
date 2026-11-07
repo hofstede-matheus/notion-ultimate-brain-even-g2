@@ -52,7 +52,9 @@ Feature: Confirming a change
     And the two choices are unchanged
     And the item is unchanged in its list
     When I tap the first choice again
-    Then the change is attempted again
+    Then the header still shows "FAILED: " and what went wrong
+    And the change is attempted again
+    # The spinner does not replace the failure line until the retry succeeds.
 
   Scenario: Leaving after a failure
     Given a change has failed and the header shows "FAILED: "
@@ -63,15 +65,35 @@ Feature: Confirming a change
   Scenario: A long failure message is shortened
     Given a change fails with a message longer than one row
     Then the header still begins "FAILED: "
-    And the message is shortened with a trailing "…"
+    And the message is shortened with a trailing "..."
 
-  Scenario: A long item name is shortened on the confirmation
-    Given I am confirming an action on an item with a very long name
-    Then the name is shortened so the choice fits on one row
+  Scenario: A long item name is shortened on mark-as-done and delete confirmations
+    Given I am confirming mark-as-done or delete on an item with a very long name
+    Then the item name on the first choice is shortened so it fits on one row
 
-  Scenario: A long item name is shortened on the acknowledgement
-    Given I confirmed an action on an item with a very long name
+  Scenario Outline: Reschedule and move confirmations show the new value, not the item name
+    Given I am confirming <action>
+    When the first choice is shown
+    Then it begins with "<prefix>"
+    And it does not repeat the item's name
+
+    Examples:
+      | action     | prefix |
+      | reschedule | To     |
+      | move       | To     |
+
+  Scenario: A long item name is shortened on the done and deleted acknowledgements
+    Given I confirmed mark-as-done or delete on an item with a very long name
     Then the acknowledgement shows "✓ " and as much of the name as fits
+
+  Scenario Outline: Other acknowledgements name what changed
+    Given I confirmed <action>
+    Then the acknowledgement shows "✓ " followed by <what>
+
+    Examples:
+      | action     | what              |
+      | reschedule | the new due date  |
+      | move       | the project name  |
 
   Scenario: Swiping while confirming moves between the two choices
     Given I am confirming an action

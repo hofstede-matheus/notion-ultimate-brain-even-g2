@@ -16,11 +16,11 @@ Feature: A project's notes
     When I open its notes
     Then the glasses show "No notes in this project."
 
-  Scenario: Tapping a note opens the note menu
+  Scenario: Tapping a note opens its details
     Given I am viewing a project's notes
     When I tap one
-    Then the glasses show that note's name as the header
-    And the four note choices are listed
+    Then the glasses show "NOTE DETAILS"
+    And its title and project are shown
 
   Scenario: Going back returns to the project, not to its tasks
     Given I am viewing a project's notes

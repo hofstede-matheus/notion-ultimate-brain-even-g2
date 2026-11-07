@@ -19,6 +19,12 @@ Feature: Reading a note's page
     When the page arrives
     Then its first screenful is shown under that same header
 
+  Scenario: A note whose text is in its description
+    Given a note with nothing written in the page itself
+    And a description that does have text
+    When I open its page
+    Then the description is what I read
+
   Scenario: A note with nothing written in it
     Given a note with nothing in the page and no description
     When I open its page
@@ -82,4 +88,4 @@ Feature: Reading a note's page
   Scenario: A long note name is shortened in the header
     Given a note whose name is wider than the display
     When I open its page
-    Then the name is shortened with a trailing "…"
+    Then the name is shortened with a trailing "..."

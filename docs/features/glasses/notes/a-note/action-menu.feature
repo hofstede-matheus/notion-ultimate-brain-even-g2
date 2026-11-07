@@ -50,20 +50,20 @@ Feature: What can be done with a note
     When I tap the second one and raise its contextual menu
     Then the menu's choices act on that note, not on the first in the list
 
-  Scenario: Backing out of a chosen flow returns to the list the note came from
-    Given I opened a note's contextual menu from one of the note lists
-    And I chose something that opened a screen
+  Scenario Outline: Backing out returns to where you came from
+    Given I opened a note's contextual menu from <where>
+    And I chose "<choice>"
     When I double-tap
-    Then that list reopens
+    Then <returns>
 
-  Scenario: A note opened from a tag returns to that tag's notes
-    Given I opened a note's contextual menu from a tag's notes
-    And I chose something that opened a screen
-    When I double-tap
-    Then that tag's notes reopen
-
-  Scenario: A note opened from inside a project returns there
-    Given I opened a note's contextual menu from a project's notes
-    And I chose something that opened a screen
-    When I double-tap
-    Then that project's notes reopen
+    Examples:
+      | where            | choice         | returns                               |
+      | a note list      | Open page      | the glasses show "NOTE DETAILS" again |
+      | a note list      | Change project | the glasses show "NOTE DETAILS" again |
+      | a note list      | Delete note    | the list the note came from reopens   |
+      | a tag's notes    | Open page      | the glasses show "NOTE DETAILS" again |
+      | a tag's notes    | Change project | the glasses show "NOTE DETAILS" again |
+      | a tag's notes    | Delete note    | that tag's notes reopen               |
+      | a project's notes| Open page      | the glasses show "NOTE DETAILS" again |
+      | a project's notes| Change project | the glasses show "NOTE DETAILS" again |
+      | a project's notes| Delete note    | that project's notes reopen           |

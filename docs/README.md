@@ -22,7 +22,7 @@ Covered:
   action menus, confirming and undoing changes, the due-date calendar, reading a page, adding a
   task by voice, and how long lists are paged through.
 - **`features/phone/`** — the phone app: connecting, entering a Notion token, choosing the four
-  databases, changing settings, and the debug log.
+  databases, voice input, changing settings, and the debug log.
 
 Not covered: the server API — routes, auth, and the Notion query filters behind each view. Those
 business rules live in `apps/server/src/views.ts` and `apps/server/src/filters.ts`. If specs are
@@ -112,7 +112,7 @@ tasks/
       calendar.feature                     the month grid, week then day
       confirm.feature                      saving the new date
     change-project/
-      picker.feature                       the list of projects
+      picker.feature                       MOVE TO — status filter, then a project
       confirm.feature                      filing it, and which lists it leaves
     mark-as-done/
       confirm.feature                      completing it — one hold on its details, or one menu item
@@ -128,13 +128,13 @@ notes/
     open-page/
       reading.feature                      reading it a screenful at a time
     change-project/
-      picker.feature                       the list of projects
+      picker.feature                       MOVE TO — status filter, then a project
       confirm.feature                      filing it, and which lists it leaves
     delete-note/
       confirm.feature                      sending it to the Bin
 
 projects/
-  projects-menu.feature                    Doing · Ongoing · Planned · On Hold · Done · Archived
+  projects-menu.feature                    All · Doing · Ongoing · Planned · On Hold · Done · Archived
   project-lists.feature                    the lists themselves
   a-project/
     contents-menu.feature                  Tasks or Notes
@@ -167,6 +167,7 @@ settings/
   choosing-the-databases.feature           the four dropdowns
   changing-settings-later.feature          reopening and backing out
   when-the-setup-stops-working.feature     a saved database that stops fitting its role
+  voice-input.feature                      on-device vs cloud speech for Add Task
   debug-log.feature                        reading and copying the log
 ```
 

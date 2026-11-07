@@ -58,17 +58,24 @@ Feature: What can be done with a task
     When I tap the second one and raise its contextual menu
     Then the menu's choices act on that task, not on the first in the list
 
-  Scenario: Backing out of a chosen flow returns to the list the task came from
-    Given I opened a task's contextual menu from one of the task lists
-    And I chose something that opened a screen
+  Scenario Outline: Backing out returns to where you came from
+    Given I opened a task's contextual menu from <where>
+    And I chose "<choice>"
     When I double-tap
-    Then that list reopens
+    Then <returns>
 
-  Scenario: A task opened from inside a project returns there
-    Given I opened a task's contextual menu from a project's tasks
-    And I chose something that opened a screen
-    When I double-tap
-    Then that project's tasks reopen
+    Examples:
+      | where              | choice          | returns                                           |
+      | a task list        | Open page       | the glasses show "TASK DETAILS" again             |
+      | a task list        | Change project  | the glasses show "TASK DETAILS" again             |
+      | a task list        | Change due date | the list the task came from reopens               |
+      | a task list        | Mark as done    | the list the task came from reopens               |
+      | a task list        | Delete task     | the list the task came from reopens               |
+      | a project's tasks  | Open page       | the glasses show "TASK DETAILS" again             |
+      | a project's tasks  | Change project  | the glasses show "TASK DETAILS" again             |
+      | a project's tasks  | Change due date | that project's open tasks reopen                  |
+      | a project's tasks  | Mark as done    | that project's open tasks reopen                  |
+      | a project's tasks  | Delete task     | that project's open tasks reopen                  |
 
   Scenario: Finishing an action returns to the list
     Given I opened a task and acted on it

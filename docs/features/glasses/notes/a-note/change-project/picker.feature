@@ -1,36 +1,62 @@
 @glasses @notes
 Feature: Choosing a project for a note
 
-  "Change project" opens a list of every project that is not archived, plus a row for taking the
-  note out of whatever project it is in. It is the same picker a task uses.
+  "Change project" opens a filter menu, then a status list, then a project row — or a row that
+  clears the project without drilling in. It is the same picker a task uses.
 
   Background:
     Given I have opened a note's contextual menu
 
-  Scenario: The picker
-    Given the workspace has the projects "Kitchen", "Website" and "Allotment"
+  Scenario: The filter menu
     When I choose "Change project"
     Then the glasses show the header "MOVE TO"
     And the header shows no count
-    And the first choice is "— No project —"
-    And the rest are "Allotment", "Kitchen" and "Website", in that order
+    And the rows are:
+      | — No project — |
+      | All            |
+      | Doing          |
+      | Ongoing        |
+      | Planned        |
+      | On Hold        |
+      | Done           |
+      | Archived       |
 
-  Scenario: While it loads
-    Given I have never opened the picker on these glasses
+  Scenario: A status list while projects load
+    Given I have never opened a status list from this picker on these glasses
     When I choose "Change project"
-    Then the glasses show "Fetching projects..."
+    And I tap "Doing"
+    Then the glasses show "Fetching…"
 
-  Scenario: When there is nothing to pick
-    Given the workspace has no projects
+  Scenario: A status list with nothing in it
+    Given no projects have that status
     When I choose "Change project"
-    Then the glasses show "No projects found."
+    And I tap "Doing"
+    Then the glasses show "No projects in progress."
+
+  Scenario: Browsing a status list
+    Given "Doing" holds the projects "Kitchen", "Website" and "Allotment"
+    When I choose "Change project"
+    And I tap "Doing"
+    Then the glasses show the header "DOING (3)"
+    And the projects are listed alphabetically
 
   Scenario: Picking a project asks me to confirm
     When I choose "Change project"
+    And I tap a status
     And I tap one of the projects
     Then the glasses show the header "MOVE TO?"
 
-  Scenario: Backing out returns to the list the note came from
+  Scenario: Clearing the project asks immediately
+    When I choose "Change project"
+    And I tap "— No project —"
+    Then the glasses show the header "MOVE TO?"
+
+  Scenario: Backing out from the filter menu returns to details
     Given I opened the picker from a note's contextual menu
     When I double-tap
-    Then the list the note came from reopens
+    Then the glasses show "NOTE DETAILS"
+
+  Scenario: Backing out from a status list returns to the filter menu
+    Given I chose "Change project" and tapped a status
+    When I double-tap
+    Then the glasses show the header "MOVE TO"

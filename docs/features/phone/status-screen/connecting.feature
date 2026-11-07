@@ -9,8 +9,9 @@ Feature: Connecting the app to the glasses
   Scenario: The app opens already trying to connect
     When I open the app
     Then the phone shows "Ultimate Brain"
-    And the status reads "Connecting..."
-    And a "Connect" button is shown
+    And the status quickly reads "Waiting for Even Hub bridge..."
+    And the "Connect" button is greyed out
+    # "Connecting..." is only the initial placeholder before boot takes over.
 
   Scenario: Waiting for the glasses
     When the app starts connecting
@@ -71,9 +72,10 @@ Feature: Connecting the app to the glasses
     Given the settings form is open
     Then no settings button is shown
 
-  Scenario: Opening settings again during first-run setup keeps connecting
-    Given the app is waiting for me to fill in first-run settings
-    When I tap the settings button
-    Then the settings form is shown
+  Scenario: First-run setup has no settings button
+    Given the app has never been set up
+    And the settings form is already open
+    Then no settings button is shown
+    And no back button is shown
     When I save it
     Then the app finishes connecting

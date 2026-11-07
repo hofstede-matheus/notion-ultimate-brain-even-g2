@@ -54,7 +54,8 @@ Feature: Choosing the four databases
   Scenario: An incomplete form says nothing beyond the marked fields
     Given the token is empty and nothing is chosen
     When I tap "Save"
-    Then the token field and all four dropdowns are marked as needing attention
+    Then only the token field is marked as needing attention
+    And the four dropdowns are not shown yet
     And no message explains what is wrong
     And "Save" is never greyed out
 
@@ -137,7 +138,7 @@ Feature: Choosing the four databases
     Scenario: All databases can be shown anyway
       Given some databases are hidden for not fitting a role
       When I turn on "Show all databases"
-      Then every shared database is offered in every dropdown again
+      Then every shared database that is not already chosen in another slot is offered in each dropdown
 
     Scenario: "Show all databases" is remembered
       Given I turned on "Show all databases" and saved
@@ -169,9 +170,22 @@ Feature: Choosing the four databases
       Given the chosen database is missing a property every one of the role's lists uses
       Then the warning says no list for that role will load
 
+    Scenario: A database missing something no list needs still warns
+      Given the chosen database is missing a property the role lists do not use
+      Then the warning names the missing property
+      And says every list will still work
+
+    Scenario: An empty slot with no fitting databases
+      Given a slot is unset
+      And none of the shared databases fit that role
+      And "Show all databases" is off
+      Then the phone shows that none of the shared databases can fill that role
+      And tells me to share the Ultimate Brain database for that role with the integration
+
     Scenario: A second tap on Save goes through anyway
       Given the warning above is showing
-      When I tap "Save" again
+      And the save button reads "Save anyway"
+      When I tap "Save anyway"
       Then the setup is saved with my choice, unfit or not
       # The requirement list is a guess about what a role needs — a customised Ultimate Brain
       # with a renamed property is a real possibility, so the form warns but never refuses.

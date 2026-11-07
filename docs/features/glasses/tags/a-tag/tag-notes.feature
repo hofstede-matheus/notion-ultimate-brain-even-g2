@@ -2,7 +2,8 @@
 Feature: A tag's notes
 
   A tag has nothing that can be acted on, so tapping one skips straight to what it is for: the
-  notes carrying it. There is no intermediate action menu, unlike a project.
+  notes carrying it. Tapping a note opens its details — the contextual menu lives there, not on
+  the list.
 
   Because a tag can be reached from four different lists, the way back is whichever list the tag
   was tapped in.
@@ -31,18 +32,27 @@ Feature: A tag's notes
     When I double-tap
     Then that list reopens
 
-  Scenario: Tapping a note opens it
+  Scenario: Tapping a note opens its details
     Given I am viewing a tag's notes
     When I tap one
-    Then it opens in the page reader
+    Then the glasses show "NOTE DETAILS"
 
-  Scenario: Tapping and holding a note opens its contextual menu
+  Scenario: Holding a note in the list does nothing
     Given I am viewing a tag's notes
-    When I tap and hold one
-    Then a menu of that note's actions opens over the list
+    When I hold one
+    Then nothing happens
+    # The contextual menu lives on the details screen — see the-five-gestures.feature.
 
-  Scenario: Backing out of that note returns to the tag's notes
+  Scenario: Backing out of details returns to the tag's notes
     Given I opened a note from a tag's notes
+    When I double-tap
+    Then that tag's notes reopen
+
+  Scenario: Opening a page from a note and going back
+    Given I opened a note from a tag's notes
+    And I chose "Open page" from its contextual menu
+    When I double-tap
+    Then the glasses show "NOTE DETAILS" again
     When I double-tap
     Then that tag's notes reopen
 

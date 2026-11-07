@@ -8,8 +8,9 @@ Feature: Adding a task by voice
   own key for. Which one is in use changes nothing about the flow below — only whether audio
   leaves the device, which is stated where the choice is made.
 
-  Recording stops by itself once talking stops, so the whole thing is: tap, speak, check what it
-  heard, tap again.
+  Recording stops by itself once talking stops — but only after speech has been heard. Silence
+  alone lets it run to fifteen seconds. The whole thing is: tap, speak, check what it heard, tap
+  again.
 
   Background:
     Given I am on the "TASKS" menu
@@ -77,7 +78,14 @@ Feature: Adding a task by voice
     Scenario: Creating the task
       Given "buy oat milk" is waiting to be confirmed
       When I tap
-      Then the glasses show "Saving task..." with a spinner in the header
+      Then the glasses show:
+        """
+        ADD TASK
+
+        Saving task...
+        Please wait.
+        """
+      And a spinner turns in the header
       When the task is created
       Then the glasses show:
         """
@@ -107,12 +115,18 @@ Feature: Adding a task by voice
       Given I am recording
       When I tap
       Then the glasses stop listening
-      And show "Processing audio..."
+      And show "Processing audio..." and "Please wait."
 
     Scenario: Recording stops after fifteen seconds regardless
       Given I am recording and never stop talking
       When 15 seconds pass
       Then the glasses stop listening and work out what I said
+
+    Scenario: Silence alone does not stop recording
+      Given I am recording and have said nothing
+      When I stay quiet
+      Then the glasses keep listening until fifteen seconds have passed
+      And only then show an error that nothing was heard
 
     Scenario: Discarding a transcript and starting over
       Given "buy oat milk" is waiting to be confirmed
@@ -125,7 +139,7 @@ Feature: Adding a task by voice
       Given "buy oat milk" is waiting to be confirmed
       And voice input is turned off on the phone
       When I tap
-      Then the glasses show "Saving task..." with a spinner in the header
+      Then the glasses show "Saving task..." and "Please wait." with a spinner in the header
       When the task is created
       Then the glasses show:
         """
@@ -150,12 +164,13 @@ Feature: Adding a task by voice
       Given I am recording
       When I change voice settings on the phone
       Then the glasses stop listening
-      And the glasses are ready to record again
+      And if voice is still ready the glasses show the usual ready-to-record prompt
+      And if voice was turned off, needs a download, or needs a key the glasses show that instead
 
-    Scenario: Leaving the app stops the recording
+    Scenario: Leaving the app does not stop recording
       Given I am recording
-      When I leave the app
-      Then the glasses stop listening
+      When I leave the app to the background
+      Then the glasses keep listening
 
     Scenario: Closing the app stops the recording
       Given I am recording
@@ -171,6 +186,18 @@ Feature: Adding a task by voice
       Given the glasses show "Saving task..."
       When I tap
       Then nothing happens
+
+    Scenario: Backing out while audio is processing
+      Given the glasses show "Processing audio..."
+      When I double-tap
+      Then the glasses show the header "TASKS"
+      And whatever was said is discarded
+
+    Scenario: Backing out while the task is being saved
+      Given the glasses show "Saving task..."
+      When I double-tap
+      Then the glasses show the header "TASKS"
+      And the save still finishes in the background
 
   Rule: Before voice input is set up, the screen says what is missing
 

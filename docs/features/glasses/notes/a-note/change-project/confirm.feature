@@ -43,6 +43,11 @@ Feature: Filing a note under a project
     When I move one into a different project
     Then it is no longer in that list
 
+  Scenario: Taking a note out of the project I am looking at removes it too
+    Given I am viewing a project's notes
+    When I clear one's project
+    Then it is no longer in that list
+
   Scenario: Moving a note into the project I am already looking at keeps it
     Given I am viewing a project's notes
     When I move one into that same project
@@ -53,3 +58,8 @@ Feature: Filing a note under a project
     When I confirm a move
     Then the header shows "FAILED: " followed by what went wrong
     And the two choices are unchanged
+
+  Scenario: A long project name is shortened on the confirmation
+    Given I picked a project with a very long name
+    Then the choice begins "To "
+    And the name is shortened with a trailing "..."
