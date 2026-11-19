@@ -1,0 +1,11 @@
+{
+  "$schema": "https://github.com/dyoshikawa/rulesync/releases/latest/download/config-schema.json",
+  "targets": ["claudecode", "kilo", "cursor"],
+  "features": ["skills", "hooks"],
+  "outputRoots": ["."],
+  "delete": true,
+  "verbose": false,
+  "silent": false,
+  "global": false,
+  "gitignoreTargetsOnly": true
+}

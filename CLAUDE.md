@@ -25,6 +25,10 @@ IDs via the `X-Notion-Config` header; the server stores no credentials.
 - `packages/contracts` (`@notion-ub/contracts`) — shared types. Import cross-app types
   from here, not by reaching into another app.
 - `packages/typescript-config` — `base.json` + `dom.json` (glasses) + `node.json` (server).
+- `.rulesync/` — source of truth for agent skills and hooks (`rulesync.jsonc`). Edit there,
+  then `pnpm rulesync:generate`; `.claude/skills`, `.kilo/`, `.cursor/` outputs are generated
+  (gitignored, also regenerated on `pnpm install`). `.claude/settings.json` is generated but
+  committed.
 - `docs/features/` — Gherkin specs of user-facing flows (documentation only, no runner).
   Read the relevant `.feature` file before changing behaviour it describes; update it in
   the same change if the behaviour moves. See [docs/README.md](docs/README.md).
