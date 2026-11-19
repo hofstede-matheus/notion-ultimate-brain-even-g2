@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "hooks": {},
+  "claudecode": {
+    "hooks": {
+      "preToolUse": [{ "matcher": "Bash", "command": ".rulesync/hooks/gate-git-commit.sh" }]
+    }
+  },
+  "cursor": {
+    "hooks": {
+      "beforeShellExecution": [{ "command": ".rulesync/hooks/gate-git-commit.sh" }]
+    }
+  }
+}
