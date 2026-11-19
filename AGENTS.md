@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 Guidance for AI agents working in this repo. Keep it short and current; when you learn
 something an agent would trip on, add it here. For the full narrative (what the app does,
@@ -11,6 +11,9 @@ pnpm-workspaces monorepo. Multi-tenant: each device sends its own Notion token +
 IDs via the `X-Notion-Config` header; the server stores no credentials.
 
 ## Layout
+
+Each app has its own `AGENTS.md` (`apps/glasses/`, `apps/server/`, `apps/landing-page/`)
+with its layout, commands, conventions and gotchas. Read it before working in that app.
 
 - `apps/glasses` (`@notion-ub/glasses`) — Vite app with two front ends in one build:
   `src/glasses/` (Even Realities SDK UI), `src/web/` (React settings webview), and shared
@@ -113,28 +116,16 @@ when a git diff touches glasses source, `packages/**`, lockfiles, or
   and caching run on the device. The deliberate exception is `src/mappers.ts`, which shrinks
   Notion objects to list-row fields to cut payload size. Don't add business logic to the
   server without a payload/latency reason.
-- **Route auth is per-route.** `Route.auth` defaults to `'tenant'` (full `X-Notion-Config`:
-  token + all 4 DB ids). `'token'` requires only `X-Notion-Token` — for routes that run
-  before DB ids are known (`GET /api/databases`). Use `authed()` / `tokenAuthed()` wrappers.
-- **Page-level actions are generic over tasks and notes.** On the client,
-  `modules/_shared/item-actions.ts` runs one confirm→toast flow for
-  markDone/delete/setDue/setProject. Add a new item action there, not per-module.
 - **Formatting/linting is Biome** (`biome.json`). **TypeScript strict** everywhere. No new
   `any`. Run `pnpm lint` before finishing.
 - **Commits and PR titles are Conventional Commits** — drives the release (see **Versions**).
-  Full rules in [.github/copilot-instructions.md](.github/copilot-instructions.md).
-- **Trace logging.** `apps/glasses/src/logging/trace.ts` is the app-wide log sink. Add
-  `trace.info/warn/error('CAT', msg, ctx?)` at entry points and failure paths for new
-  screens, actions, and fetches. The Settings debug console is behind ten taps on the
-  version label (session-only unlock; always visible in `vite dev`). Don't log the raw
-  tenant token or `X-Notion-Config`
-  outside `tenant-config.ts` (secrets are redacted automatically).
+  `type(scope): description`: scope is the feature area (`tasks`, `notes`, `projects`,
+  `tags`, `glasses`, `server`, `landing-page`, `contracts`), description imperative,
+  lowercase, no trailing period, ≤ 72 chars. PRs are squash-merged, so the PR title is the
+  commit on `main` (linted by `pr-title.yml`; commits by `.husky/commit-msg`). PR bodies are
+  prose on what changed and why, not a file-by-file diff.
 - **Testing rules** (what needs a test, unit vs. integration, never edit a
   test to force it green) are in the **Testing** section above.
-- **Server logging is a privacy contract.** Successful requests log nothing; failures log only
-  `{ method, route, status, errorCode? }` — `route` is the pattern (`/api/pages/:id`), never
-  the raw path. No response bodies, error messages, or env var to widen this. See
-  `apps/server/src/lambda/logger.ts` and `legal.html` before changing it.
 - Never commit without explicit user consent for that specific commit.
 - **Out-of-scope findings become GitHub issues.** If an investigation or
   in-progress task turns up a real problem that is not part of the current
@@ -145,10 +136,6 @@ when a git diff touches glasses source, `packages/**`, lockfiles, or
 
 ## Gotchas
 
-- **Integration Today fixtures must be date-relative.** The Today screen filters
-  `dueDate === todayDateStr()` client-side — `__integration__/fixtures.ts` must
-  use `format(addDays(new Date(), n), 'yyyy-MM-dd')` (local calendar), never a
-  literal `YYYY-MM-DD` or `toISOString()`, or the suite goes red the next day.
 - **Notion status/type names are option names, not group labels.** Tasks: `Done`
   (not "Complete"); Projects: `Doing`/`Ongoing` (not "In progress"); Tags Type:
   `Area`/`Resource`/`Entity`. Group labels silently match nothing.
@@ -156,28 +143,6 @@ when a git diff touches glasses source, `packages/**`, lockfiles, or
   `packages/contracts/src/db-roles-requirements.ts` (`ROLE_REQUIREMENTS`). Keep that table in sync with
   `views.ts`/`routes.ts`/`mappers.ts` — `db-roles-drift.test.ts` fails if a new filter or
   sort isn't listed.
-- **G2 lists:** `MAX_LIST_ITEMS` 20, `MAX_ITEM_BYTES` 63 **UTF-8 bytes** (not JS chars).
-  One oversized item rejects the whole rebuild (`glasses/constants.ts`).
-- **G2 containers:** names+IDs are lifetime-stable (≤16 chars) and matched against the first
-  `createStartUpPageContainer`. A container dropped from a rebuild cannot be re-added — id=2
-  is a 1×1 placeholder on text-only screens for that reason. Calendar image containers are
-  the exception (4-container cap). Don't switch bitmaps to PNG: 1-bit PNG renders solid green;
-  use `glasses/bitmap/bmp.ts`.
-- **Reader pages must not overflow.** Leftover overflow re-arms firmware scroll and swallows
-  swipes (`READER_LINES_PER_PAGE` / `READER_CHARS_PER_LINE`).
-- **Speech:** `src/stt/` façades Vosk (on-device) and Soniox (cloud) over a shared session.
-  Modes are exclusive; the Soniox key lives in `voice-config.ts`, never `TenantConfig`. The
-  Vosk model is a runtime download, not packed. Optional language hints from Settings (empty
-  = auto-detect). Don't "simplify" the Soniox close: empty **text** frame + `finalize` (binary
-  empty is dropped), one socket per recording, batch 10 ms frames on the wire.
-- **Web component-level tests are `.test.tsx`, not `.test.ts`.** Most of `__tests__/web/**`
-  tests pure logic under the default `node` environment; a test that renders a real React tree
-  (e.g. `statusScreen.test.tsx`) needs a `// @vitest-environment jsdom` docblock at the top of
-  the file instead, and must call `@testing-library/react`'s `cleanup()` itself in `afterEach`
-  — its own auto-cleanup only self-registers when `test.globals: true`, which this repo doesn't
-  set. `vitest.config.ts` also inlines `even-toolkit` (`server.deps.inline`): left externalized,
-  Vitest's SSR runner loads it via plain Node `import()`, which can't resolve its extensionless
-  relative imports and throws `Cannot find module` for any file rendering `even-toolkit/web/*`.
 
 ## Versions
 

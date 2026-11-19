@@ -12,7 +12,7 @@ person can read it without opening the source.
 On-screen copy is quoted **verbatim**. If a spec and the app disagree, one of them is a bug —
 find out which before changing either.
 
-For repo layout, commands and agent-facing gotchas, see [../CLAUDE.md](../CLAUDE.md).
+For repo layout, commands and agent-facing gotchas, see [../AGENTS.md](../AGENTS.md).
 
 ## Scope
 

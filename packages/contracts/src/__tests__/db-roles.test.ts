@@ -62,7 +62,7 @@ describe('evaluateRoles', () => {
   });
 
   it('rejects a property present under the right name but the wrong type', () => {
-    // Tags' Type must be a status property (CLAUDE.md gotcha) — a select with the same name
+    // Tags' Type must be a status property (AGENTS.md gotcha) — a select with the same name
     // must not satisfy the tags role.
     const { roles, unfit } = evaluateRoles({
       Name: 'title',

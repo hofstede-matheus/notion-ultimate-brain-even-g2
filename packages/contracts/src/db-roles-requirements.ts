@@ -108,7 +108,7 @@ export const ROLE_REQUIREMENTS: Record<
       views: ['recent', 'favorites', 'a-z', 'types/area', 'types/resource', 'types/entity'],
     },
     { names: ['Favorite'], types: ['checkbox'], views: ['favorites'] },
-    // Tags' Type is a status property, not select — see CLAUDE.md's gotcha; same trap as
+    // Tags' Type is a status property, not select — see AGENTS.md's gotcha; same trap as
     // TASK_STATUS_TODO/DONE and PROJECT_STATUS_* in views.ts.
     {
       names: ['Type'],

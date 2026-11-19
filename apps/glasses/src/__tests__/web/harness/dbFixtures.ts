@@ -61,7 +61,7 @@ export const FIT_TAGS_DB: NotionDatabaseSummary = {
     Name: 'title',
     Archived: 'checkbox',
     Favorite: 'checkbox',
-    Type: 'status', // tags' Type is a status property, not select — see CLAUDE.md's gotcha
+    Type: 'status', // tags' Type is a status property, not select — see AGENTS.md's gotcha
     'Latest Activity': 'formula',
   },
 };

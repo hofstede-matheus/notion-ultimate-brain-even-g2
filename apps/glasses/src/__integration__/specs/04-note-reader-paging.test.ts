@@ -9,7 +9,7 @@ import { driver } from './_setup';
  * The reader is a `mode: 'text'` screen, not a native list — it has no
  * byte-cap backstop (see page-content-screen.ts), so an over-long page is a
  * layout bug the simulator can catch (re-arming firmware scroll, per
- * CLAUDE.md's Gotchas) that a mocked bridge cannot: the unit suite already
+ * apps/glasses/AGENTS.md's Gotchas) that a mocked bridge cannot: the unit suite already
  * covers the markdown->lines math in content/markdown-to-pages.test.ts, but
  * nothing until now confirms the paginated result actually paints.
  */
