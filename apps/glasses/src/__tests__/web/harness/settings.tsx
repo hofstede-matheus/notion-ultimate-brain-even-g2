@@ -4,7 +4,7 @@
  * app.test.tsx). Follows statusScreen.test.tsx's harness shape: real
  * component tree, real providers, manual `cleanup()` (RTL's auto-cleanup
  * only self-registers when `test.globals` is on, which this repo doesn't
- * set — see CLAUDE.md's Gotchas). Not itself a test file — vitest's
+ * set — see apps/glasses/AGENTS.md's Gotchas). Not itself a test file — vitest's
  * `// @vitest-environment jsdom` pragma has no effect here; each importing
  * `.test.tsx` file carries its own.
  *

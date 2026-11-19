@@ -32,7 +32,7 @@ Every test under `src/__tests__/**` mocks the Even Realities SDK bridge
 (`__tests__/glasses/fakes.ts`'s `makeMockBridge()`), which returns success
 unconditionally for every call. That means **no unit test has ever confirmed
 a container payload is actually accepted and painted** — the class of bug
-CLAUDE.md's Gotchas section is full of: the 63-UTF-8-byte item cap, the
+`apps/glasses/AGENTS.md`'s Gotchas section is full of: the 63-UTF-8-byte item cap, the
 20-item cap, the 4-container limit, `createStartUpPageContainer` being
 one-shot. The simulator enforces these for real; unit tests structurally
 cannot.
@@ -53,7 +53,7 @@ time, by `harness.ts`'s `mount()/dispatch()/render()`. Add an integration
 spec when a change introduces or reshapes a whole user-facing flow (a new
 screen tree, a new mutation round trip, a new render mode). Most changes,
 including most bug fixes, don't need one — a unit regression test is enough.
-See CLAUDE.md's Testing section for the exact rule.
+See the root AGENTS.md's Testing section for the exact rule.
 
 ## Why the assertions look the way they do
 

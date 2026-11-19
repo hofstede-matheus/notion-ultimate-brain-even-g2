@@ -58,7 +58,7 @@ async function request<T>(path: string, init: RequestInit = {}, resultKey?: stri
     // Captured before throwing — the caught Error's message alone (just the
     // status code) has repeatedly hidden the real cause here (e.g. Notion's
     // "status is not a property that exists" when a filter uses a group
-    // label instead of the real option name — see CLAUDE.md's gotchas).
+    // label instead of the real option name — see AGENTS.md's gotchas).
     const body = await res
       .clone()
       .text()
