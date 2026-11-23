@@ -104,4 +104,21 @@ describe('commitSettings', () => {
     expect(d.saveVoiceConfig).toHaveBeenCalledWith(INPUT.voiceCfg);
     expect(d.refreshVoiceStatus).toHaveBeenCalledWith(INPUT.voiceCfg);
   });
+
+  it('records a Notes database without Content as notesHasContent: false (issue #54)', () => {
+    const d = deps();
+
+    commitSettings({ ...INPUT, notesHasContent: false }, d);
+
+    expect(d.setTenantConfig).toHaveBeenCalledWith({ ...EXPECTED_CONFIG, notesHasContent: false });
+    expect(d.saveStoredConfig).toHaveBeenCalledWith({ ...EXPECTED_CONFIG, notesHasContent: false });
+  });
+
+  it('leaves notesHasContent out when the database has Content, or it is unknown', () => {
+    for (const notesHasContent of [true, undefined]) {
+      const d = deps();
+      commitSettings({ ...INPUT, notesHasContent }, d);
+      expect(d.setTenantConfig).toHaveBeenCalledWith(EXPECTED_CONFIG);
+    }
+  });
 });

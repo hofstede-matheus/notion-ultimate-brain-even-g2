@@ -14,7 +14,7 @@
  * apart. The lookup data lives in db-roles-requirements.ts.
  */
 
-import { ROLE_REQUIREMENTS, ROLE_VIEWS } from './db-roles-requirements';
+import { NOTES_CONTENT_REQ, ROLE_REQUIREMENTS, ROLE_VIEWS } from './db-roles-requirements';
 
 export type DbRole = keyof typeof ROLE_REQUIREMENTS;
 
@@ -69,7 +69,7 @@ export function evaluateRoles(properties: Record<string, string> | undefined): {
   const unfit: Partial<Record<DbRole, DbRoleFit>> = {};
 
   for (const role of Object.keys(ROLE_REQUIREMENTS) as DbRole[]) {
-    const unmet = ROLE_REQUIREMENTS[role].filter((req) => !fits(properties, req));
+    const unmet = ROLE_REQUIREMENTS[role].filter((req) => !req.optional && !fits(properties, req));
 
     if (unmet.length === 0) {
       roles.push(role);
@@ -88,4 +88,17 @@ export function evaluateRoles(properties: Record<string, string> | undefined): {
   }
 
   return { roles, unfit };
+}
+
+/**
+ * Whether a Notes database has the optional `Content` relation (see db-roles-requirements.ts), as
+ * Settings records it in TenantConfig.notesHasContent. `undefined` when there is no schema to
+ * check — callers then leave the flag out, which the server reads as "has it" (today's
+ * behaviour), never as "lacks it".
+ */
+export function notesHasContent(
+  properties: Record<string, string> | undefined,
+): boolean | undefined {
+  if (!properties) return undefined;
+  return fits(properties, NOTES_CONTENT_REQ);
 }

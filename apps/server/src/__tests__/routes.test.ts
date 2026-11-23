@@ -101,6 +101,38 @@ describe('view routes', () => {
   });
 });
 
+describe('notes views without a Content relation (issue #54)', () => {
+  const CONTENT_VIEWS = ['inbox', 'by-tag', 'notes', 'by-project'];
+
+  /** The filter the route sent to Notion, as JSON, for a substring check on property names. */
+  async function sentFilter(path: string, overrides: Partial<RouteContext> = {}): Promise<string> {
+    const notion = fakeNotion();
+    notion.databases.query.mockResolvedValue({ results: [], has_more: false, next_cursor: null });
+    await route('GET', path).handler(ctx(notion, overrides));
+    return JSON.stringify(notion.databases.query.mock.calls[0]?.[0].filter);
+  }
+
+  for (const view of CONTENT_VIEWS) {
+    it(`drops the Content clause from notes/${view} when the database lacks it`, async () => {
+      const filter = await sentFilter(`/api/notes/${view}`, { notesHasContent: false });
+      expect(filter).not.toContain('"Content"');
+      expect(filter).toContain('"Archived"'); // the rest of the view's filter is still sent
+    });
+
+    it(`still filters notes/${view} on Content when the flag is absent`, async () => {
+      expect(await sentFilter(`/api/notes/${view}`)).toContain('"Content"');
+    });
+  }
+
+  it('sends the notes inbox filter exactly as before, minus only the Content clause', async () => {
+    const withContent = JSON.parse(await sentFilter('/api/notes/inbox'));
+    const without = JSON.parse(await sentFilter('/api/notes/inbox', { notesHasContent: false }));
+    expect(without.and).toEqual(
+      withContent.and.filter((c: { property?: string }) => c.property !== 'Content'),
+    );
+  });
+});
+
 describe('invokeRoute status passthrough', () => {
   it('keeps a 400 validation_error as 400, not 500', async () => {
     const notion = fakeNotion();

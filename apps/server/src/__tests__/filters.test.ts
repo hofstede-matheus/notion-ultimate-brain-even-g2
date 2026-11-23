@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { translateFilter } from '../filters';
+import { omitProperties, translateFilter } from '../filters';
 
 describe('translateFilter', () => {
   describe('relative date keywords', () => {
@@ -120,5 +120,62 @@ describe('translateFilter', () => {
         ],
       });
     });
+  });
+});
+
+describe('omitProperties', () => {
+  const drop = new Set(['Content']);
+
+  it('drops a matching leaf from an and group, keeping the rest in order', () => {
+    expect(
+      omitProperties(
+        {
+          and: [
+            { property: 'Archived', checkbox: { equals: false } },
+            { property: 'Content', relation: { is_empty: true } },
+            { property: 'Tag', relation: { is_empty: true } },
+          ],
+        },
+        drop,
+      ),
+    ).toEqual({
+      and: [
+        { property: 'Archived', checkbox: { equals: false } },
+        { property: 'Tag', relation: { is_empty: true } },
+      ],
+    });
+  });
+
+  it('recurses into nested groups and drops a group left empty', () => {
+    expect(
+      omitProperties(
+        {
+          and: [
+            { property: 'Archived', checkbox: { equals: false } },
+            { or: [{ property: 'Content', relation: { is_empty: true } }] },
+          ],
+        },
+        drop,
+      ),
+    ).toEqual({ and: [{ property: 'Archived', checkbox: { equals: false } }] });
+  });
+
+  it('returns undefined when nothing is left', () => {
+    expect(omitProperties({ property: 'Content', relation: { is_empty: true } }, drop)).toBe(
+      undefined,
+    );
+    expect(
+      omitProperties({ and: [{ property: 'Content', relation: { is_empty: true } }] }, drop),
+    ).toBeUndefined();
+  });
+
+  it('leaves a filter that never names the property untouched', () => {
+    const filter = {
+      or: [
+        { property: 'URL', url: { is_empty: true } },
+        { property: 'Type', select: { equals: 'Voice Note' } },
+      ],
+    };
+    expect(omitProperties(filter, drop)).toEqual(filter);
   });
 });

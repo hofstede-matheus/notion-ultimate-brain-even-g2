@@ -29,6 +29,10 @@ export interface CommitInput {
   /** Already trimmed by the caller. */
   token: string;
   selection: DbSelection;
+  /** Whether the chosen Notes database has the optional `Content` relation — see
+   *  ./dbSelection.ts's notesHasContentFor. Only `false` reaches the config; `true` and
+   *  `undefined` (schema unknown) both leave it out, which the server reads as "has it". */
+  notesHasContent?: boolean;
   picker: DbPickerState;
   voiceCfg: VoiceConfig;
 }
@@ -55,7 +59,13 @@ export interface CommitDeps {
  * `getTenantConfig()` — see boot.ts's settings-button handler and config-health.ts's `runCheck`.
  */
 export function commitSettings(input: CommitInput, deps: CommitDeps): void {
-  const cfg: TenantConfig = { token: input.token, ...input.selection };
+  const cfg: TenantConfig = {
+    token: input.token,
+    ...input.selection,
+    // Only the "lacks it" answer is written: absent already means "has it" server-side, so a
+    // database with Content saves exactly the config it always did.
+    ...(input.notesHasContent === false ? { notesHasContent: false } : {}),
+  };
 
   deps.setTenantConfig(cfg);
   deps.settingsSaved();

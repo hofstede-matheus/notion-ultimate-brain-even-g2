@@ -13,6 +13,9 @@ export interface Tenant {
   // IANA timezone of the requesting device; used to resolve relative date
   // keywords against the user's local calendar day. Absent → UTC.
   timeZone?: string;
+  // Only ever `false` — set when the device says its Notes database has no `Content` relation
+  // (TenantConfig.notesHasContent). Absent means "has it", so older configs keep today's filters.
+  notesHasContent?: false;
 }
 
 // Wire shape carried in the X-Notion-Config header: a base64 JSON blob,
@@ -40,7 +43,7 @@ export function parseTenant(headerValue: string | undefined | string[]): Tenant 
     return null;
   }
 
-  const { token, tasksDb, notesDb, projectsDb, tagsDb, timeZone } = payload;
+  const { token, tasksDb, notesDb, projectsDb, tagsDb, timeZone, notesHasContent } = payload;
   if (
     !isNonEmptyString(token) ||
     !isNonEmptyString(tasksDb) ||
@@ -60,6 +63,7 @@ export function parseTenant(headerValue: string | undefined | string[]): Tenant 
       tags: tagsDb,
     },
     ...(isNonEmptyString(timeZone) ? { timeZone } : {}),
+    ...(notesHasContent === false ? { notesHasContent: false as const } : {}),
   };
 }
 
