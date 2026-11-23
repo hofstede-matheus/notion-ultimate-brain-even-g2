@@ -64,6 +64,7 @@ import {
   FIT_TAGS_DB,
   FIT_TASKS_DB,
   fittingDatabases,
+  STOCK_UB_NOTES_DB,
   UNFIT_NOTES_MISSING_NOTE_DATE,
 } from './harness/dbFixtures';
 import {
@@ -820,6 +821,33 @@ describe('SettingsForm — commit', () => {
       notesDb: FIT_NOTES_DB.id,
       projectsDb: FIT_PROJECTS_DB.id,
       tagsDb: FIT_TAGS_DB.id,
+    });
+  });
+
+  it('saves a stock Ultimate Brain Notes database (no Content) with no warning, flagged notesHasContent: false', async () => {
+    // Issue #54: this database used to be flagged "missing Content", and four note lists failed.
+    mocks.fetchDatabases.mockResolvedValue([
+      FIT_TASKS_DB,
+      STOCK_UB_NOTES_DB,
+      FIT_PROJECTS_DB,
+      FIT_TAGS_DB,
+    ]);
+    const user = userEvent.setup();
+    renderForm();
+    await user.type(screen.getByLabelText('Integration Token'), VALID_TOKEN);
+    await waitFor(() => expect(selectTrigger('Notes Database')).toHaveTextContent(/Notes/), {
+      timeout: 2000,
+    });
+    expect(screen.queryByText(/missing/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(mocks.setTenantConfig).toHaveBeenCalledTimes(1));
+    expect(getTenantConfig()).toEqual({
+      token: VALID_TOKEN,
+      tasksDb: FIT_TASKS_DB.id,
+      notesDb: STOCK_UB_NOTES_DB.id,
+      projectsDb: FIT_PROJECTS_DB.id,
+      tagsDb: FIT_TAGS_DB.id,
+      notesHasContent: false,
     });
   });
 

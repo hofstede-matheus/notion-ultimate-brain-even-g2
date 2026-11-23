@@ -27,6 +27,7 @@ import {
   type DbSelection,
   EMPTY_SELECTION,
   isSelectionComplete,
+  notesHasContentFor,
   optionsForSlot,
   reconcileSelection,
   unfitReason,
@@ -191,6 +192,7 @@ export function SettingsForm({ showLog, onVersionTap }: SettingsFormProps) {
       {
         token: trimmedToken,
         selection,
+        notesHasContent: notesHasContentFor(selection, databases, ui.settingsPrefill),
         picker: { overrides: nextOverrides, showAll },
         voiceCfg: voiceConfigFromDraft(voiceMode, apiKey, languageHints, languageHintsStrict),
       },

@@ -6,6 +6,7 @@ import {
   EMPTY_SELECTION,
   fitsSlot,
   isSelectionComplete,
+  notesHasContentFor,
   optionsForSlot,
   reconcileSelection,
   unfitReason,
@@ -137,7 +138,35 @@ describe('fitsSlot', () => {
   });
 });
 
+// Stock Ultimate Brain Notes — every property the notes views use except Creator's Companion's
+// Content relation (issue #54).
+const STOCK_UB_NOTES_DB = {
+  id: 'stock-ub-notes',
+  name: 'Notes',
+  properties: {
+    Name: 'title',
+    Archived: 'checkbox',
+    Favorite: 'checkbox',
+    Type: 'select',
+    URL: 'url',
+    Tag: 'relation',
+    Project: 'relation',
+    Updated: 'last_edited_time',
+    'Note Date': 'date',
+  },
+};
+const CC_NOTES_DB = {
+  ...STOCK_UB_NOTES_DB,
+  id: 'cc-notes',
+  properties: { ...STOCK_UB_NOTES_DB.properties, Content: 'relation' },
+};
+
 describe('unfitReason', () => {
+  it('is null for a stock Ultimate Brain Notes database without Content (issue #54)', () => {
+    expect(unfitReason(STOCK_UB_NOTES_DB, 'notesDb')).toBeNull();
+    expect(fitsSlot(STOCK_UB_NOTES_DB, 'notesDb')).toBe(true);
+  });
+
   it('is null when the database fits', () => {
     expect(unfitReason(REAL_PROJECTS_DB, 'projectsDb')).toBeNull();
   });
@@ -289,5 +318,35 @@ describe('unfitSlots', () => {
 
   it('ignores an empty slot', () => {
     expect(unfitSlots(EMPTY_SELECTION, [DECOY_PROJECTS_DB])).toEqual([]);
+  });
+});
+
+describe('notesHasContentFor', () => {
+  const pick = (notesDb: string) => ({ ...EMPTY_SELECTION, notesDb });
+
+  it('is false when the chosen Notes database lacks Content', () => {
+    expect(notesHasContentFor(pick('stock-ub-notes'), [STOCK_UB_NOTES_DB, CC_NOTES_DB], null)).toBe(
+      false,
+    );
+  });
+
+  it('is true when the chosen Notes database has Content', () => {
+    expect(notesHasContentFor(pick('cc-notes'), [STOCK_UB_NOTES_DB, CC_NOTES_DB], null)).toBe(true);
+  });
+
+  it('the fetched schema wins over a previously saved answer', () => {
+    const previous = { notesDb: 'cc-notes', notesHasContent: false };
+    expect(notesHasContentFor(pick('cc-notes'), [CC_NOTES_DB], previous)).toBe(true);
+  });
+
+  it('keeps the saved answer when the list did not load and the Notes database is unchanged', () => {
+    const previous = { notesDb: 'stock-ub-notes', notesHasContent: false };
+    expect(notesHasContentFor(pick('stock-ub-notes'), null, previous)).toBe(false);
+  });
+
+  it('is undefined when nothing can tell — no schema, and a different (or no) saved database', () => {
+    const previous = { notesDb: 'other', notesHasContent: false };
+    expect(notesHasContentFor(pick('unknown'), [UNKNOWN_SCHEMA_DB], previous)).toBeUndefined();
+    expect(notesHasContentFor(pick('stock-ub-notes'), null, null)).toBeUndefined();
   });
 });

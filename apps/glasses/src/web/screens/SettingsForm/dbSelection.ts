@@ -5,7 +5,13 @@
  * `src/__tests__/**` include).
  */
 
-import { type DbRole, evaluateRoles, type NotionDatabaseSummary } from '@notion-ub/contracts';
+import {
+  type DbRole,
+  evaluateRoles,
+  type NotionDatabaseSummary,
+  notesHasContent,
+  type TenantConfig,
+} from '@notion-ub/contracts';
 
 export type DbSlotKey = 'tasksDb' | 'notesDb' | 'projectsDb' | 'tagsDb';
 
@@ -188,4 +194,22 @@ export function unfitSlots(
     const db = selection[slot.key] && byId.get(selection[slot.key]);
     return db ? !fitsSlot(db, slot.key) : false;
   }).map((slot) => slot.key);
+}
+
+/**
+ * Whether the database chosen for the Notes slot has the optional `Content` relation (issue #54),
+ * for TenantConfig.notesHasContent. When the fetched list can't tell (it didn't load, the chosen
+ * id isn't in it, or the server sent no schema), the previously saved answer carries over if the
+ * Notes database is unchanged; otherwise `undefined`, which the server reads as "has it" —
+ * today's behaviour, never a guess of "lacks it".
+ */
+export function notesHasContentFor(
+  selection: DbSelection,
+  databases: NotionDatabaseSummary[] | null,
+  previous: Pick<TenantConfig, 'notesDb' | 'notesHasContent'> | null,
+): boolean | undefined {
+  const chosen = databases?.find((db) => db.id === selection.notesDb);
+  const fromSchema = notesHasContent(chosen?.properties);
+  if (fromSchema !== undefined) return fromSchema;
+  return previous?.notesDb === selection.notesDb ? previous.notesHasContent : undefined;
 }

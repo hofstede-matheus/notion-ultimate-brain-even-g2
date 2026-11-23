@@ -52,6 +52,24 @@ function flattenBool(kind: 'and' | 'or', children: NotionFilter[]): NotionFilter
   return { [kind]: merged };
 }
 
+/**
+ * `node` without any leaf clause on a property in `names`, or `undefined` when nothing is left.
+ * An `and`/`or` group that loses every child is dropped with it. Used to leave an optional
+ * property (ROLE_REQUIREMENTS `optional`) out of a query for a database that doesn't have it —
+ * see routes.ts's filterFor.
+ */
+export function omitProperties(node: NotionFilter, names: Set<string>): NotionFilter | undefined {
+  for (const kind of ['and', 'or'] as const) {
+    const group = node[kind];
+    if (!group) continue;
+    const kept = group
+      .map((child) => omitProperties(child, names))
+      .filter((child): child is NotionFilter => child !== undefined);
+    return kept.length > 0 ? { [kind]: kept } : undefined;
+  }
+  return node.property !== undefined && names.has(node.property) ? undefined : node;
+}
+
 export function translateFilter(node: NotionFilter, timeZone = 'UTC'): NotionFilter {
   if (node.and)
     return flattenBool(

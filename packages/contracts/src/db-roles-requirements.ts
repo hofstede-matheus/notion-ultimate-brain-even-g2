@@ -12,6 +12,14 @@ interface RequiredProperty {
    * db-roles-drift.test.ts checks both against views.ts directly.
    */
   views: string[];
+  /**
+   * The property is a refinement, not a prerequisite: when the chosen database lacks it, the
+   * server drops its filter clause (see apps/server/src/routes.ts's buildViewRoutes) and the views
+   * still load. evaluateRoles() therefore never reports it as missing. Only meaningful for a
+   * property used solely inside an `and` filter group — dropping it there widens the result
+   * rather than breaking the query.
+   */
+  optional?: true;
 }
 
 /**
@@ -23,6 +31,19 @@ interface RequiredProperty {
 function titleReq(views: string[]): RequiredProperty {
   return { names: ['Name', 'Task', 'Title'], types: ['title'], views };
 }
+
+/**
+ * Creator's Companion's `Content` relation on Notes, absent from stock Ultimate Brain (issue #54).
+ * Settings records its absence as TenantConfig.notesHasContent = false (see db-roles.ts's
+ * notesHasContent), and the server then drops the "Content is empty" clause from these views
+ * instead of sending a filter Notion would reject.
+ */
+export const NOTES_CONTENT_REQ: RequiredProperty = {
+  names: ['Content'],
+  types: ['relation'],
+  views: ['inbox', 'by-tag', 'notes', 'by-project'],
+  optional: true,
+};
 
 /**
  * Derived strictly from what apps/server/src/views.ts, routes.ts and mappers.ts actually
@@ -74,7 +95,7 @@ export const ROLE_REQUIREMENTS: Record<
     { names: ['URL'], types: ['url'], views: ['by-tag', 'notes', 'by-project', 'clips'] },
     { names: ['Tag'], types: ['relation'], views: ['inbox', 'notes'] },
     { names: ['Project'], types: ['relation'], views: ['inbox', 'notes'] },
-    { names: ['Content'], types: ['relation'], views: ['inbox', 'by-tag', 'notes', 'by-project'] },
+    NOTES_CONTENT_REQ,
     {
       names: ['Updated'],
       views: ['inbox', 'by-tag', 'notes', 'by-project', 'clips', 'voice', 'all'],

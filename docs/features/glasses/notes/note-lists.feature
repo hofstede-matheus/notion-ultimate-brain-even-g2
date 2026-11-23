@@ -82,6 +82,20 @@ Feature: The ten note lists
     Then each row shows the note's name only
     # Its full name and where it is filed are one tap away, on its details screen.
 
+  Scenario Outline: The lists that skip Content-linked notes still load without a Content relation
+    Given my Notes database has no "Content" relation (stock Ultimate Brain, no Creator's Companion)
+    When I open "<row>"
+    Then the list loads
+    # Where a "Content" relation exists, these lists leave out notes linked to a Content item;
+    # without one there is nothing to leave out, and the list no longer fails (#54).
+
+    Examples:
+      | row        |
+      | Inbox      |
+      | By Tag     |
+      | Notes      |
+      | By Project |
+
   Scenario: A note can appear in more than one list
     Given a voice note that is also marked favourite
     Then it appears in "VOICE NOTES"

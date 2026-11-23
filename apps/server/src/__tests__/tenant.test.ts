@@ -54,6 +54,19 @@ describe('parseTenant', () => {
     expect(parseTenant(encode({ ...validPayload, notesDb: 42 }))).toBeNull();
   });
 
+  it('keeps notesHasContent: false on the tenant (issue #54)', () => {
+    const tenant = parseTenant(encode({ ...validPayload, notesHasContent: false }));
+    expect(tenant?.notesHasContent).toBe(false);
+  });
+
+  it('treats an absent, true or malformed notesHasContent as "has it" (left off the tenant)', () => {
+    for (const notesHasContent of [undefined, true, 'false', 0, null]) {
+      const tenant = parseTenant(encode({ ...validPayload, notesHasContent }));
+      expect(tenant).not.toBeNull();
+      expect(tenant).not.toHaveProperty('notesHasContent');
+    }
+  });
+
   it('keeps a non-empty timeZone on the tenant', () => {
     const tenant = parseTenant(encode({ ...validPayload, timeZone: 'Asia/Tokyo' }));
     expect(tenant?.timeZone).toBe('Asia/Tokyo');

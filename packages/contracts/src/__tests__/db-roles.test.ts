@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateRoles } from '../db-roles';
+import { evaluateRoles, notesHasContent } from '../db-roles';
 
 // Property-type maps taken from the real Notion workspace involved in this incident (fetched
 // read-only via the Notion API during investigation) — not synthetic fixtures.
@@ -95,7 +95,8 @@ describe('evaluateRoles', () => {
   it('names every missing property, not a sample of them', () => {
     // A database with no properties at all is missing everything its role needs — the settings
     // picker shows this list verbatim, so a user renaming properties in Notion sees all of them
-    // at once rather than three at a time.
+    // at once rather than three at a time. `Content` is absent on purpose: it is optional (issue
+    // #54), so it is never "missing" — see the optional-property tests below.
     const { unfit } = evaluateRoles({});
     expect(unfit?.notes?.missing).toEqual([
       'Name',
@@ -105,7 +106,6 @@ describe('evaluateRoles', () => {
       'URL',
       'Tag',
       'Project',
-      'Content',
       'Updated',
       'Note Date',
     ]);
@@ -136,5 +136,38 @@ describe('evaluateRoles', () => {
       expect(unfit?.notes?.brokenViews).toEqual([]);
       expect(unfit?.notes?.allViewsBroken).toBe(false);
     });
+  });
+
+  describe('optional properties (issue #54 — stock Ultimate Brain has no Content relation)', () => {
+    it('fits a Notes database without Content to the notes role, with no warning', () => {
+      const { Content: _omitted, ...properties } = REAL_UB_NOTES_DB;
+      const { roles, unfit } = evaluateRoles(properties);
+      expect(roles).toContain('notes');
+      expect(unfit?.notes).toBeUndefined();
+    });
+
+    it('still reports a real requirement missing alongside an absent Content', () => {
+      const { Content: _c, 'Note Date': _d, ...properties } = REAL_UB_NOTES_DB;
+      expect(evaluateRoles(properties).unfit?.notes?.missing).toEqual(['Note Date']);
+    });
+  });
+});
+
+describe('notesHasContent', () => {
+  it('is true when the database has a Content relation', () => {
+    expect(notesHasContent(REAL_UB_NOTES_DB)).toBe(true);
+  });
+
+  it('is false when Content is absent', () => {
+    const { Content: _omitted, ...properties } = REAL_UB_NOTES_DB;
+    expect(notesHasContent(properties)).toBe(false);
+  });
+
+  it('is false when Content exists but is not a relation — the filter would still be rejected', () => {
+    expect(notesHasContent({ ...REAL_UB_NOTES_DB, Content: 'rich_text' })).toBe(false);
+  });
+
+  it('is undefined (unknown), never false, when there is no schema', () => {
+    expect(notesHasContent(undefined)).toBeUndefined();
   });
 });

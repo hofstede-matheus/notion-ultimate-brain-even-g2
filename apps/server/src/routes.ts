@@ -13,6 +13,7 @@
  * little work here for a much smaller payload over a phone-tethered link.
  */
 
+import { ROLE_REQUIREMENTS } from '@notion-ub/contracts';
 import type { Client } from '@notionhq/client';
 import {
   APIErrorCode,
@@ -20,7 +21,7 @@ import {
   isNotionClientError,
   UnknownHTTPResponseError,
 } from '@notionhq/client';
-import { translateFilter } from './filters';
+import { omitProperties, translateFilter } from './filters';
 import type { NotionPage } from './mappers';
 import {
   databaseToSummary,
@@ -35,6 +36,7 @@ import type { TenantDb } from './tenant';
 import { parseTenant, parseToken } from './tenant';
 import {
   NOTE_VIEWS,
+  type NotionFilter,
   PROJECT_VIEWS,
   TAG_VIEWS,
   TASK_STATUS_DONE,
@@ -52,6 +54,8 @@ export interface RouteContext {
   db?: TenantDb;
   // IANA timezone of the requesting device; drives relative-date resolution.
   timeZone?: string;
+  // False when the tenant's Notes database lacks the optional `Content` relation (issue #54).
+  notesHasContent?: false;
   // Notion's opaque pagination cursor (?cursor=... query param), when the
   // caller is resuming a list-view query past its first page.
   cursor?: string;
@@ -203,11 +207,30 @@ export async function runRoute(
     notion: createNotionClient(tenant.token),
     db: tenant.db,
     timeZone: tenant.timeZone,
+    notesHasContent: tenant.notesHasContent,
     cursor,
   });
 }
 
 type DbKey = keyof TenantDb;
+
+/**
+ * The notes role's optional properties (ROLE_REQUIREMENTS entries marked `optional`) — today just
+ * `Content`. Read from the shared table rather than restated here, so the property Settings
+ * checks for and the clause dropped below can't drift apart.
+ */
+const OPTIONAL_NOTES_PROPERTIES = new Set(
+  ROLE_REQUIREMENTS.notes.filter((req) => req.optional).map((req) => req.names[0]),
+);
+
+/** The view's filter as this tenant's database can run it: a notes database without `Content`
+ *  gets the view minus its "Content is empty" clause, rather than a filter Notion rejects. */
+function filterFor(view: ViewConfig, dbKey: DbKey, ctx: AuthedContext): NotionFilter | undefined {
+  if (dbKey === 'notes' && ctx.notesHasContent === false && view.filter) {
+    return omitProperties(view.filter, OPTIONAL_NOTES_PROPERTIES);
+  }
+  return view.filter;
+}
 
 // The public databases.query params/results are far more precisely typed than
 // the loose filter grammar (translateFilter) and page shape (NotionPage) this
@@ -226,11 +249,10 @@ function buildViewRoutes(
     method: 'GET',
     path: `/api/${domain}/${view.path}`,
     handler: authed(async (ctx) => {
+      const filter = filterFor(view, dbKey, ctx);
       const response = await ctx.notion.databases.query({
         database_id: ctx.db[dbKey],
-        filter: (view.filter
-          ? translateFilter(view.filter, ctx.timeZone)
-          : undefined) as NotionQueryFilter,
+        filter: (filter ? translateFilter(filter, ctx.timeZone) : undefined) as NotionQueryFilter,
         sorts: view.sorts,
         start_cursor: ctx.cursor,
         page_size: 100,

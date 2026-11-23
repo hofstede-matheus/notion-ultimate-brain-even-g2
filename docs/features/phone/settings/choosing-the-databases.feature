@@ -175,6 +175,14 @@ Feature: Choosing the four databases
       Then the warning names the missing property
       And says every list will still work
 
+    Scenario: A Notes database without a Content relation fits, with no warning
+      Given my Notes database is a stock Ultimate Brain one, with no "Content" relation
+      Then it is offered in the Notes dropdown like any fitting database
+      And choosing it shows no warning
+      And saving it tells the glasses that this Notes database has no "Content" relation
+      # "Content" only comes with the Creator's Companion add-on. Four note lists hide notes
+      # linked to Content; without the relation they skip that check instead of failing (#54).
+
     Scenario: An empty slot with no fitting databases
       Given a slot is unset
       And none of the shared databases fit that role

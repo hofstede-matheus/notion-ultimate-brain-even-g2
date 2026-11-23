@@ -39,6 +39,19 @@ export const FIT_NOTES_DB: NotionDatabaseSummary = {
   },
 };
 
+/**
+ * Stock Ultimate Brain Notes — FIT_NOTES_DB without Creator's Companion's `Content` relation
+ * (issue #54). Fits the notes role (Content is optional); saving it records
+ * `notesHasContent: false` so the server drops the Content clause.
+ */
+export const STOCK_UB_NOTES_DB: NotionDatabaseSummary = {
+  id: 'db-notes-stock-ub',
+  name: 'Notes',
+  properties: Object.fromEntries(
+    Object.entries(FIT_NOTES_DB.properties ?? {}).filter(([name]) => name !== 'Content'),
+  ),
+};
+
 /** Fits every requirement of the `projects` role. */
 export const FIT_PROJECTS_DB: NotionDatabaseSummary = {
   id: 'db-projects-fit',
