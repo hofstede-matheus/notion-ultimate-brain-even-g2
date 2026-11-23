@@ -12,6 +12,8 @@
     "fileName": "reports/mutation/index.html"
   },
   "timeoutMS": 15000,
+  "ignoreStatic": true,
+  "incremental": true,
   "thresholds": {
     "high": 90,
     "low": 75,
@@ -19,24 +21,12 @@
   },
   "mutate": [
     "src/glasses/content/markdown-to-pages.ts",
-    "src/glasses/bitmap/bmp.ts",
-    "src/glasses/bitmap/font5x7.ts",
-    "src/glasses/bitmap/pixels.ts",
     "src/glasses/modules/tasks/calendar/month-grid.ts",
     "src/glasses/modules/_shared/pagination.ts",
-    "src/glasses/modules/_shared/screen-factories.ts",
     "src/glasses/events/resolve.ts",
-    "src/logging/format.ts",
     "src/logging/redact.ts",
-    "src/logging/sink.ts",
-    "src/logging/export.ts",
     "src/cache.ts",
     "src/page-loader.ts",
-    "src/stt/soniox-languages.ts",
-    "src/web/screens/SettingsForm/dbSelection.ts",
-    "src/web/screens/SettingsForm/submit.ts",
-    "src/web/screens/SettingsForm/voiceSection.ts",
-    "src/web/screens/SettingsForm/debugLogUnlock.ts",
-    "src/web/utils/consoleNoise.ts"
+    "src/web/screens/SettingsForm/dbSelection.ts"
   ]
 }

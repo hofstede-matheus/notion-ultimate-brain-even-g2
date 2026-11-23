@@ -102,12 +102,25 @@ when a git diff touches glasses source, `packages/**`, lockfiles, or
   `Read` the resulting screenshots yourself before calling a glasses-screen
   or webview change done.
 - **Mutation testing scores the unit suite, not the product.** Scope is
-  pure logic only — SDK/HTTP glue (`api.ts`, `glasses/render/*`, `boot.ts`),
-  constant tables (`glasses/constants.ts`, `views.ts`, `db-roles-requirements.ts`,
-  `font5x7-glyphs.ts`, `soniox-language-codes.ts`, `event-type-names.ts`), `.tsx` components, and known
-  coverage gaps (`tenant-config.ts`, `logging/trace.ts`) are excluded so
-  survivors stay signal. Each workspace's `thresholds.break` is a ratchet:
-  raise it as holes are closed, never lower it to make a run green.
+  deliberately narrow — it is slow and CPU-heavy, so only logic where a
+  silent bug corrupts data or leaks secrets is mutated: reader pagination
+  (`markdown-to-pages.ts`, `pagination.ts`), input resolution
+  (`events/resolve.ts`), calendar date math (`month-grid.ts`), cache/page
+  loading, DB-role selection (`dbSelection.ts`, `db-roles.ts`), log
+  redaction, and the server's mappers/filters/tenant parsing/routing.
+  Rendering (`bitmap/*`, `screen-factories.ts`), log formatting/export,
+  settings-form helpers, glue code, constant tables and `.tsx` are out of
+  scope — they are covered by unit tests and by looking at the simulator.
+  Don't add a file to `mutate` unless it meets that bar. Glasses sets
+  `ignoreStatic`: module-level mutants force the whole suite per mutant
+  (~65% of the run) and only hit constant tables. It also runs
+  `incremental`: results for unchanged code and tests are reused from
+  `reports/stryker-incremental.json` (gitignored), so a re-run costs about
+  the dry run plus the touched mutants. Pass `--force` to
+  `pnpm --filter @notion-ub/glasses mutation` for a full run, e.g. after a
+  dependency bump. Each workspace's
+  `thresholds.break` is a ratchet: raise it as holes are closed, never
+  lower it to make a run green.
 
 ## Conventions
 
