@@ -126,8 +126,14 @@ describe('loadDismissedWhatsNew', () => {
 });
 
 describe('WHATS_NEW_ENTRY', () => {
-  it('has at least one bullet describing the gesture change', () => {
-    expect(WHATS_NEW_ENTRY.bullets.length).toBeGreaterThan(0);
-    expect(WHATS_NEW_ENTRY.bullets.join(' ')).toMatch(/tap and hold/i);
+  it('announces the optional Content relation fix as its only line', () => {
+    expect(WHATS_NEW_ENTRY.title).toBe("What's new");
+    expect(WHATS_NEW_ENTRY.bullets).toEqual([
+      'Make Content relation optional for stock Ultimate Brain',
+    ]);
+  });
+
+  it('uses a new id, so wearers who dismissed the previous card see this one', () => {
+    expect(WHATS_NEW_ENTRY.id).not.toBe('context-menu');
   });
 });
