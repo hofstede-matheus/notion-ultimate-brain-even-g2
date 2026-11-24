@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.12.0](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.11.0...glasses-v2.12.0) (2026-11-24)
+
+
+### Features
+
+* **glasses:** build the what's new card from changelog.md ([#62](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/62)) ([77eb531](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/77eb531f2143e8b8b86168a74e013e606d811ce2)), closes [#61](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/61)
+
+
+### Bug Fixes
+
+* **notes:** make Content relation optional for stock Ultimate Brain ([#57](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/issues/57)) ([c479874](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/commit/c479874a360081d367d635362bbdcb86ae7fc8bf))
+
 ## [2.11.0](https://github.com/hofstede-matheus/notion-ultimate-brain-even-g2/compare/glasses-v2.10.0...glasses-v2.11.0) (2026-08-30)
 
 
