@@ -24,13 +24,9 @@ export interface WhatsNewEntry {
  * user about; this one stays dismissed on its own id forever after.
  */
 export const WHATS_NEW_ENTRY: WhatsNewEntry = {
-  id: 'context-menu',
+  id: 'notes-content-optional',
   title: "What's new",
-  bullets: [
-    'Tapping a task or note opens its details.',
-    'From there, hold to mark a task done — with a confirmation, no menu needed.',
-    'Tap and hold for the rest: open the page, change the due date or project, delete.',
-  ],
+  bullets: ['Make Content relation optional for stock Ultimate Brain'],
 };
 
 /** True once `entryId` has been dismissed. */
