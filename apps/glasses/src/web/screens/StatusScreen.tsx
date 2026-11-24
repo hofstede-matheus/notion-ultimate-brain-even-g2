@@ -5,20 +5,26 @@ import { useEffect, useState } from 'react';
 import { APP_DISPLAY_NAME } from '../../app-info';
 import { useUiState } from '../hooks/useUiState';
 import { triggerConnect } from '../providers/uiController';
-import { dismissWhatsNew, isDismissed, loadDismissedWhatsNew, WHATS_NEW_ENTRY } from '../whats-new';
+import {
+  APP_VERSION,
+  dismissWhatsNew,
+  loadSeenWhatsNewVersion,
+  RELEASE_NOTES,
+  shouldShowWhatsNew,
+} from '../whats-new';
 import { WhatsNew } from './components/WhatsNew';
 
 export function StatusScreen() {
   const ui = useUiState();
-  // Starts hidden and flips on once the dismissed-ids read resolves — a storage read is async
+  // Starts hidden and flips on once the seen-version read resolves — a storage read is async
   // (bridge or localStorage), and there's nothing sensible to show optimistically that isn't
   // either a flash of the card or a flash of it disappearing a moment later.
   const [showWhatsNew, setShowWhatsNew] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    void loadDismissedWhatsNew().then((dismissed) => {
-      if (!cancelled) setShowWhatsNew(!isDismissed(dismissed, WHATS_NEW_ENTRY.id));
+    void loadSeenWhatsNewVersion().then((seen) => {
+      if (!cancelled) setShowWhatsNew(shouldShowWhatsNew(RELEASE_NOTES, APP_VERSION, seen));
     });
     return () => {
       cancelled = true;
@@ -27,13 +33,15 @@ export function StatusScreen() {
 
   function handleDismissWhatsNew(): void {
     setShowWhatsNew(false);
-    void dismissWhatsNew(WHATS_NEW_ENTRY.id);
+    void dismissWhatsNew(APP_VERSION);
   }
 
   return (
     <div>
       <ScreenHeader title={APP_DISPLAY_NAME} />
-      {showWhatsNew && <WhatsNew onDismiss={handleDismissWhatsNew} />}
+      {showWhatsNew && RELEASE_NOTES && (
+        <WhatsNew notes={RELEASE_NOTES} onDismiss={handleDismissWhatsNew} />
+      )}
       <div className="flex items-center gap-2 mb-4">
         <StatusDot connected={ui.deviceConnected ?? ui.connected} />
         <p className="text-[15px] text-text-dim">{ui.status}</p>

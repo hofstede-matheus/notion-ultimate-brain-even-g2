@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { FIXTURE_PORT, VITE_PORT } from './src/__integration__/env';
+import { parseLatestRelease, releaseNotesProblem } from './src/build/changelog';
 
 /**
  * The dev server the integration suite drives — see global-setup.ts. A
@@ -16,10 +17,18 @@ const pkg = JSON.parse(
   readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8'),
 );
 
+// Same card source as vite.config.ts; a dev server only warns on a bad section.
+const releaseNotes = parseLatestRelease(
+  readFileSync(fileURLToPath(new URL('./CHANGELOG.md', import.meta.url)), 'utf-8'),
+);
+const releaseNotesIssue = releaseNotesProblem(releaseNotes, pkg.version);
+if (releaseNotesIssue) console.warn(`[vite e2e] What's new card: ${releaseNotesIssue}`);
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    __RELEASE_NOTES__: JSON.stringify(releaseNotesIssue ? null : releaseNotes),
   },
   resolve: {
     alias: {

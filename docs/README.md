@@ -159,7 +159,7 @@ tags/
 status-screen/
   connecting.feature                       from "app opened" to "use your glasses"
   glasses-connection.feature               the connection dot and its warning
-  whats-new.feature                        the dismissible card announcing what changed
+  whats-new.feature                        the dismissible card with this version's changelog
 
 settings/
   first-run-setup.feature                  the setup that cannot be skipped
