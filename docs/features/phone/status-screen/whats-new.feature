@@ -1,17 +1,18 @@
 @phone
 Feature: What's new
 
-  A card on the status screen tells someone who already knows the app that something changed —
-  right now, that tapping a task or note opens its details, that holding those details marks a
-  task done, and that tap-and-hold is the new way to reach everything else.
+  A card on the status screen tells someone who already knows the app what changed in the
+  version they are running. Its content is that version's CHANGELOG.md section, the same text
+  as the GitHub Release, grouped the same way ("Features", "Bug Fixes", ...). Nobody writes it
+  by hand.
 
   It stays until it is dismissed by hand. There is no timer and no auto-expiry.
 
   Scenario: The card appears above the connection status
-    Given the app has an unseen "What's new" entry
+    Given I have not dismissed the card for the version I am running
     When I open the app
     Then the card is shown above the connection status
-    And it lists what changed
+    And it lists this version's changelog, under its group headings
     And a "Got it" button is shown
 
   Scenario: Dismissing it
@@ -21,12 +22,17 @@ Feature: What's new
     And it does not come back the next time I open the app
 
   Scenario: Nothing to show
-    Given every entry has already been dismissed
+    Given I have dismissed the card for the version I am running
     When I open the app
     Then no card is shown
 
-  Scenario: A future entry reappears once
-    Given the current entry has been dismissed
-    When a later version adds a new entry
-    Then that new entry's card is shown once
-    # Dismissing one entry does not dismiss entries added after it.
+  Scenario: Each update shows its own notes once
+    Given I dismissed the card on an earlier version
+    When the app updates to a new version
+    Then the card is shown with the new version's changelog
+    # Dismissing stores the version, so every release shows up once with no id to change.
+
+  Scenario: A fresh install shows the installed version's notes
+    Given I have never opened the app
+    When I open the app
+    Then the card is shown with the installed version's changelog

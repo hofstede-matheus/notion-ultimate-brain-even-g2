@@ -3,59 +3,76 @@ import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { parseLatestRelease, releaseNotesProblem } from './src/build/changelog';
 import { stripReactProdErrorUrlsFromBundle } from './src/build/strip-react-error-urls';
 
 const pkg = JSON.parse(
   readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8'),
 );
 
-export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    {
-      name: 'strip-react-prod-error-urls',
-      apply: 'build',
-      enforce: 'post',
-      generateBundle(_options, bundle) {
-        stripReactProdErrorUrlsFromBundle(bundle);
+// The status screen's "What's new" card (web/whats-new.ts) is the newest
+// CHANGELOG.md section. release-please writes that section and bumps
+// package.json in the same commit, and build-ehpk.yml builds that commit.
+const releaseNotes = parseLatestRelease(
+  readFileSync(fileURLToPath(new URL('./CHANGELOG.md', import.meta.url)), 'utf-8'),
+);
+const releaseNotesIssue = releaseNotesProblem(releaseNotes, pkg.version);
+
+export default defineConfig(({ command }) => {
+  if (releaseNotesIssue) {
+    // A shipped build must never carry an empty or mislabelled card; dev can.
+    if (command === 'build') throw new Error(`What's new card: ${releaseNotesIssue}`);
+    console.warn(`[vite] What's new card: ${releaseNotesIssue}`);
+  }
+  return {
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        name: 'strip-react-prod-error-urls',
+        apply: 'build',
+        enforce: 'post',
+        generateBundle(_options, bundle) {
+          stripReactProdErrorUrlsFromBundle(bundle);
+        },
+      },
+    ],
+    define: {
+      // Baked in at build time so the exported log (see logging/export.ts)
+      // always names the app version that produced it — stays in step with
+      // package.json for free, which release-please keeps authoritative.
+      __APP_VERSION__: JSON.stringify(pkg.version),
+      __RELEASE_NOTES__: JSON.stringify(releaseNotesIssue ? null : releaseNotes),
+    },
+    resolve: {
+      alias: {
+        '@web': fileURLToPath(new URL('./src/web', import.meta.url)),
       },
     },
-  ],
-  define: {
-    // Baked in at build time so the exported log (see logging/export.ts)
-    // always names the app version that produced it — stays in step with
-    // package.json for free, which release-please keeps authoritative.
-    __APP_VERSION__: JSON.stringify(pkg.version),
-  },
-  resolve: {
-    alias: {
-      '@web': fileURLToPath(new URL('./src/web', import.meta.url)),
+    // index.html lives in src/web/ (the browser-only shell) rather than the
+    // project root — outDir is pointed back at the project root so `dist/` lands
+    // where `evenhub pack` expects it.
+    root: 'src/web',
+    // .env* files live at the package root (apps/glasses/), not under root
+    // (src/web/) — without this, Vite's default envDir (= root) would never
+    // find them and import.meta.env.VITE_* would always be undefined.
+    envDir: '../..',
+    // Nothing to copy: the only static asset was the 39 MB voice model, which is
+    // now downloaded at runtime (see src/voice-model.ts).
+    publicDir: false,
+    build: {
+      outDir: '../../dist',
+      emptyOutDir: true,
     },
-  },
-  // index.html lives in src/web/ (the browser-only shell) rather than the
-  // project root — outDir is pointed back at the project root so `dist/` lands
-  // where `evenhub pack` expects it.
-  root: 'src/web',
-  // .env* files live at the package root (apps/glasses/), not under root
-  // (src/web/) — without this, Vite's default envDir (= root) would never
-  // find them and import.meta.env.VITE_* would always be undefined.
-  envDir: '../..',
-  // Nothing to copy: the only static asset was the 39 MB voice model, which is
-  // now downloaded at runtime (see src/voice-model.ts).
-  publicDir: false,
-  build: {
-    outDir: '../../dist',
-    emptyOutDir: true,
-  },
-  server: {
-    host: true,
-    port: 5173,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3210',
-        changeOrigin: true,
+    server: {
+      host: true,
+      port: 5173,
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3210',
+          changeOrigin: true,
+        },
       },
     },
-  },
+  };
 });

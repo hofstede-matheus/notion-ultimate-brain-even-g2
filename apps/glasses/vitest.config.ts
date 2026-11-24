@@ -6,6 +6,16 @@ export default defineConfig({
   // (see logging/export.ts) doesn't ReferenceError under vitest.
   define: {
     __APP_VERSION__: JSON.stringify('test'),
+    // Fixed fixture for the status screen's "What's new" card, so tests don't
+    // track whatever CHANGELOG.md says today (changelog.test.ts reads the real
+    // file instead).
+    __RELEASE_NOTES__: JSON.stringify({
+      version: 'test',
+      groups: [
+        { heading: 'Features', bullets: ['tasks: fixture feature'] },
+        { heading: 'Bug Fixes', bullets: ['notes: fixture fix one', 'fixture fix two'] },
+      ],
+    }),
   },
   resolve: {
     alias: {

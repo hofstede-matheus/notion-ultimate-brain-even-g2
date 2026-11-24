@@ -62,6 +62,11 @@ Env (see `.env.example`): `VITE_API_BASE` goes in `.env.production` (baked in at
 
 ## Gotchas
 
+- **The phone "What's new" card is generated, never hand-edited.** vite.config.ts parses
+  the newest `CHANGELOG.md` section (`src/build/changelog.ts`) into `__RELEASE_NOTES__`,
+  and "Got it" stores the app version. The card text is the commit subjects, so write them
+  for wearers. `vite build` fails if that section is missing or its version ≠ package.json.
+
 - **Integration Today fixtures must be date-relative.** The Today screen filters
   `dueDate === todayDateStr()` client-side — `__integration__/fixtures.ts` must use
   `format(addDays(new Date(), n), 'yyyy-MM-dd')` (local calendar), never a literal

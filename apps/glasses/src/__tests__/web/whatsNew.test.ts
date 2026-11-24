@@ -1,6 +1,6 @@
 /**
- * The status screen's "what's new" card (web/whats-new.ts) — dismissed-ids persistence and the
- * pure isDismissed check. Same bridge/localStorage-fallback shape as services/config.ts's
+ * The status screen's "what's new" card (web/whats-new.ts) — the pure shouldShowWhatsNew check
+ * and seen-version persistence. Same bridge/localStorage-fallback shape as services/config.ts's
  * db-picker state, under its own storage key rather than TenantConfig.
  */
 
@@ -13,13 +13,15 @@ vi.mock('../../state', () => ({
 }));
 
 import {
+  APP_VERSION,
   dismissWhatsNew,
-  isDismissed,
-  loadDismissedWhatsNew,
-  WHATS_NEW_ENTRY,
+  loadSeenWhatsNewVersion,
+  RELEASE_NOTES,
+  shouldShowWhatsNew,
 } from '../../web/whats-new';
 
-const STORAGE_KEY = 'notionultimatebrain:whatsnew-dismissed';
+const STORAGE_KEY = 'notionultimatebrain:whatsnew-seen-version';
+const NOTES = { version: '2.12.0', groups: [{ heading: 'Features', bullets: ['tasks: x'] }] };
 
 /** Stand-in for the Even Hub bridge's async key-value storage. */
 function fakeBridge() {
@@ -42,77 +44,85 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('isDismissed', () => {
-  it('is false when the id is not in the list', () => {
-    expect(isDismissed([], 'context-menu')).toBe(false);
-    expect(isDismissed(['some-other-id'], 'context-menu')).toBe(false);
+describe('shouldShowWhatsNew', () => {
+  it('shows when nothing has been dismissed yet', () => {
+    expect(shouldShowWhatsNew(NOTES, '2.12.0', null)).toBe(true);
   });
 
-  it('is true once the id is in the list', () => {
-    expect(isDismissed(['context-menu'], 'context-menu')).toBe(true);
+  it('hides once the current version has been dismissed', () => {
+    expect(shouldShowWhatsNew(NOTES, '2.12.0', '2.12.0')).toBe(false);
+  });
+
+  it('shows again once the version changes after a dismissal', () => {
+    expect(shouldShowWhatsNew(NOTES, '2.12.0', '2.11.0')).toBe(true);
+  });
+
+  it('hides when the build carries no notes, or notes with no groups', () => {
+    expect(shouldShowWhatsNew(null, '2.12.0', null)).toBe(false);
+    expect(shouldShowWhatsNew({ version: '2.12.0', groups: [] }, '2.12.0', null)).toBe(false);
   });
 });
 
-describe('loadDismissedWhatsNew', () => {
-  it('defaults to an empty list when nothing is stored', async () => {
+describe('baked-in build constants', () => {
+  it('reads the notes and version vite defines (vitest.config.ts fixture)', () => {
+    expect(APP_VERSION).toBe('test');
+    expect(RELEASE_NOTES?.version).toBe('test');
+    expect(RELEASE_NOTES?.groups.map((g) => g.heading)).toEqual(['Features', 'Bug Fixes']);
+  });
+});
+
+describe('loadSeenWhatsNewVersion / dismissWhatsNew', () => {
+  it('is null when nothing is stored', async () => {
     mocks.bridge = fakeBridge();
-    expect(await loadDismissedWhatsNew()).toEqual([]);
+    expect(await loadSeenWhatsNewVersion()).toBeNull();
   });
 
-  it('round-trips a dismissal through the bridge', async () => {
+  it('round-trips a dismissed version through the bridge', async () => {
     const bridge = fakeBridge();
     mocks.bridge = bridge;
 
-    await dismissWhatsNew('context-menu');
+    await dismissWhatsNew('2.12.0');
 
-    expect(await loadDismissedWhatsNew()).toEqual(['context-menu']);
-    expect(bridge.setLocalStorage).toHaveBeenCalledWith(
-      STORAGE_KEY,
-      JSON.stringify(['context-menu']),
-    );
+    expect(await loadSeenWhatsNewVersion()).toBe('2.12.0');
+    expect(bridge.setLocalStorage).toHaveBeenCalledWith(STORAGE_KEY, '2.12.0');
   });
 
-  it('dismissing the same id twice does not duplicate it', async () => {
+  it('a later dismissal replaces the earlier version', async () => {
     mocks.bridge = fakeBridge();
 
-    await dismissWhatsNew('context-menu');
-    await dismissWhatsNew('context-menu');
+    await dismissWhatsNew('2.11.0');
+    await dismissWhatsNew('2.12.0');
 
-    expect(await loadDismissedWhatsNew()).toEqual(['context-menu']);
+    expect(await loadSeenWhatsNewVersion()).toBe('2.12.0');
   });
 
-  it('dismissing a second entry keeps the first', async () => {
-    mocks.bridge = fakeBridge();
-
-    await dismissWhatsNew('context-menu');
-    await dismissWhatsNew('some-later-feature');
-
-    expect(await loadDismissedWhatsNew()).toEqual(['context-menu', 'some-later-feature']);
-  });
-
-  it('falls back to an empty list on corrupt stored data, rather than throwing', async () => {
+  it('ignores the old dismissed-ids key, so the first versioned build shows its notes once', async () => {
     const bridge = fakeBridge();
-    bridge.store.set(STORAGE_KEY, '{not valid json');
+    bridge.store.set('notionultimatebrain:whatsnew-dismissed', JSON.stringify(['context-menu']));
     mocks.bridge = bridge;
 
-    await expect(loadDismissedWhatsNew()).resolves.toEqual([]);
+    expect(await loadSeenWhatsNewVersion()).toBeNull();
   });
 
-  it('falls back to an empty list when the stored value is not an array, rather than throwing', async () => {
-    const bridge = fakeBridge();
-    bridge.store.set(STORAGE_KEY, JSON.stringify({ not: 'an array' }));
-    mocks.bridge = bridge;
-
-    await expect(loadDismissedWhatsNew()).resolves.toEqual([]);
-  });
-
-  it('falls back to an empty list when the bridge read throws, rather than blanking the screen', async () => {
+  it('falls back to null when the bridge read throws, rather than blanking the screen', async () => {
     mocks.bridge = {
       getLocalStorage: vi.fn().mockRejectedValue(new Error('bridge unavailable')),
       setLocalStorage: vi.fn().mockResolvedValue(true),
     };
 
-    await expect(loadDismissedWhatsNew()).resolves.toEqual([]);
+    await expect(loadSeenWhatsNewVersion()).resolves.toBeNull();
+  });
+
+  it('falls back to null when localStorage throws and there is no bridge', async () => {
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: () => {
+          throw new Error('denied');
+        },
+      },
+    });
+
+    await expect(loadSeenWhatsNewVersion()).resolves.toBeNull();
   });
 
   it('a dismiss whose write fails does not throw', async () => {
@@ -121,19 +131,6 @@ describe('loadDismissedWhatsNew', () => {
       setLocalStorage: vi.fn().mockRejectedValue(new Error('bridge unavailable')),
     };
 
-    await expect(dismissWhatsNew('context-menu')).resolves.toBeUndefined();
-  });
-});
-
-describe('WHATS_NEW_ENTRY', () => {
-  it('announces the optional Content relation fix as its only line', () => {
-    expect(WHATS_NEW_ENTRY.title).toBe("What's new");
-    expect(WHATS_NEW_ENTRY.bullets).toEqual([
-      'Make Content relation optional for stock Ultimate Brain',
-    ]);
-  });
-
-  it('uses a new id, so wearers who dismissed the previous card see this one', () => {
-    expect(WHATS_NEW_ENTRY.id).not.toBe('context-menu');
+    await expect(dismissWhatsNew('2.12.0')).resolves.toBeUndefined();
   });
 });

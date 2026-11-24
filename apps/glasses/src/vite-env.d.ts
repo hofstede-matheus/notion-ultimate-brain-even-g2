@@ -18,3 +18,7 @@ interface ImportMeta {
 
 /** Baked in by vite.config.ts's `define` from package.json's version. */
 declare const __APP_VERSION__: string;
+
+/** Baked in by vite.config.ts's `define` from CHANGELOG.md's newest section (see build/changelog.ts);
+ *  `null` only in a dev build whose changelog doesn't match package.json. */
+declare const __RELEASE_NOTES__: import('./build/changelog').ReleaseNotes | null;
